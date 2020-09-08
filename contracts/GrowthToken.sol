@@ -40,9 +40,6 @@ contract SafeMath
 	}
 }
 
-// Published:
-// mainnet 0x09e64c2B61a5f1690Ee6fbeD9baf5D6990F8dFd0
-// ropsten 0x5BaF82B5Eddd5d64E03509F0a7dBa4Cbf88CF455
 contract GrowthToken is ERC20Interface, SafeMath
 {
 	string public name;
