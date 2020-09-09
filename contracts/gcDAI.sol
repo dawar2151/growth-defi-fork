@@ -46,17 +46,7 @@ contract gcDAI is gToken, ERC20, Ownable, ReentrancyGuard
 
 		_setupDecimals(18);
 
-		uint256 bootstrapAmount = 1000000; // Balancer MIN_BALANCE
-		IERC20(Addresses.GRO).safeTransferFrom(_from, address(this), bootstrapAmount);
-		_mint(address(this), bootstrapAmount);
-
-		Pool _pool = Factory(Addresses.Balancer_Factory).newBPool();
-		_pool.bind(address(Addresses.GRO), bootstrapAmount, 500000000000000000); // 50%
-		_pool.bind(address(this), bootstrapAmount, 500000000000000000); // 50%
-		_pool.setSwapFee(10000000000000000); // 1%
-		_pool.finalize();
-
-		pool = _pool;
+		pool = _createLiquidityPool(_from, 1000000, 1000000); // Balancer MIN_BALANCE
 	}
 
 	function calcMintingShares(uint256 _cost, uint256 _reserve, uint256 _supply, uint256 _fee) public pure override returns (uint256 _netShares, uint256 _feeShares)
@@ -91,34 +81,28 @@ contract gcDAI is gToken, ERC20, Ownable, ReentrancyGuard
 		return (_cost, _feeShares);
 	}
 
-	function deposit(uint256 _amount) external override nonReentrant
+	function deposit(uint256 _cost) external override nonReentrant
 	{
 		address _from = msg.sender;
-		require(_amount > 0, "deposit must be greater than 0");
-		token.safeTransferFrom(_from, address(this), _amount);
+		require(_cost > 0, "deposit must be greater than 0");
+		token.safeTransferFrom(_from, address(this), _cost);
 
 		uint256 _reserve = ctoken.balanceOf(address(this));
 		uint256 _supply = totalSupply();
 		uint256 _fee = 10000000000000000; // 1%
 
-		(uint256 _netShares, uint256 _feeShares) = calcMintingShares(_amount, _reserve, _supply, _fee);
+		(uint256 _netShares, uint256 _feeShares) = calcMintingShares(_cost, _reserve, _supply, _fee);
 		_mint(_from, _netShares);
-		_mint(address(this), _feeShares.div(2)); // TODO check if 0.5% fee increases or not supply
+		_mint(address(this), _feeShares); // 0.5% is kept in this contract
 
-		token.approve(address(ctoken), _amount);
-		ctoken.mint(_amount);
+		token.approve(address(ctoken), _cost);
+		ctoken.mint(_cost);
 
 		// TODO USDC borrow
 
-		pool.joinswapExternAmountIn(address(this), _feeShares.div(2), 0);
+		_joinLiquidityPool(_feeShares.div(2));
 
-		uint256 _compBalance = IERC20(Addresses.COMP).balanceOf(address(this));
-		if (IERC20(Addresses.COMP).balanceOf(address(this)) > 0) {
-			Oneinch oneinch = Oneinch(Addresses.Oneinch);
-			IERC20 COMP = IERC20(Addresses.COMP);
-			(uint256 _returnAmount, uint256[] memory _distribution) = oneinch.getExpectedReturn(COMP, ctoken, _compBalance, 100, 0);
-			oneinch.swap(COMP, ctoken, _compBalance, _returnAmount, _distribution, 0);
-		}
+		_convertLiquidityMiningProfits();
 	}
 
 	function withdraw(uint256 _shares) external override nonReentrant
@@ -133,30 +117,29 @@ contract gcDAI is gToken, ERC20, Ownable, ReentrancyGuard
 
 		(uint256 _cost, uint256 _feeShares) = calcBurningCost(_shares, _reserve, _supply, _fee);
 		_burn(_from, _shares);
-		_mint(address(this), _feeShares.div(2)); // TODO check if 0.5% fee increases or not supply
+		_mint(address(this), _feeShares); // 0.5% is kept in this contract
 
 		ctoken.redeemUnderlying(_cost);
 		token.safeTransfer(_from, _cost);
 
 		// TODO USDC repay
 
-		pool.joinswapExternAmountIn(address(this), _feeShares.div(2), 0);
+		_joinLiquidityPool(_feeShares.div(2));
 
-		uint256 _compBalance = IERC20(Addresses.COMP).balanceOf(address(this));
-		if (_compBalance > 0) {
-			Oneinch oneinch = Oneinch(Addresses.Oneinch);
-			IERC20 COMP = IERC20(Addresses.COMP);
-			(uint256 _returnAmount, uint256[] memory _distribution) = oneinch.getExpectedReturn(COMP, ctoken, _compBalance, 100, 0);
-			oneinch.swap(COMP, ctoken, _compBalance, _returnAmount, _distribution, 0);
-		}
+		_convertLiquidityMiningProfits();
 	}
 
 	function burnSwapFees() external override onlyOwner nonReentrant
 	{
 		require(lastFeeBurning + 7 days < now);
-		uint256 _feeShares = 0; // TODO estimate based on swaps
-		pool.exitswapExternAmountOut(address(this), _feeShares, uint256(-1));
+		uint256 _feeStake = 0; // TODO estimate based on swaps
+		uint256 _feeShares = 0;
+
+		_exitLiquidityPool(_feeStake, _feeShares);
+
+		IERC20(Addresses.GRO).safeTransfer(address(0), _feeStake);
 		_burn(address(this), _feeShares);
+
 		lastFeeBurning = now;
 	}
 
@@ -170,9 +153,64 @@ contract gcDAI is gToken, ERC20, Ownable, ReentrancyGuard
 	function completeLiquidityMigration() external override onlyOwner nonReentrant
 	{
 		require(now > migrationLock);
+
+		// TODO verify what/how to move liquidity (moving cDAI will mess with gDAI prices)
 		uint256 _reserve = ctoken.balanceOf(address(this));
-		ctoken.transfer(migrationRecipient, _reserve);
+		IERC20(ctoken).safeTransfer(migrationRecipient, _reserve);
+
+		_migrateLiquidityPool(migrationRecipient);
+
 		migrationLock = uint256(-1);
 		migrationRecipient = address(0);
+	}
+
+	/* Reserves management */
+
+	function _convertLiquidityMiningProfits() internal
+	{
+		uint256 _balance = IERC20(Addresses.COMP).balanceOf(address(this));
+		if (_balance > 0) {
+			// TODO verify 1inch parts parameter
+			Oneinch oneinch = Oneinch(Addresses.Oneinch);
+			IERC20 COMP = IERC20(Addresses.COMP);
+			(uint256 _returnAmount, uint256[] memory _distribution) = oneinch.getExpectedReturn(COMP, ctoken, _balance, 100, 0);
+			oneinch.swap(COMP, ctoken, _balance, _returnAmount, _distribution, 0);
+		}
+	}
+
+	/* LP abstractions */
+
+	function _createLiquidityPool(address _from, uint256 _stakeAmount, uint256 _mintShares) internal returns (Pool _pool)
+	{
+		// TODO verify pool creation parameters
+		IERC20(Addresses.GRO).safeTransferFrom(_from, address(this), _stakeAmount);
+		_mint(address(this), _mintShares);
+
+		_pool = Factory(Addresses.Balancer_Factory).newBPool();
+		_pool.bind(address(Addresses.GRO), _stakeAmount, 500000000000000000); // 50%
+		_pool.bind(address(this), _mintShares, 500000000000000000); // 50%
+		_pool.setSwapFee(100000000000000000); // 10%
+		_pool.finalize();
+		return _pool;
+	}
+
+	function _joinLiquidityPool(uint256 _shares) internal
+	{
+		pool.joinswapExternAmountIn(address(this), _shares, 0);
+	}
+
+	function _exitLiquidityPool(uint256 _stakeAmount, uint256 _shares) internal
+	{
+		uint256 _amountIn = 0; // TODO calculate this
+		uint256[] memory _amountsOut = new uint256[](2);
+		_amountsOut[0] = _stakeAmount;
+		_amountsOut[1] = _shares;
+		pool.exitPool(_amountIn, _amountsOut);
+	}
+
+	function _migrateLiquidityPool(address _recipient) internal
+	{
+		uint256 _balance = pool.balanceOf(address(this));
+		IERC20(pool).safeTransfer(_recipient, _balance);
 	}
 }
