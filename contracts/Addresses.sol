@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.0;
 
-library Addresses
+contract Addresses
 {
 	enum Network { Mainnet, Ropsten, Rinkeby, Kovan, Goerli }
 
@@ -71,7 +71,7 @@ library Addresses
 		// NETWORK == Network.Goerli ? 0x0000000000000000000000000000000000000000 :
 		0x0000000000000000000000000000000000000000;
 
-	address constant Oneinch =
+	address constant Oneinch_Exchange =
 		NETWORK == Network.Mainnet ? 0xC586BeF4a0992C495Cf22e1aeEE4E446CECDee0E :
 		// NETWORK == Network.Ropsten ? 0x0000000000000000000000000000000000000000 :
 		// NETWORK == Network.Rinkeby ? 0x0000000000000000000000000000000000000000 :
