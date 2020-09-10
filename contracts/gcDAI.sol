@@ -45,10 +45,10 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 
 	Pool public pool;
 
-	uint256 lastFeeBurning = 0;
+	uint256 public lastFeeBurningTime = 0;
 
-	uint256 migrationLock = uint256(-1);
-	address migrationRecipient = address(0);
+	address public migrationRecipient = address(0);
+	uint256 public migrationUnlockTime = uint256(-1);
 
 	constructor () ERC20("growth cDAI", "gcDAI") public
 	{
@@ -184,7 +184,7 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 	function burnSwapFees() external override onlyOwner nonReentrant
 	{
 		require(address(pool) != address(0), "pool not allocated");
-		require(lastFeeBurning + 7 days < now, "must wait lock interval");
+		require(lastFeeBurningTime + 7 days < now, "must wait lock interval");
 
 		// TODO estimate based on swaps
 		uint256 _feeStake = 0;
@@ -195,26 +195,26 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 		IERC20(GRO).safeTransfer(address(0), _feeStake);
 		_burn(address(this), _feeShares);
 
-		lastFeeBurning = now;
+		lastFeeBurningTime = now;
 	}
 
 	function initiateLiquidityMigration(address _recipient) external override onlyOwner
 	{
 		require(address(pool) != address(0), "pool not allocated");
 		require(migrationRecipient != address(0), "invalid recipient");
-		migrationLock = now + 7 days;
 		migrationRecipient = _recipient;
+		migrationUnlockTime = now + 7 days;
 	}
 
 	function completeLiquidityMigration() external override onlyOwner nonReentrant
 	{
 		require(migrationRecipient != address(0), "migration not initiated");
-		require(migrationLock < now, "must wait lock interval");
+		require(migrationUnlockTime < now, "must wait lock interval");
 
 		_migrateLiquidityPool(pool, migrationRecipient);
 
-		migrationLock = uint256(-1);
 		migrationRecipient = address(0);
+		migrationUnlockTime = uint256(-1);
 	}
 
 	/* Borrower code */
