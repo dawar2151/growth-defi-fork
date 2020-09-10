@@ -21,7 +21,7 @@ interface GToken is IERC20
 	function calcCostFromUnderlying(uint256 _amount, uint256 _exchangeRate) external pure returns (uint256 _cost);
 	function calcUnderlyingFromCost(uint256 _cost, uint256 _exchangeRate) external pure returns (uint256 _amount);
 
-	function totalReserve() external view returns (uint256 _reserve);
+	function totalReserve() external returns (uint256 _reserve);
 
 	function deposit(uint256 _cost) external;
 	function depositUnderlying(uint256 _amount) external;
@@ -41,7 +41,9 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 	uint256 constant BURN_FEE = 1e16; // 1%
 
 	IERC20 private token = IERC20(DAI);
+	IERC20 private utoken = CToken(USDC);
 	CToken private ctoken = CToken(cDAI);
+	CToken private btoken = CToken(cUSDC);
 
 	Pool public pool;
 
@@ -103,9 +105,9 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 		return _cost.mul(_exchangeRate).div(1e18);
 	}
 
-	function totalReserve() public view override returns (uint256 _reserve)
+	function totalReserve() public override returns (uint256 _reserve)
 	{
-		return ctoken.balanceOf(address(this));
+		return _calcActualReserve();
 	}
 
 	function deposit(uint256 _cost) external override nonReentrant
@@ -228,12 +230,93 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 		require(errors[0] == 0, "enterMarkets failed");
 	}
 
+	function _calcActualReserve() internal returns (uint256 _reserve)
+	{
+		uint256 _bonusCOMP = IERC20(COMP).balanceOf(address(this));
+		uint256 _bonusDAI = _giveExchangeRate(IERC20(COMP), token, _bonusCOMP);
+		uint256 _borrowedUSDC = btoken.borrowBalanceCurrent(address(this));
+		uint256 _borrowedDAI = _takeExchangeRate(token, utoken, _borrowedUSDC);
+		uint256 _balancecDAI = ctoken.balanceOf(address(this));
+		uint256 _balanceDAI = calcUnderlyingFromCost(_balancecDAI, ctoken.exchangeRateCurrent());
+		uint256 _depositDAI = _balanceDAI.add(_bonusDAI).sub(_borrowedDAI);
+		uint256 _depositcDAI = calcCostFromUnderlying(_depositDAI, ctoken.exchangeRateCurrent());
+		return _depositcDAI;
+	}
+
+	uint256 IDEAL_COLLATERIZATION_RATIO = 65e16; // 65%
+	uint256 LIMIT_COLLATERIZATION_RATIO = 70e16; // 70%
+
+	function _adjustLeverage() internal
+	{
+		uint256 _bonusCOMP = IERC20(COMP).balanceOf(address(this));
+		uint256 _bonusDAI = _giveExchangeRate(IERC20(COMP), token, _bonusCOMP);
+
+		uint256 _balancecDAI = ctoken.balanceOf(address(this));
+		uint256 _balanceDAI = calcUnderlyingFromCost(_balancecDAI, ctoken.exchangeRateCurrent());
+
+		uint256 _totalDAI = _balanceDAI.add(_bonusDAI);
+		uint256 _idealBorrowedDAI = _totalDAI.mul(IDEAL_COLLATERIZATION_RATIO).div(1e18);
+		uint256 _limitBorrowedDAI = _totalDAI.mul(LIMIT_COLLATERIZATION_RATIO).div(1e18);
+
+		uint256 _borrowedUSDC = btoken.borrowBalanceCurrent(address(this));
+		uint256 _borrowedDAI = _takeExchangeRate(token, utoken, _borrowedUSDC);
+
+		bool _overCollateralized = _borrowedDAI < _idealBorrowedDAI;
+		bool _underCollateralized = _borrowedDAI > _limitBorrowedDAI;
+
+		if (_overCollateralized) {
+			uint256 _complementDAI = _idealBorrowedDAI.sub(_borrowedDAI);
+			uint256 _complementUSDC = _giveExchangeRate(token, utoken, _complementDAI);
+			uint256 _error = btoken.borrow(_complementUSDC);
+			require(_error == 0, "borrow failure");
+			uint256 _amount = _convertBalance(utoken, token, _complementUSDC, 0, false);
+			token.safeApprove(address(ctoken), _amount);
+			uint256 _result = ctoken.mint(_amount);
+			require(_result == 0, "mint failure");
+		}
+		else
+		if (_underCollateralized) {
+			uint256 _returnDAI = _borrowedDAI.sub(_idealBorrowedDAI);
+			uint256 _result = ctoken.redeemUnderlying(_returnDAI);
+			require(_result == 0, "redeem failure");
+			uint256 _returnUSDC = _convertBalance(token, utoken, _returnDAI, 0, false);
+			utoken.safeApprove(address(btoken), _returnUSDC);
+			uint256 _error = btoken.repayBorrow(_returnUSDC);
+			require(_error == 0, "repayBorrow error");
+		}
+		else {
+			uint256 _returnDAI = _borrowedDAI.sub(_idealBorrowedDAI);
+			uint256 _result = ctoken.redeemUnderlying(_returnDAI);
+			require(_result == 0, "redeem failure");
+			uint256 _returnUSDC = _convertBalance(token, utoken, _returnDAI, 0, false);
+			utoken.safeApprove(address(btoken), _returnUSDC);
+			uint256 _error = btoken.repayBorrow(_returnUSDC);
+			require(_error == 0, "repayBorrow error");
+		}
+/*
+		// maxBuyPrice = 1.05
+		// minSellPrice = 0.95
+
+		// COMPUTED
+		// borrowDAI = borrowUSDC * buyPrice
+		// depositDAI = balanceDAI - borrowDAI
+		// ratio = borrowDAI / depositDAI
+		// overcollaterized = ratio < collateralizationRatio
+		// undercollaterized = ratio > collateralizationRatio + collateralizationMargin
+		// acceptableBuy = buyPrice < maxBuyPrice
+		// acceptableSell = sellPrice > minSellPrice
+
+		// ALGORITHM
+		// if overcollaterized and acceptableSell: borrow()
+		// if undercollaterized or (not overcollaterized and acceptableBuy): repay()
+*/
+	}
+
 	function _adjustOptimalReturns() internal
 	{
+/*
 		Comptroller comptroller = Comptroller(Compound_Comptroller);
 		PriceOracle priceOracle = PriceOracle(comptroller.oracle());
-		IERC20 utoken = IERC20(USDC);
-		CToken btoken = CToken(cUSDC);
 
 		// TODO improve this method to avoid the loop
 		for (;;) {
@@ -254,35 +337,51 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 					_convertBalance(utoken, ctoken, _numUSDCToBorrow, _minExpectedCDAI, false);
 				}
 			}
-/*
+
 			{
 				uint256 _amount = 0;
 				utoken.safeApprove(address(btoken), _amount);
         			uint256 _error = btoken.repayBorrow(_amount);
 				require(_error == 0, "repayBorrow error");
 			}
-*/
+
 
 			break;
 		}
 
 		_convertBalance(IERC20(COMP), ctoken, IERC20(COMP).balanceOf(address(this)), 0, false);
+		*/
 	}
 
 	/* DEX abstraction */
 
-	function _convertBalance(IERC20 _from, IERC20 _to, uint256 _amount, uint256 _minAmount, bool _dryRun) internal returns (bool _success)
+	function _giveExchangeRate(IERC20 _from, IERC20 _to, uint256 _amount) internal view returns (uint256 _retAmount)
 	{
-		if (_amount == 0) return true;
+		if (_amount == 0) return 0;
+		Oneinch oneinch = Oneinch(Oneinch_Exchange);
+		// TODO verify 1inch parts=100 parameter
+		(uint256 _returnAmount,) = oneinch.getExpectedReturn(_from, _to, _amount, 100, 0);
+		return _returnAmount;
+	}
+
+	function _takeExchangeRate(IERC20 _from, IERC20 _to, uint256 _amount) internal view returns (uint256 _returnAmount)
+	{
+		// TODO implement this
+		return 0;
+	}
+
+	function _convertBalance(IERC20 _from, IERC20 _to, uint256 _amount, uint256 _minAmount, bool _dryRun) internal returns (uint256 _success)
+	{
+		if (_amount == 0) return 0;
 		Oneinch oneinch = Oneinch(Oneinch_Exchange);
 		// TODO verify 1inch parts=100 parameter
 		(uint256 _returnAmount, uint256[] memory _distribution) = oneinch.getExpectedReturn(_from, _to, _amount, 100, 0);
-		if (_returnAmount < _minAmount) return false;
+		require(_returnAmount >= _minAmount);
 		if (!_dryRun) {
 			_from.safeApprove(address(oneinch), _amount);
 			oneinch.swap(_from, _to, _amount, _returnAmount, _distribution, 0);
 		}
-		return true;
+		return _returnAmount;
 	}
 
 	/* LP abstractions */
