@@ -140,11 +140,9 @@ interface CToken is IERC20
 	function repayBorrowBehalf(address _borrower, uint256 _repayAmount) external returns (uint256 _errorCode); // ERC20
 	function liquidateBorrow(address _borrower, address _cTokenCollateral) external payable; // ETH
 	function liquidateBorrow(address _borrower, uint256 _repayAmount, address _cTokenCollateral) external returns (uint256 _errorCode); // ERC20
-*/
 	function redeem(uint256 _redeemTokens) external returns (uint256 _errorCode);
-/*
-	function redeemUnderlying(uint256 _redeemAmount) external returns (uint256 _errorCode);
 */
+	function redeemUnderlying(uint256 _redeemAmount) external returns (uint256 _errorCode);
 	function borrow(uint256 _borrowAmount) external returns (uint256 _errorCode);
 /*
 	// function _setComptroller(address _newComptroller) external returns (uint256);

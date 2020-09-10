@@ -174,7 +174,7 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 		_mint(address(this), _feeShares.div(2));
 		if (address(pool) != address(0)) _joinLiquidityPool(pool, 0, balanceOf(address(this)));
 
-		uint256 _result = ctoken.redeem(_cost);
+		uint256 _result = ctoken.redeemUnderlying(_amount);
 		require(_result == 0, "redeem failure");
 		token.safeTransfer(_from, _amount);
 
@@ -232,50 +232,56 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 	{
 		Comptroller comptroller = Comptroller(Compound_Comptroller);
 		PriceOracle priceOracle = PriceOracle(comptroller.oracle());
-		CToken btoken = CToken(cUSDC);
 		IERC20 utoken = IERC20(USDC);
+		CToken btoken = CToken(cUSDC);
 
 		// TODO improve this method to avoid the loop
 		for (;;) {
-			(uint256 error, uint256 liquidity, uint256 shortfall) = comptroller.getAccountLiquidity(address(this));
-			require(error == 0, "getAccountLiquidity failed");
+			uint256 _borrowBalance = btoken.borrowBalanceCurrent(address(this));
+			(uint256 _error, uint256 _liquidity, uint256 _shortfall) = comptroller.getAccountLiquidity(address(this));
+			require(_error == 0, "getAccountLiquidity failed");
 
-			uint256 borrows = btoken.borrowBalanceCurrent(address(this));
-
-			uint256 usdcPriceInWei = priceOracle.getUnderlyingPrice(address(btoken));
-			uint256 maxBorrowUSDCInWei = liquidity.div(usdcPriceInWei);
-
-			uint256 numUSDCToBorrow = maxBorrowUSDCInWei;
-
-			if (numUSDCToBorrow > 0) {
-				btoken.borrow(numUSDCToBorrow * 1e18);
-				_convertBalance(utoken, ctoken, btoken.balanceOf(address(this)), 0);
+			uint256 _usdcPriceInWei = priceOracle.getUnderlyingPrice(address(btoken));
+			uint256 _maxBorrowUSDCInWei = _liquidity.mul(1e18).div(_usdcPriceInWei);
+			uint256 _numUSDCToBorrow = _maxBorrowUSDCInWei; // TODO be conservative
+			if (_numUSDCToBorrow > 0) {
+				uint256 _minExpectedDAI = _numUSDCToBorrow; // TODO add a multiplication factor
+				uint256 _minExpectedCDAI = calcCostFromUnderlying(_minExpectedDAI, ctoken.exchangeRateCurrent());
+				bool _success = _convertBalance(utoken, ctoken, _numUSDCToBorrow, _minExpectedCDAI, true);
+				if (_success) {
+					uint256 _error = btoken.borrow(_numUSDCToBorrow);
+					require(_error == 0, "borrow failure");
+					_convertBalance(utoken, ctoken, _numUSDCToBorrow, _minExpectedCDAI, false);
+				}
 			}
-
+/*
 			{
 				uint256 _amount = 0;
 				utoken.safeApprove(address(btoken), _amount);
         			uint256 _error = btoken.repayBorrow(_amount);
 				require(_error == 0, "repayBorrow error");
 			}
+*/
 
 			break;
 		}
 
-		_convertBalance(IERC20(COMP), ctoken, IERC20(COMP).balanceOf(address(this)), 0);
+		_convertBalance(IERC20(COMP), ctoken, IERC20(COMP).balanceOf(address(this)), 0, false);
 	}
 
 	/* DEX abstraction */
 
-	function _convertBalance(IERC20 _from, IERC20 _to, uint256 _amount, uint256 _minAmount) internal returns (bool _success)
+	function _convertBalance(IERC20 _from, IERC20 _to, uint256 _amount, uint256 _minAmount, bool _dryRun) internal returns (bool _success)
 	{
 		if (_amount == 0) return true;
 		Oneinch oneinch = Oneinch(Oneinch_Exchange);
 		// TODO verify 1inch parts=100 parameter
 		(uint256 _returnAmount, uint256[] memory _distribution) = oneinch.getExpectedReturn(_from, _to, _amount, 100, 0);
 		if (_returnAmount < _minAmount) return false;
-		_from.safeApprove(address(oneinch), _amount);
-		oneinch.swap(_from, _to, _amount, _returnAmount, _distribution, 0);
+		if (!_dryRun) {
+			_from.safeApprove(address(oneinch), _amount);
+			oneinch.swap(_from, _to, _amount, _returnAmount, _distribution, 0);
+		}
 		return true;
 	}
 
