@@ -122,10 +122,12 @@ interface CToken is IERC20
 	function totalBorrowsCurrent() external returns (uint256 _totalBorrows);
 */
 	function borrowBalanceCurrent(address _account) external returns (uint256 _borrowBalance);
-/*
 	function borrowRatePerBlock() external view returns (uint256 _borrowRate);
+/*
 	function balanceOfUnderlying(address _owner) external returns (uint256 _underlyingBalance);
+*/
 	function supplyRatePerBlock() external view returns (uint256 _supplyRate);
+/*
 	function totalReserves() external view returns (uint256 _totalReserves);
 	function reserveFactorMantissa() external view returns (uint256 _reserveFactor);
 	function mint() external payable; // ETH

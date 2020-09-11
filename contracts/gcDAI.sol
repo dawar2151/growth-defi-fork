@@ -23,11 +23,12 @@ interface GToken is IERC20
 	function calcUnderlyingFromCost(uint256 _cost, uint256 _exchangeRate) external pure returns (uint256 _amount);
 
 	function totalReserve() external returns (uint256 _reserve);
-
 	function deposit(uint256 _cost) external;
 	function depositUnderlying(uint256 _amount) external;
 	function withdraw(uint256 _shares) external;
 	function withdrawUnderlying(uint256 _shares) external;
+
+	function setPeriodicBurningRate(uint256 _periodicBurningRate) external;
 	function burnSwapFees() external;
 	function initiateLiquidityMigration(address _recipient) external;
 	function completeLiquidityMigration() external;
@@ -46,9 +47,13 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 	CToken private ctoken = CToken(cDAI);
 	CToken private btoken = CToken(cUSDC);
 
+	bool public borrowProfitable = false;
+
 	Pool public pool;
 
+	uint256 constant MINIMAL_BURNING_INTERVAL = 7 days;
 	uint256 public lastFeeBurningTime = 0;
+	uint256 public periodicBurningRate = 5e15; // 0.5%
 
 	address public migrationRecipient = address(0);
 	uint256 public migrationUnlockTime = uint256(-1);
@@ -181,19 +186,25 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 		_adjustOptimalReturns();
 	}
 
+	function setPeriodicBurningRate(uint256 _periodicBurningRate) public override onlyOwner
+	{
+		require(_periodicBurningRate <= 1e18, "invalid rate");
+		periodicBurningRate = _periodicBurningRate;
+	}
+
 	function burnSwapFees() external override onlyOwner nonReentrant
 	{
 		require(address(pool) != address(0), "pool not allocated");
-		require(lastFeeBurningTime + 7 days < now, "must wait lock interval");
+		require(lastFeeBurningTime + MINIMAL_BURNING_INTERVAL < now, "must wait lock interval");
 
-		// TODO estimate based on swaps
-		uint256 _feeStake = 0;
-		uint256 _feeShares = 0;
+		(uint256 _balanceStake, uint256 _balanceShares) = _accountBalancesLiquidityPool(pool, address(this));
+		uint256 _burnStake = _balanceStake.mul(periodicBurningRate).div(1e18);
+		uint256 _burnShares = _balanceShares.mul(periodicBurningRate).div(1e18);
 
-		_exitLiquidityPool(pool, _feeStake, _feeShares);
+		_exitLiquidityPool(pool, _burnStake, _burnShares);
 
-		IERC20(GRO).safeTransfer(address(0), _feeStake);
-		_burn(address(this), _feeShares);
+		IERC20(GRO).safeTransfer(address(0), _burnStake);
+		_burn(address(this), _burnShares);
 
 		lastFeeBurningTime = now;
 	}
@@ -283,8 +294,6 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 
 	function _adjustOptimalReturns() internal
 	{
-		bool _borrowProfitable = true; // TODO calculate this
-
 		_collectBonus();
 
 		uint256 _balancecDAI = ctoken.balanceOf(address(this));
@@ -299,7 +308,7 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 		bool _overCollateralized = _borrowedDAI < _idealBorrowedDAI;
 		bool _underCollateralized = _borrowedDAI > _limitBorrowedDAI;
 
-		if (_borrowProfitable && _overCollateralized) {
+		if (borrowProfitable && _overCollateralized) {
 			uint256 _complementDAI = _idealBorrowedDAI.sub(_borrowedDAI);
 			if (_complementDAI > MAXIMAL_OPERATIONAL_AMOUNT) _complementDAI = MAXIMAL_OPERATIONAL_AMOUNT;
 			uint256 _complementUSDC = _giveExchangeRate(token, utoken, _complementDAI);
@@ -308,7 +317,7 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 			_lendUnderlying(_resultDAI);
 		}
 		else
-		if (!_borrowProfitable || _underCollateralized) {
+		if (!borrowProfitable || _underCollateralized) {
 			uint256 _returnDAI = _borrowedDAI.sub(_idealBorrowedDAI);
 			if (_returnDAI > MAXIMAL_OPERATIONAL_AMOUNT) _returnDAI = MAXIMAL_OPERATIONAL_AMOUNT;
 			_redeemUnderlying(_returnDAI);
@@ -366,6 +375,17 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 		_pool.setSwapFee(POOL_SWAP_FEE);
 		_pool.finalize();
 		return _pool;
+	}
+
+	function _accountBalancesLiquidityPool(Pool _pool, address _from) internal view returns (uint256 _stakeAmount, uint256 _sharesAmount)
+	{
+		uint256 _supply = _pool.totalSupply();
+		uint256 _balance = _pool.balanceOf(_from);
+		uint256 _stakeBalance = _pool.getBalance(GRO);
+		uint256 _sharesBalance = _pool.getBalance(address(this));
+		_stakeAmount = _stakeBalance.mul(_balance).div(_supply);
+		_sharesAmount = _sharesBalance.mul(_balance).div(_supply);
+		return (_stakeAmount, _sharesAmount);
 	}
 
 	function _joinLiquidityPool(Pool _pool, uint256 _stakeAmount, uint256 _sharesAmount) internal

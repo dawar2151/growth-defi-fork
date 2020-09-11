@@ -32,7 +32,9 @@ interface Pool is IERC20
 	function getDenormalizedWeight(address _token) external view returns (uint256 _weight);
 	function getTotalDenormalizedWeight() external view returns (uint256 _weight);
 	function getNormalizedWeight(address _token) external view returns (uint256 _weight);
+*/
 	function getBalance(address _token) external view returns (uint256 _balance);
+/*
 	function getSwapFee() external view returns (uint256 _swapFee);
 	function getController() external view returns (address _manager);
 */
