@@ -38,5 +38,11 @@ module.exports = {
       provider: () => new HDWalletProvider(privateKey, 'https://goerli.infura.io/v3/' + infuraProjectId),
       skipDryRun: true,
     },
+    development: {
+      network_id: 1,
+      gas: 10000000,
+      provider: () => new HDWalletProvider(privateKey, 'http://localhost:8545/'),
+      skipDryRun: true,
+    },
   }
 };
