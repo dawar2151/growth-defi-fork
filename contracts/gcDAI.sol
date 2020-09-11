@@ -39,8 +39,15 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 	using SafeMath for uint256;
 	using SafeERC20 for IERC20;
 
-	uint256 constant MINT_FEE = 1e16; // 1%
-	uint256 constant BURN_FEE = 1e16; // 1%
+	uint256 constant DEPOSIT_MINT_FEE = 1e16; // 1%
+	uint256 constant WITHDRAWAL_BURN_FEE = 1e16; // 1%
+
+	uint256 constant DEFAULT_BURNING_RATE = 5e15; // 0.5%
+	uint256 constant MINIMAL_BURNING_INTERVAL = 7 days;
+
+	uint256 constant POOL_GRO_WEIGHT = 50e16; // 50%
+	uint256 constant POOL_GTOKEN_WEIGHT = 50e16; // 50%
+	uint256 constant POOL_SWAP_FEE = 10e16; // 10%
 
 	IERC20 private token = IERC20(DAI);
 	IERC20 private utoken = CToken(USDC);
@@ -51,10 +58,10 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 
 	Pool public pool;
 
-	uint256 constant MINIMAL_BURNING_INTERVAL = 7 days;
 	uint256 public lastFeeBurningTime = 0;
-	uint256 public periodicBurningRate = 5e15; // 0.5%
+	uint256 public periodicBurningRate = DEFAULT_BURNING_RATE; // 0.5%
 
+	bool public migrated = false;
 	address public migrationRecipient = address(0);
 	uint256 public migrationUnlockTime = uint256(-1);
 
@@ -67,6 +74,7 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 	function allocateLiquidityPool(uint256 _stakeAmount, uint256 _sharesAmount) public onlyOwner nonReentrant
 	{
 		address _from = msg.sender;
+		require(!migrated, "liquidity has been migrated");
 		require(address(pool) == address(0), "pool already allocated");
 		pool = _createLiquidityPool(_from, _stakeAmount, _sharesAmount);
 	}
@@ -120,8 +128,9 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 	{
 		address _from = msg.sender;
 		require(_cost > 0, "deposit must be greater than 0");
+		require(!migrated, "deposits no longer allowed");
 
-		(uint256 _netShares, uint256 _feeShares) = calcMintingShares(_cost, totalReserve(), totalSupply(), MINT_FEE);
+		(uint256 _netShares, uint256 _feeShares) = calcMintingShares(_cost, totalReserve(), totalSupply(), DEPOSIT_MINT_FEE);
 
 		IERC20(ctoken).safeTransferFrom(_from, address(this), _cost);
 
@@ -136,9 +145,10 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 	{
 		address _from = msg.sender;
 		require(_amount > 0, "deposit must be greater than 0");
+		require(!migrated, "deposits no longer allowed");
 
 		uint256 _cost = calcCostFromUnderlying(_amount, ctoken.exchangeRateCurrent());
-		(uint256 _netShares, uint256 _feeShares) = calcMintingShares(_cost, totalReserve(), totalSupply(), MINT_FEE);
+		(uint256 _netShares, uint256 _feeShares) = calcMintingShares(_cost, totalReserve(), totalSupply(), DEPOSIT_MINT_FEE);
 
 		token.safeTransferFrom(_from, address(this), _amount);
 		_lendUnderlying(_amount);
@@ -156,7 +166,7 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 		require(_shares > 0, "withdraw must be greater than 0");
 		require(_shares <= balanceOf(_from), "insufficient balance");
 
-		(uint256 _cost, uint256 _feeShares) = calcBurningCost(_shares, totalReserve(), totalSupply(), BURN_FEE);
+		(uint256 _cost, uint256 _feeShares) = calcBurningCost(_shares, totalReserve(), totalSupply(), migrated ? 0 : WITHDRAWAL_BURN_FEE);
 
 		_burn(_from, _shares);
 		_mint(address(this), _feeShares.div(2));
@@ -173,7 +183,7 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 		require(_shares > 0, "withdraw must be greater than 0");
 		require(_shares <= balanceOf(_from), "insufficient balance");
 
-		(uint256 _cost, uint256 _feeShares) = calcBurningCost(_shares, totalReserve(), totalSupply(), BURN_FEE);
+		(uint256 _cost, uint256 _feeShares) = calcBurningCost(_shares, totalReserve(), totalSupply(), migrated ? 0 : WITHDRAWAL_BURN_FEE);
 		uint256 _amount = calcUnderlyingFromCost(_cost, ctoken.exchangeRateCurrent());
 
 		_burn(_from, _shares);
@@ -222,10 +232,21 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 		require(migrationRecipient != address(0), "migration not initiated");
 		require(migrationUnlockTime < now, "must wait lock interval");
 
-		_migrateLiquidityPool(pool, migrationRecipient);
+		(uint256 _balanceStake, uint256 _balanceShares) = _accountBalancesLiquidityPool(pool, address(this));
 
+		(uint256 _cost,) = calcBurningCost(_balanceShares, totalReserve(), totalSupply(), 0);
+
+		_exitLiquidityPool(pool, _balanceStake, _balanceShares);
+
+		_burn(address(this), _balanceShares);
+		IERC20(ctoken).safeTransfer(migrationRecipient, _cost);
+
+		IERC20(GRO).safeTransfer(migrationRecipient, _balanceStake);
+
+		migrated = true;
 		migrationRecipient = address(0);
-		migrationUnlockTime = uint256(-1);
+		migrationUnlockTime = 0;
+		pool = Pool(address(0));
 	}
 
 	/* helper functions */
@@ -242,7 +263,6 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 		uint256 _result = ctoken.redeemUnderlying(_amount);
 		require(_result == 0, "redeem failure");
 	}
-
 
 	function _borrowAlternative(uint256 _amount) internal
 	{
@@ -355,12 +375,6 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 		return _returnAmount;
 	}
 
-	/* LP abstractions */
-
-	uint256 constant POOL_GRO_WEIGHT = 50e16; // 50%
-	uint256 constant POOL_GTOKEN_WEIGHT = 50e16; // 50%
-	uint256 constant POOL_SWAP_FEE = 10e16; // 10%
-
 	function _createLiquidityPool(address _from, uint256 _stakeAmount, uint256 _sharesAmount) internal returns (Pool _pool)
 	{
 		IERC20(GRO).safeTransferFrom(_from, address(this), _stakeAmount);
@@ -408,10 +422,5 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 		if (_sharesAmount > 0) {
 			_pool.exitswapExternAmountOut(address(this), _sharesAmount, uint256(-1));
 		}
-	}
-
-	function _migrateLiquidityPool(Pool _pool, address _recipient) internal
-	{
-		IERC20(_pool).safeTransfer(_recipient, _pool.balanceOf(address(this)));
 	}
 }
