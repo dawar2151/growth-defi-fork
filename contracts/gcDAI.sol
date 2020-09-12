@@ -88,12 +88,12 @@ contract BalancerLiquidityPoolAbstraction
 
 	function _getPoolBalances(address _pool, address _token0, address _token1) internal view returns (uint256 _amount0, uint256 _amount1)
 	{
+		uint256 _thisSupply = Pool(_pool).balanceOf(address(this));
 		uint256 _totalSupply = Pool(_pool).totalSupply();
-		uint256 _ownedBalance = Pool(_pool).balanceOf(address(this));
 		uint256 _balance0 = Pool(_pool).getBalance(_token0);
 		uint256 _balance1 = Pool(_pool).getBalance(_token1);
-		_amount0 = _balance0.mul(_ownedBalance).div(_totalSupply);
-		_amount1 = _balance1.mul(_ownedBalance).div(_totalSupply);
+		_amount0 = _balance0.mul(_thisSupply).div(_totalSupply);
+		_amount1 = _balance1.mul(_thisSupply).div(_totalSupply);
 		return (_amount0, _amount1);
 	}
 
