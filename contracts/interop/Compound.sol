@@ -108,7 +108,9 @@ interface CToken is IERC20
 	// function interestRateModel() external view returns (address);
 	// function admin() external view returns (address);
 	// function isCToken() external view returns (bool);
-	// function underlying() external view returns (address);
+*/
+	function underlying() external view returns (address);
+/*
 	// function initialExchangeRateMantissa() external view returns (uint256);
 	// function getAccountSnapshot(address _account) external view returns (uint256, uint256, uint256, uint256);
 	// function exchangeRateStored() external view returns (uint256 _exchangeRateStored);

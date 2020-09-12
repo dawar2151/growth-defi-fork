@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.0;
 
-contract Addresses
+library Addresses
 {
 	enum Network { Mainnet, Ropsten, Rinkeby, Kovan, Goerli }
 
@@ -55,7 +55,7 @@ contract Addresses
 		NETWORK == Network.Goerli ? 0xe16C7165C8FeA64069802aE4c4c9C320783f2b6e :
 		0x0000000000000000000000000000000000000000;
 
-	address constant Compound_Comptroller =
+	address constant Compound_COMPTROLLER =
 		NETWORK == Network.Mainnet ? 0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B :
 		NETWORK == Network.Ropsten ? 0x54188bBeDD7b68228fa89CbDDa5e3e930459C6c6 :
 		NETWORK == Network.Rinkeby ? 0x2EAa9D77AE4D8f9cdD9FAAcd44016E746485bddb :
@@ -63,7 +63,7 @@ contract Addresses
 		NETWORK == Network.Goerli ? 0x627EA49279FD0dE89186A58b8758aD02B6Be2867 :
 		0x0000000000000000000000000000000000000000;
 
-	address constant Balancer_Factory =
+	address constant Balancer_FACTORY =
 		NETWORK == Network.Mainnet ? 0x9424B1412450D0f8Fc2255FAf6046b98213B76Bd :
 		// NETWORK == Network.Ropsten ? 0x0000000000000000000000000000000000000000 :
 		// NETWORK == Network.Rinkeby ? 0x0000000000000000000000000000000000000000 :
@@ -71,7 +71,7 @@ contract Addresses
 		// NETWORK == Network.Goerli ? 0x0000000000000000000000000000000000000000 :
 		0x0000000000000000000000000000000000000000;
 
-	address constant Oneinch_Exchange =
+	address constant Oneinch_EXCHANGE =
 		NETWORK == Network.Mainnet ? 0xC586BeF4a0992C495Cf22e1aeEE4E446CECDee0E :
 		// NETWORK == Network.Ropsten ? 0x0000000000000000000000000000000000000000 :
 		// NETWORK == Network.Rinkeby ? 0x0000000000000000000000000000000000000000 :
@@ -79,7 +79,7 @@ contract Addresses
 		// NETWORK == Network.Goerli ? 0x0000000000000000000000000000000000000000 :
 		0x0000000000000000000000000000000000000000;
 
-	address constant UniswapV2_Factory =
+	address constant UniswapV2_FACTORY =
 		NETWORK == Network.Mainnet ? 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f :
 		NETWORK == Network.Ropsten ? 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f :
 		NETWORK == Network.Rinkeby ? 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f :
@@ -87,7 +87,7 @@ contract Addresses
 		NETWORK == Network.Goerli ? 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f :
 		0x0000000000000000000000000000000000000000;
 
-	address constant UniswapV2_Router01 =
+	address constant UniswapV2_ROUTER01 =
 		NETWORK == Network.Mainnet ? 0xf164fC0Ec4E93095b804a4795bBe1e041497b92a :
 		NETWORK == Network.Ropsten ? 0xf164fC0Ec4E93095b804a4795bBe1e041497b92a :
 		NETWORK == Network.Rinkeby ? 0xf164fC0Ec4E93095b804a4795bBe1e041497b92a :
@@ -95,7 +95,7 @@ contract Addresses
 		NETWORK == Network.Goerli ? 0xf164fC0Ec4E93095b804a4795bBe1e041497b92a :
 		0x0000000000000000000000000000000000000000;
 
-	address constant UniswapV2_Router02 =
+	address constant UniswapV2_ROUTER02 =
 		NETWORK == Network.Mainnet ? 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D :
 		NETWORK == Network.Ropsten ? 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D :
 		NETWORK == Network.Rinkeby ? 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D :

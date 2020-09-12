@@ -9,261 +9,369 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import { Addresses } from "./Addresses.sol";
+import { GToken, GCToken } from "./GToken.sol";
+
 import { Factory, Pool } from "./interop/Balancer.sol";
 import { Comptroller, PriceOracle, CToken } from "./interop/Compound.sol";
 import { Oneinch } from "./interop/Oneinch.sol";
 
-interface GToken is IERC20
-{
-	function calcMintingShares(uint256 _cost, uint256 _reserve, uint256 _supply, uint256 _fee) external pure returns (uint256 _netShares, uint256 _feeShares);
-	function calcMintingCost(uint256 _netShares, uint256 _reserve, uint256 _supply, uint256 _fee) external pure returns (uint256 _cost, uint256 _feeShares);
-	function calcBurningShares(uint256 _cost, uint256 _reserve, uint256 _supply, uint256 _fee) external pure returns (uint256 _grossShares, uint256 _feeShares);
-	function calcBurningCost(uint256 _grossShares, uint256 _reserve, uint256 _supply, uint256 _fee) external pure returns (uint256 _cost, uint256 _feeShares);
-	function calcCostFromUnderlying(uint256 _amount, uint256 _exchangeRate) external pure returns (uint256 _cost);
-	function calcUnderlyingFromCost(uint256 _cost, uint256 _exchangeRate) external pure returns (uint256 _amount);
-
-	function totalReserve() external returns (uint256 _reserve);
-	function deposit(uint256 _cost) external;
-	function depositUnderlying(uint256 _amount) external;
-	function withdraw(uint256 _shares) external;
-	function withdrawUnderlying(uint256 _shares) external;
-
-	function setPeriodicBurningRate(uint256 _periodicBurningRate) external;
-	function burnSwapFees() external;
-	function initiateLiquidityMigration(address _recipient) external;
-	function completeLiquidityMigration() external;
-}
-
-contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
+contract GFormulae
 {
 	using SafeMath for uint256;
-	using SafeERC20 for IERC20;
 
-	uint256 constant DEPOSIT_MINT_FEE = 1e16; // 1%
-	uint256 constant WITHDRAWAL_BURN_FEE = 1e16; // 1%
-
-	uint256 constant DEFAULT_BURNING_RATE = 5e15; // 0.5%
-	uint256 constant MINIMAL_BURNING_INTERVAL = 7 days;
-
-	uint256 constant POOL_GRO_WEIGHT = 50e16; // 50%
-	uint256 constant POOL_GTOKEN_WEIGHT = 50e16; // 50%
-	uint256 constant POOL_SWAP_FEE = 10e16; // 10%
-
-	IERC20 private token = IERC20(DAI);
-	IERC20 private utoken = CToken(USDC);
-	CToken private ctoken = CToken(cDAI);
-	CToken private btoken = CToken(cUSDC);
-
-	bool public borrowProfitable = false;
-
-	Pool public pool;
-
-	uint256 public lastFeeBurningTime = 0;
-	uint256 public periodicBurningRate = DEFAULT_BURNING_RATE; // 0.5%
-
-	bool public migrated = false;
-	address public migrationRecipient = address(0);
-	uint256 public migrationUnlockTime = uint256(-1);
-
-	constructor () ERC20("growth cDAI", "gcDAI") public
+	function _calcDepositSharesFromCost(uint256 _cost, uint256 _totalReserve, uint256 _totalSupply, uint256 _depositFee) internal pure returns (uint256 _netShares, uint256 _feeShares)
 	{
-		_setupDecimals(18);
-		_initializeOptimalReturns();
-	}
-
-	function allocateLiquidityPool(uint256 _stakeAmount, uint256 _sharesAmount) public onlyOwner nonReentrant
-	{
-		address _from = msg.sender;
-		require(!migrated, "liquidity has been migrated");
-		require(address(pool) == address(0), "pool already allocated");
-		pool = _createLiquidityPool(_from, _stakeAmount, _sharesAmount);
-	}
-
-	function calcMintingShares(uint256 _cost, uint256 _reserve, uint256 _supply, uint256 _fee) public pure override returns (uint256 _netShares, uint256 _feeShares)
-	{
-		uint256 _grossShares = _reserve == 0 ? _cost : _cost.mul(_supply).div(_reserve);
-		_netShares = _grossShares.mul(1e18).div(_fee.add(1e18));
+		uint256 _grossShares = _totalReserve == 0 ? _cost : _cost.mul(_totalSupply).div(_totalReserve);
+		_netShares = _grossShares.mul(1e18).div(_depositFee.add(1e18));
 		_feeShares = _grossShares.sub(_netShares);
 		return (_netShares, _feeShares);
 	}
 
-	function calcMintingCost(uint256 _netShares, uint256 _reserve, uint256 _supply, uint256 _fee) public pure override returns (uint256 _cost, uint256 _feeShares)
+	function _calcDepositCostFromShares(uint256 _netShares, uint256 _totalReserve, uint256 _totalSupply, uint256 _depositFee) internal pure returns (uint256 _cost, uint256 _feeShares)
 	{
-		uint256 _grossShares = _netShares.mul(_fee.add(1e18)).div(1e18);
-		_cost = _supply == 0 ? _grossShares : _grossShares.mul(_reserve).div(_supply);
+		uint256 _grossShares = _netShares.mul(_depositFee.add(1e18)).div(1e18);
+		_cost = _totalSupply == 0 ? _grossShares : _grossShares.mul(_totalReserve).div(_totalSupply);
 		_feeShares = _grossShares.sub(_netShares);
 		return (_cost, _feeShares);
 	}
 
-	function calcBurningShares(uint256 _cost, uint256 _reserve, uint256 _supply, uint256 _fee) public pure override returns (uint256 _grossShares, uint256 _feeShares)
+	function _calcWithdrawalSharesFromCost(uint256 _cost, uint256 _totalReserve, uint256 _totalSupply, uint256 _withdrawalFee) internal pure returns (uint256 _grossShares, uint256 _feeShares)
 	{
-		uint256 _netShares = _reserve == 0 ? _cost : _cost.mul(_supply).div(_reserve);
-		_grossShares = _netShares.mul(1e18).div(_fee.sub(1e18));
+		uint256 _netShares = _totalReserve == 0 ? _cost : _cost.mul(_totalSupply).div(_totalReserve);
+		_grossShares = _netShares.mul(1e18).div(_withdrawalFee.sub(1e18));
 		_feeShares = _grossShares.sub(_netShares);
 		return (_grossShares, _feeShares);
 	}
 
-	function calcBurningCost(uint256 _grossShares, uint256 _reserve, uint256 _supply, uint256 _fee) public pure override returns (uint256 _cost, uint256 _feeShares)
+	function _calcWithdrawalCostFromShares(uint256 _grossShares, uint256 _totalReserve, uint256 _totalSupply, uint256 _withdrawalFee) internal pure returns (uint256 _cost, uint256 _feeShares)
 	{
-		uint256 _netShares = _grossShares.mul(_fee.sub(1e18)).div(1e18);
-		_cost = _supply == 0 ? _netShares : _netShares.mul(_reserve).div(_supply);
+		uint256 _netShares = _grossShares.mul(_withdrawalFee.sub(1e18)).div(1e18);
+		_cost = _totalSupply == 0 ? _netShares : _netShares.mul(_totalReserve).div(_totalSupply);
 		_feeShares = _grossShares.sub(_netShares);
 		return (_cost, _feeShares);
 	}
+}
 
-	function calcCostFromUnderlying(uint256 _amount, uint256 _exchangeRate) public pure override returns (uint256 _cost) {
-		return _amount.mul(1e18).div(_exchangeRate);
+contract GCFormulae is GFormulae
+{
+	function _calcCostFromUnderlyingCost(uint256 _underlyingCost, uint256 _exchangeRate) internal pure returns (uint256 _cost)
+	{
+		return _underlyingCost.mul(1e18).div(_exchangeRate);
 	}
 
-	function calcUnderlyingFromCost(uint256 _cost, uint256 _exchangeRate) public pure override returns (uint256 _amount) {
+	function _calcUnderlyingCostFromCost(uint256 _cost, uint256 _exchangeRate) internal pure returns (uint256 _underlyingCost)
+	{
 		return _cost.mul(_exchangeRate).div(1e18);
 	}
+}
 
-	function totalReserve() public override returns (uint256 _reserve)
+contract BalancerLiquidityPoolAbstraction
+{
+	using SafeMath for uint256;
+	using SafeERC20 for IERC20;
+
+	uint256 constant TOKEN0_WEIGHT = 50e16; // 50%
+	uint256 constant TOKEN1_WEIGHT = 50e16; // 50%
+	uint256 constant SWAP_FEE = 10e16; // 10%
+
+	function _createPool(address _token0, uint256 _amount0, address _token1, uint256 _amount1) internal returns (address _pool)
 	{
-		return _calcActualReserve();
+		_pool = Factory(Addresses.Balancer_FACTORY).newBPool();
+		IERC20(_token0).safeApprove(_pool, _amount0);
+		Pool(_pool).bind(_token0, _amount0, TOKEN0_WEIGHT);
+		IERC20(_token1).safeApprove(_pool, _amount1);
+		Pool(_pool).bind(_token1, _amount1, TOKEN1_WEIGHT);
+		Pool(_pool).setSwapFee(SWAP_FEE);
+		Pool(_pool).finalize();
+		return _pool;
+	}
+
+	function _getPoolBalances(address _pool, address _token0, address _token1) internal view returns (uint256 _amount0, uint256 _amount1)
+	{
+		uint256 _totalSupply = Pool(_pool).totalSupply();
+		uint256 _ownedBalance = Pool(_pool).balanceOf(address(this));
+		uint256 _balance0 = Pool(_pool).getBalance(_token0);
+		uint256 _balance1 = Pool(_pool).getBalance(_token1);
+		_amount0 = _balance0.mul(_ownedBalance).div(_totalSupply);
+		_amount1 = _balance1.mul(_ownedBalance).div(_totalSupply);
+		return (_amount0, _amount1);
+	}
+
+	function _joinPool(address _pool, address _token0, uint256 _amount0, address _token1, uint256 _amount1) internal
+	{
+		if (_amount0 > 0) {
+			IERC20(_token0).safeApprove(_pool, _amount0);
+			Pool(_pool).joinswapExternAmountIn(_token0, _amount0, 0);
+		}
+		if (_amount1 > 0) {
+			IERC20(_token1).safeApprove(_pool, _amount1);
+			Pool(_pool).joinswapExternAmountIn(_token1, _amount1, 0);
+		}
+	}
+
+	function _exitPool(address _pool, address _token0, uint256 _amount0, address _token1, uint256 _amount1) internal
+	{
+		if (_amount0 > 0) {
+			Pool(_pool).exitswapExternAmountOut(_token0, _amount0, uint256(-1));
+		}
+		if (_amount1 > 0) {
+			Pool(_pool).exitswapExternAmountOut(_token1, _amount1, uint256(-1));
+		}
+	}
+}
+
+contract Transfers
+{
+	using SafeERC20 for IERC20;
+
+	function _getBalance(address _token) internal view returns (uint256 _balance)
+	{
+		return IERC20(_token).balanceOf(address(this));
+	}
+
+	function _pullFunds(address _token, address _from, uint256 _amount) internal
+	{
+		IERC20(_token).safeTransferFrom(_from, address(this), _amount);
+	}
+
+	function _pushFunds(address _token, address _to, uint256 _amount) internal
+	{
+		IERC20(_token).safeTransfer(_to, _amount);
+	}
+}
+
+contract GLiquidityPoolManager is Transfers, BalancerLiquidityPoolAbstraction
+{
+	enum State { Created, Allocated, Migrating, Migrated }
+
+	uint256 constant BURNING_RATE = 5e15; // 0.5%
+	uint256 constant BURNING_INTERVAL = 7 days;
+	uint256 constant MIGRATION_INTERVAL = 7 days;
+
+	address public immutable stakeToken;
+	address public immutable sharesToken;
+
+	State public state = State.Created;
+	address public liquidityPool = address(0);
+
+	uint256 public burningRate = BURNING_RATE;
+	uint256 public lastBurningTime = 0;
+
+	address public migrationRecipient = address(0);
+	uint256 public migrationUnlockTime = uint256(-1);
+
+	constructor (address _stakeToken, address _sharesToken) internal
+	{
+		stakeToken = _stakeToken;
+		sharesToken = _sharesToken;
+	}
+
+	function _hasPool() internal view returns (bool _hasMigrated)
+	{
+		return state == State.Allocated || state == State.Migrating;
+	}
+
+	function _gulpPoolAssets() internal
+	{
+		if (_hasPool()) {
+			_joinPool(liquidityPool, stakeToken, _getBalance(stakeToken), sharesToken, _getBalance(sharesToken));
+		}
+	}
+
+	function _setBurningRate(uint256 _burningRate) internal
+	{
+		require(_burningRate <= 1e18, "invalid rate");
+		burningRate = _burningRate;
+	}
+
+	function _burnPoolPortion() internal returns (uint256 _stakeAmount, uint256 _sharesAmount)
+	{
+		require(_hasPool(), "pool not available");
+		require(now > lastBurningTime + BURNING_INTERVAL, "must wait lock interval");
+		(_stakeAmount, _sharesAmount) = _getPoolBalances(liquidityPool, stakeToken, sharesToken);
+		_stakeAmount = _stakeAmount.mul(burningRate).div(1e18);
+		_sharesAmount = _sharesAmount.mul(burningRate).div(1e18);
+		_exitPool(liquidityPool, stakeToken, _stakeAmount, sharesToken, _sharesAmount);
+		lastBurningTime = now;
+	}
+
+	function _allocatePool(uint256 _stakeAmount, uint256 _sharesAmount) internal
+	{
+		require(state == State.Created, "pool cannot be allocated");
+		liquidityPool = _createPool(stakeToken, _stakeAmount, sharesToken, _sharesAmount);
+		state = State.Allocated;
+	}
+
+	function _initiatePoolMigration(address _migrationRecipient) internal
+	{
+		require(state == State.Allocated, "pool not allocated");
+		migrationRecipient = _migrationRecipient;
+		migrationUnlockTime = now + MIGRATION_INTERVAL;
+		state = State.Migrating;
+	}
+
+	function _cancelPoolMigration() internal
+	{
+		require(state == State.Migrating, "migration not initiated");
+		migrationRecipient = address(0);
+		migrationUnlockTime = uint256(-1);
+		state = State.Allocated;
+	}
+
+	function _completePoolMigration() internal returns (address _migrationRecipient, uint256 _stakeAmount, uint256 _sharesAmount)
+	{
+		require(state == State.Migrating, "migration not initiated");
+		require(now >= migrationUnlockTime, "must wait lock interval");
+		(_stakeAmount, _sharesAmount) = _getPoolBalances(liquidityPool, stakeToken, sharesToken);
+		_exitPool(liquidityPool, stakeToken, _stakeAmount, sharesToken, _sharesAmount);
+		state = State.Migrated;
+		return (migrationRecipient, _stakeAmount, _sharesAmount);
+	}
+}
+
+contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiquidityPoolManager
+{
+	uint256 constant DEPOSIT_FEE = 1e16; // 1%
+	uint256 constant WITHDRAWAL_FEE = 1e16; // 1%
+
+	address public immutable reserveToken;
+
+	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakeToken, address _reserveToken)
+		ERC20(_name, _symbol) GLiquidityPoolManager(_stakeToken, address(this)) public
+	{
+		_setupDecimals(_decimals);
+		reserveToken = _reserveToken;
+	}
+
+	function calcDepositSharesFromCost(uint256 _cost, uint256 _totalReserve, uint256 _totalSupply, uint256 _depositFee) public pure override returns (uint256 _netShares, uint256 _feeShares)
+	{
+		return _calcDepositSharesFromCost(_cost, _totalReserve, _totalSupply, _depositFee);
+	}
+
+	function calcDepositCostFromShares(uint256 _netShares, uint256 _totalReserve, uint256 _totalSupply, uint256 _depositFee) public pure override returns (uint256 _cost, uint256 _feeShares)
+	{
+		return _calcDepositCostFromShares(_netShares, _totalReserve, _totalSupply, _depositFee);
+	}
+
+	function calcWithdrawalSharesFromCost(uint256 _cost, uint256 _totalReserve, uint256 _totalSupply, uint256 _withdrawalFee) public pure override returns (uint256 _grossShares, uint256 _feeShares)
+	{
+		return _calcWithdrawalSharesFromCost(_cost, _totalReserve, _totalSupply, _withdrawalFee);
+	}
+
+	function calcWithdrawalCostFromShares(uint256 _grossShares, uint256 _totalReserve, uint256 _totalSupply, uint256 _withdrawalFee) public pure override returns (uint256 _cost, uint256 _feeShares)
+	{
+		return _calcWithdrawalCostFromShares(_grossShares, _totalReserve, _totalSupply, _withdrawalFee);
+	}
+
+	function depositFee() public view returns (uint256 _depositFee) {
+		return _hasPool() ? DEPOSIT_FEE : 0;
+	}
+
+	function withdrawalFee() public view returns (uint256 _withdrawalFee) {
+		return _hasPool() ? WITHDRAWAL_FEE : 0;
+	}
+
+	function totalReserve() public override returns (uint256 _totalReserve)
+	{
+		return _getBalance(reserveToken);
 	}
 
 	function deposit(uint256 _cost) external override nonReentrant
 	{
 		address _from = msg.sender;
 		require(_cost > 0, "deposit must be greater than 0");
-		require(!migrated, "deposits no longer allowed");
-
-		(uint256 _netShares, uint256 _feeShares) = calcMintingShares(_cost, totalReserve(), totalSupply(), DEPOSIT_MINT_FEE);
-
-		IERC20(ctoken).safeTransferFrom(_from, address(this), _cost);
-
+		(uint256 _netShares, uint256 _feeShares) = calcDepositSharesFromCost(_cost, totalReserve(), totalSupply(), depositFee());
+		_pullFunds(reserveToken, _from, _cost);
 		_mint(_from, _netShares);
-		_mint(address(this), _feeShares.div(2));
-		if (address(pool) != address(0)) _joinLiquidityPool(pool, 0, balanceOf(address(this)));
-
-		_adjustOptimalReturns();
+		_mint(sharesToken, _feeShares.div(2));
+		_gulpPoolAssets();
 	}
 
-	function depositUnderlying(uint256 _amount) external override nonReentrant
+	function withdraw(uint256 _grossShares) external override nonReentrant
 	{
 		address _from = msg.sender;
-		require(_amount > 0, "deposit must be greater than 0");
-		require(!migrated, "deposits no longer allowed");
-
-		uint256 _cost = calcCostFromUnderlying(_amount, ctoken.exchangeRateCurrent());
-		(uint256 _netShares, uint256 _feeShares) = calcMintingShares(_cost, totalReserve(), totalSupply(), DEPOSIT_MINT_FEE);
-
-		token.safeTransferFrom(_from, address(this), _amount);
-		_lendUnderlying(_amount);
-
-		_mint(_from, _netShares);
-		_mint(address(this), _feeShares.div(2));
-		if (address(pool) != address(0)) _joinLiquidityPool(pool, 0, balanceOf(address(this)));
-
-		_adjustOptimalReturns();
+		require(_grossShares > 0, "withdraw must be greater than 0");
+		(uint256 _cost, uint256 _feeShares) = calcWithdrawalCostFromShares(_grossShares, totalReserve(), totalSupply(), withdrawalFee());
+		_pushFunds(reserveToken, _from, _cost);
+		_burn(_from, _grossShares);
+		_mint(sharesToken, _feeShares.div(2));
+		_gulpPoolAssets();
 	}
 
-	function withdraw(uint256 _shares) external override nonReentrant
+	function allocateLiquidityPool(uint256 _stakeAmount, uint256 _sharesAmount) public override onlyOwner nonReentrant
 	{
 		address _from = msg.sender;
-		require(_shares > 0, "withdraw must be greater than 0");
-		require(_shares <= balanceOf(_from), "insufficient balance");
-
-		(uint256 _cost, uint256 _feeShares) = calcBurningCost(_shares, totalReserve(), totalSupply(), migrated ? 0 : WITHDRAWAL_BURN_FEE);
-
-		_burn(_from, _shares);
-		_mint(address(this), _feeShares.div(2));
-		if (address(pool) != address(0)) _joinLiquidityPool(pool, 0, balanceOf(address(this)));
-
-		IERC20(ctoken).safeTransfer(_from, _cost);
-
-		_adjustOptimalReturns();
+		_pullFunds(stakeToken, _from, _stakeAmount);
+		_pullFunds(sharesToken, _from, _sharesAmount);
+		_allocatePool(_stakeAmount, _sharesAmount);
 	}
 
-	function withdrawUnderlying(uint256 _shares) external override nonReentrant
+	function setLiquidityPoolBurningRate(uint256 _burningRate) public override onlyOwner nonReentrant
 	{
-		address _from = msg.sender;
-		require(_shares > 0, "withdraw must be greater than 0");
-		require(_shares <= balanceOf(_from), "insufficient balance");
-
-		(uint256 _cost, uint256 _feeShares) = calcBurningCost(_shares, totalReserve(), totalSupply(), migrated ? 0 : WITHDRAWAL_BURN_FEE);
-		uint256 _amount = calcUnderlyingFromCost(_cost, ctoken.exchangeRateCurrent());
-
-		_burn(_from, _shares);
-		_mint(address(this), _feeShares.div(2));
-		if (address(pool) != address(0)) _joinLiquidityPool(pool, 0, balanceOf(address(this)));
-
-		_redeemUnderlying(_amount);
-		token.safeTransfer(_from, _amount);
-
-		_adjustOptimalReturns();
+		_setBurningRate(_burningRate);
 	}
 
-	function setPeriodicBurningRate(uint256 _periodicBurningRate) public override onlyOwner
+	function burnLiquidityPoolPortion() public override onlyOwner nonReentrant
 	{
-		require(_periodicBurningRate <= 1e18, "invalid rate");
-		periodicBurningRate = _periodicBurningRate;
+		(uint256 _stakeAmount, uint256 _sharesAmount) = _burnPoolPortion();
+		_pushFunds(stakeToken, address(0), _stakeAmount);
+		_burn(sharesToken, _sharesAmount);
+		emit BurnLiquidityPoolPortion(_stakeAmount, _sharesAmount);
 	}
 
-	function burnSwapFees() external override onlyOwner nonReentrant
+	function initiateLiquidityPoolMigration(address _migrationRecipient) public override onlyOwner nonReentrant
 	{
-		require(address(pool) != address(0), "pool not allocated");
-		require(lastFeeBurningTime + MINIMAL_BURNING_INTERVAL < now, "must wait lock interval");
-
-		(uint256 _balanceStake, uint256 _balanceShares) = _accountBalancesLiquidityPool(pool, address(this));
-		uint256 _burnStake = _balanceStake.mul(periodicBurningRate).div(1e18);
-		uint256 _burnShares = _balanceShares.mul(periodicBurningRate).div(1e18);
-
-		_exitLiquidityPool(pool, _burnStake, _burnShares);
-
-		IERC20(GRO).safeTransfer(address(0), _burnStake);
-		_burn(address(this), _burnShares);
-
-		lastFeeBurningTime = now;
+		_initiatePoolMigration(_migrationRecipient);
+		emit InitiateLiquidityPoolMigration();
 	}
 
-	function initiateLiquidityMigration(address _recipient) external override onlyOwner
+	function cancelLiquidityPoolMigration() public override onlyOwner nonReentrant
 	{
-		require(address(pool) != address(0), "pool not allocated");
-		require(migrationRecipient != address(0), "invalid recipient");
-		migrationRecipient = _recipient;
-		migrationUnlockTime = now + 7 days;
+		_cancelPoolMigration();
+		emit CancelLiquidityPoolMigration();
 	}
 
-	function completeLiquidityMigration() external override onlyOwner nonReentrant
+	function completeLiquidityPoolMigration() public override onlyOwner nonReentrant
 	{
-		require(migrationRecipient != address(0), "migration not initiated");
-		require(migrationUnlockTime < now, "must wait lock interval");
-
-		(uint256 _balanceStake, uint256 _balanceShares) = _accountBalancesLiquidityPool(pool, address(this));
-
-		(uint256 _cost,) = calcBurningCost(_balanceShares, totalReserve(), totalSupply(), 0);
-
-		_exitLiquidityPool(pool, _balanceStake, _balanceShares);
-
-		_burn(address(this), _balanceShares);
-		IERC20(ctoken).safeTransfer(migrationRecipient, _cost);
-
-		IERC20(GRO).safeTransfer(migrationRecipient, _balanceStake);
-
-		migrated = true;
-		migrationRecipient = address(0);
-		migrationUnlockTime = 0;
-		pool = Pool(address(0));
+		(address _to, uint256 _stakeAmount, uint256 _sharesAmount) = _completePoolMigration();
+		_pushFunds(stakeToken, _to, _stakeAmount);
+		_pushFunds(sharesToken, _to, _sharesAmount);
+		emit CompleteLiquidityPoolMigration();
 	}
 
-	/* helper functions */
+	event BurnLiquidityPoolPortion(uint256 _stakeAmount, uint256 _sharesAmount);
+	event InitiateLiquidityPoolMigration();
+	event CancelLiquidityPoolMigration();
+	event CompleteLiquidityPoolMigration();
+}
 
-	function _lendUnderlying(uint256 _amount) internal
+contract CompoundLendingMarketAbstraction
+{
+	using SafeERC20 for IERC20;
+
+	function _getUnderlyingToken(address _ctoken) internal view returns (address _token)
 	{
-		token.safeApprove(address(ctoken), _amount);
-		uint256 _result = ctoken.mint(_amount);
+		return CToken(_ctoken).underlying();
+	}
+
+	function _getExchangeRate(address _ctoken, address /* _token */) internal returns (uint256 _exchangeRate)
+	{
+		return CToken(_ctoken).exchangeRateCurrent();
+	}
+
+	function _lend(address _ctoken, uint256 /* _camount */, address _token, uint256 _amount) internal
+	{
+		IERC20(_token).safeApprove(_ctoken, _amount);
+		uint256 _result = CToken(_ctoken).mint(_amount);
 		require(_result == 0, "lend failure");
 	}
 
-	function _redeemUnderlying(uint256 _amount) internal
+	function _redeem(address _ctoken, uint256 /* _camount */, address /* _token */, uint256 _amount) internal
 	{
-		uint256 _result = ctoken.redeemUnderlying(_amount);
+		uint256 _result = CToken(_ctoken).redeemUnderlying(_amount);
 		require(_result == 0, "redeem failure");
 	}
-
+/*
 	function _borrowAlternative(uint256 _amount) internal
 	{
 		uint256 _result = btoken.borrow(_amount);
@@ -276,8 +384,81 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 		uint256 _result = btoken.repayBorrow(_amount);
 		require(_result == 0, "repay failure");
 	}
+*/
+}
 
-	/* Borrower code */
+contract GCTokenBase is GTokenBase, GCToken, GCFormulae, CompoundLendingMarketAbstraction
+{
+	address public immutable underlyingToken;
+
+	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakeToken, address _reserveToken)
+		GTokenBase(_name, _symbol, _decimals, _stakeToken, _reserveToken) public
+	{
+		underlyingToken = _getUnderlyingToken(_reserveToken);
+	}
+
+	function calcCostFromUnderlyingCost(uint256 _underlyingCost, uint256 _exchangeRate) public pure override returns (uint256 _cost)
+	{
+		return _calcCostFromUnderlyingCost(_underlyingCost, _exchangeRate);
+	}
+
+	function calcUnderlyingCostFromCost(uint256 _cost, uint256 _exchangeRate) public pure override returns (uint256 _underlyingCost)
+	{
+		return _calcUnderlyingCostFromCost(_cost, _exchangeRate);
+	}
+
+	function totalReserveUnderlying() public override returns (uint256 _totalReserveUnderlying)
+	{
+		return _calcUnderlyingCostFromCost(totalReserve(), _getExchangeRate(reserveToken, underlyingToken));
+	}
+
+	function depositUnderlying(uint256 _underlyingCost) external override nonReentrant
+	{
+		address _from = msg.sender;
+		require(_underlyingCost > 0, "deposit must be greater than 0");
+		uint256 _cost = _calcCostFromUnderlyingCost(_underlyingCost, _getExchangeRate(reserveToken, underlyingToken));
+		(uint256 _netShares, uint256 _feeShares) = calcDepositSharesFromCost(_cost, totalReserve(), totalSupply(), depositFee());
+		_pullFunds(underlyingToken, _from, _underlyingCost);
+		_mint(_from, _netShares);
+		_mint(sharesToken, _feeShares.div(2));
+		_lend(reserveToken, _cost, underlyingToken, _underlyingCost);
+		_gulpPoolAssets();
+	}
+
+	function withdrawUnderlying(uint256 _grossShares) external override nonReentrant
+	{
+		address _from = msg.sender;
+		require(_grossShares > 0, "withdraw must be greater than 0");
+		(uint256 _cost, uint256 _feeShares) = calcWithdrawalCostFromShares(_grossShares, totalReserve(), totalSupply(), withdrawalFee());
+		uint256 _underlyingCost = _calcUnderlyingCostFromCost(_cost, _getExchangeRate(reserveToken, underlyingToken));
+		_redeem(reserveToken, _cost, underlyingToken, _underlyingCost);
+		_pushFunds(underlyingToken, _from, _underlyingCost);
+		_burn(_from, _grossShares);
+		_mint(sharesToken, _feeShares.div(2));
+		_gulpPoolAssets();
+	}
+}
+
+contract gcDAI is GCTokenBase
+{
+/*
+	IERC20 private utoken = CToken(USDC);
+	CToken private btoken = CToken(cUSDC);
+
+	bool public borrowProfitable = false;
+*/
+	constructor ()
+		GCTokenBase("growth cDAI", "gcDAI", 18, Addresses.GRO, Addresses.cDAI) public
+	{
+/*
+		_initializeOptimalReturns();
+*/
+	}
+/*
+	function totalReserve() public override returns (uint256 _reserve)
+	{
+		return _calcActualReserve();
+	}
 
 	function _initializeOptimalReturns() internal
 	{
@@ -346,7 +527,7 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 		}
 	}
 
-	/* DEX abstraction */
+	/* DEX abstraction * /
 
 	uint256 constant ONEINCH_PARTS = 100;
 
@@ -374,53 +555,5 @@ contract gcDAI is ERC20, Ownable, ReentrancyGuard, Addresses, GToken
 		oneinch.swap(_from, _to, _amount, _returnAmount, _distribution, 0);
 		return _returnAmount;
 	}
-
-	function _createLiquidityPool(address _from, uint256 _stakeAmount, uint256 _sharesAmount) internal returns (Pool _pool)
-	{
-		IERC20(GRO).safeTransferFrom(_from, address(this), _stakeAmount);
-		IERC20(GRO).safeApprove(address(_pool), _stakeAmount);
-
-		IERC20(this).safeTransferFrom(_from, address(this), _sharesAmount);
-		IERC20(this).safeApprove(address(_pool), _sharesAmount);
-
-		_pool = Factory(Balancer_Factory).newBPool();
-		_pool.bind(GRO, _stakeAmount, POOL_GRO_WEIGHT);
-		_pool.bind(address(this), _sharesAmount, POOL_GTOKEN_WEIGHT);
-		_pool.setSwapFee(POOL_SWAP_FEE);
-		_pool.finalize();
-		return _pool;
-	}
-
-	function _accountBalancesLiquidityPool(Pool _pool, address _from) internal view returns (uint256 _stakeAmount, uint256 _sharesAmount)
-	{
-		uint256 _supply = _pool.totalSupply();
-		uint256 _balance = _pool.balanceOf(_from);
-		uint256 _stakeBalance = _pool.getBalance(GRO);
-		uint256 _sharesBalance = _pool.getBalance(address(this));
-		_stakeAmount = _stakeBalance.mul(_balance).div(_supply);
-		_sharesAmount = _sharesBalance.mul(_balance).div(_supply);
-		return (_stakeAmount, _sharesAmount);
-	}
-
-	function _joinLiquidityPool(Pool _pool, uint256 _stakeAmount, uint256 _sharesAmount) internal
-	{
-		if (_stakeAmount > 0) {
-			IERC20(GRO).safeApprove(address(_pool), _stakeAmount);
-			_pool.joinswapExternAmountIn(GRO, _stakeAmount, 0);
-		}
-		if (_sharesAmount > 0) {
-			IERC20(this).safeApprove(address(_pool), _sharesAmount);
-			_pool.joinswapExternAmountIn(address(this), _sharesAmount, 0);
-		}
-	}
-
-	function _exitLiquidityPool(Pool _pool, uint256 _stakeAmount, uint256 _sharesAmount) internal
-	{
-		if (_stakeAmount > 0) {
-			_pool.exitswapExternAmountOut(GRO, _stakeAmount, uint256(-1));
-		}
-		if (_sharesAmount > 0) {
-			_pool.exitswapExternAmountOut(address(this), _sharesAmount, uint256(-1));
-		}
-	}
+*/
 }

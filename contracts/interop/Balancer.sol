@@ -5,7 +5,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface Factory
 {
-	function newBPool() external returns (Pool _pool);
+	function newBPool() external returns (address _pool);
 }
 
 interface Pool is IERC20
