@@ -41,7 +41,8 @@ module.exports = {
     development: {
       network_id: 1,
       gas: 10000000,
-      provider: () => new HDWalletProvider(privateKey, 'http://localhost:8545/'),
+      host: 'localhost',
+      port: 8545,
       skipDryRun: true,
     },
   }
