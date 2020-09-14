@@ -3,7 +3,7 @@ pragma solidity ^0.6.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-interface Factory
+interface FactoryV2
 {
 	function createPair(address _tokenA, address _tokenB) external returns (address _pair);
 	function getPair(address _tokenA, address _tokenB) external view returns (address _pair);

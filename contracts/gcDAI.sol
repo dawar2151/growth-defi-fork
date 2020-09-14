@@ -11,7 +11,7 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.s
 import { Addresses } from "./Addresses.sol";
 import { GToken, GCToken } from "./GToken.sol";
 
-import { Factory, Pool } from "./interop/Balancer.sol";
+import { BFactory, BPool } from "./interop/Balancer.sol";
 import { Comptroller, PriceOracle, CToken } from "./interop/Compound.sol";
 import { Swap } from "./interop/Curve.sol";
 import { Oneinch } from "./interop/Oneinch.sol";
@@ -78,22 +78,22 @@ contract BalancerLiquidityPoolAbstraction
 
 	function _createPool(address _token0, uint256 _amount0, address _token1, uint256 _amount1) internal returns (address _pool)
 	{
-		_pool = Factory(Addresses.Balancer_FACTORY).newBPool();
+		_pool = BFactory(Addresses.Balancer_FACTORY).newBPool();
 		IERC20(_token0).safeApprove(_pool, _amount0);
-		Pool(_pool).bind(_token0, _amount0, TOKEN0_WEIGHT);
+		BPool(_pool).bind(_token0, _amount0, TOKEN0_WEIGHT);
 		IERC20(_token1).safeApprove(_pool, _amount1);
-		Pool(_pool).bind(_token1, _amount1, TOKEN1_WEIGHT);
-		Pool(_pool).setSwapFee(SWAP_FEE);
-		Pool(_pool).finalize();
+		BPool(_pool).bind(_token1, _amount1, TOKEN1_WEIGHT);
+		BPool(_pool).setSwapFee(SWAP_FEE);
+		BPool(_pool).finalize();
 		return _pool;
 	}
 
 	function _getPoolBalances(address _pool, address _token0, address _token1) internal view returns (uint256 _amount0, uint256 _amount1)
 	{
-		uint256 _thisSupply = Pool(_pool).balanceOf(address(this));
-		uint256 _totalSupply = Pool(_pool).totalSupply();
-		uint256 _balance0 = Pool(_pool).getBalance(_token0);
-		uint256 _balance1 = Pool(_pool).getBalance(_token1);
+		uint256 _thisSupply = BPool(_pool).balanceOf(address(this));
+		uint256 _totalSupply = BPool(_pool).totalSupply();
+		uint256 _balance0 = BPool(_pool).getBalance(_token0);
+		uint256 _balance1 = BPool(_pool).getBalance(_token1);
 		_amount0 = _balance0.mul(_thisSupply).div(_totalSupply);
 		_amount1 = _balance1.mul(_thisSupply).div(_totalSupply);
 		return (_amount0, _amount1);
@@ -103,21 +103,21 @@ contract BalancerLiquidityPoolAbstraction
 	{
 		if (_amount0 > 0) {
 			IERC20(_token0).safeApprove(_pool, _amount0);
-			Pool(_pool).joinswapExternAmountIn(_token0, _amount0, 0);
+			BPool(_pool).joinswapExternAmountIn(_token0, _amount0, 0);
 		}
 		if (_amount1 > 0) {
 			IERC20(_token1).safeApprove(_pool, _amount1);
-			Pool(_pool).joinswapExternAmountIn(_token1, _amount1, 0);
+			BPool(_pool).joinswapExternAmountIn(_token1, _amount1, 0);
 		}
 	}
 
 	function _exitPool(address _pool, address _token0, uint256 _amount0, address _token1, uint256 _amount1) internal
 	{
 		if (_amount0 > 0) {
-			Pool(_pool).exitswapExternAmountOut(_token0, _amount0, uint256(-1));
+			BPool(_pool).exitswapExternAmountOut(_token0, _amount0, uint256(-1));
 		}
 		if (_amount1 > 0) {
-			Pool(_pool).exitswapExternAmountOut(_token1, _amount1, uint256(-1));
+			BPool(_pool).exitswapExternAmountOut(_token1, _amount1, uint256(-1));
 		}
 	}
 }
@@ -552,7 +552,7 @@ contract gcDAI is GCTokenBase, CurveExchangeAbstraction, UniswapExchangeAbstract
 		borrowToken = Addresses.cUSDC;
 		borrowUnderlyingToken = _getUnderlyingToken(Addresses.cUSDC);
 	}
-
+/*
 	function totalReserve() public override returns (uint256 _totalReserve)
 	{
 		return _calcTotalReserve();
@@ -647,4 +647,5 @@ contract gcDAI is GCTokenBase, CurveExchangeAbstraction, UniswapExchangeAbstract
 			_decreaseDebt(_decrementUnderlyingCost);
 		}
 	}
+*/
 }

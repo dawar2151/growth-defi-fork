@@ -14,7 +14,7 @@ interface ERC20Interface
 	event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
 }
 
-contract SafeMath
+contract SafeMath_
 {
 	function safeAdd(uint a, uint b) public pure returns (uint c)
 	{
@@ -40,7 +40,7 @@ contract SafeMath
 	}
 }
 
-contract GrowthToken is ERC20Interface, SafeMath
+contract GrowthToken is ERC20Interface, SafeMath_
 {
 	string public name;
 	string public symbol;

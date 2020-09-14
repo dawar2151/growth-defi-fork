@@ -3,12 +3,12 @@ pragma solidity ^0.6.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-interface Factory
+interface BFactory
 {
 	function newBPool() external returns (address _pool);
 }
 
-interface Pool is IERC20
+interface BPool is IERC20
 {
 /*
 	// function getColor() external view returns (bytes32 _color);
