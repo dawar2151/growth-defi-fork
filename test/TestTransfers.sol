@@ -3,33 +3,13 @@ pragma solidity ^0.6.0;
 
 import { Assert } from "truffle/Assert.sol";
 
+import { Env } from "./Env.sol";
 import { Addresses } from "../contracts/Addresses.sol";
 import { Transfers } from "../contracts/gcDAI.sol";
 import { Router02 } from "../contracts/interop/UniswapV2.sol";
 
-contract TestTransfers is Transfers
+contract TestTransfers is Env, Transfers
 {
-	uint256 public initialBalance = 5 ether;
-
-	receive() external payable {}
-
-	function _mintTokenBalance(address _token, uint256 _outputAmount) internal
-	{
-		Assert.equal(_getBalance(_token), 0, "balance must be 0");
-		Router02 _router = Router02(Addresses.UniswapV2_ROUTER02);
-		address[] memory _path = new address[](2);
-		_path[0] = _router.WETH();
-		_path[1] = _token;
-		_router.swapETHForExactTokens{value: address(this).balance}(_outputAmount, _path, address(this), uint256(-1));
-		Assert.equal(_getBalance(_token), _outputAmount, "token output amounts must match");
-	}
-
-	function _returnFullTokenBalance(address _token) internal
-	{
-		_pushFunds(_token, msg.sender, _getBalance(_token));
-		Assert.equal(_getBalance(_token), 0, "balance must be 0");
-	}
-
 	function test01() public
 	{
 		_returnFullTokenBalance(Addresses.DAI);
