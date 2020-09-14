@@ -24,14 +24,14 @@ contract GFormulae
 	function _calcDepositSharesFromCost(uint256 _cost, uint256 _totalReserve, uint256 _totalSupply, uint256 _depositFee) internal pure returns (uint256 _netShares, uint256 _feeShares)
 	{
 		uint256 _grossShares = _totalReserve == 0 ? _cost : _cost.mul(_totalSupply).div(_totalReserve);
-		_netShares = _grossShares.mul(1e18).div(_depositFee.add(1e18));
+		_netShares = _grossShares.mul(1e18).div(uint256(1e18).add(_depositFee));
 		_feeShares = _grossShares.sub(_netShares);
 		return (_netShares, _feeShares);
 	}
 
 	function _calcDepositCostFromShares(uint256 _netShares, uint256 _totalReserve, uint256 _totalSupply, uint256 _depositFee) internal pure returns (uint256 _cost, uint256 _feeShares)
 	{
-		uint256 _grossShares = _netShares.mul(_depositFee.add(1e18)).div(1e18);
+		uint256 _grossShares = _netShares.mul(uint256(1e18).add(_depositFee)).div(1e18);
 		_cost = _totalSupply == 0 ? _grossShares : _grossShares.mul(_totalReserve).div(_totalSupply);
 		_feeShares = _grossShares.sub(_netShares);
 		return (_cost, _feeShares);
@@ -40,14 +40,14 @@ contract GFormulae
 	function _calcWithdrawalSharesFromCost(uint256 _cost, uint256 _totalReserve, uint256 _totalSupply, uint256 _withdrawalFee) internal pure returns (uint256 _grossShares, uint256 _feeShares)
 	{
 		uint256 _netShares = _totalReserve == 0 ? _cost : _cost.mul(_totalSupply).div(_totalReserve);
-		_grossShares = _netShares.mul(1e18).div(_withdrawalFee.sub(1e18));
+		_grossShares = _netShares.mul(1e18).div(uint256(1e18).sub(_withdrawalFee));
 		_feeShares = _grossShares.sub(_netShares);
 		return (_grossShares, _feeShares);
 	}
 
 	function _calcWithdrawalCostFromShares(uint256 _grossShares, uint256 _totalReserve, uint256 _totalSupply, uint256 _withdrawalFee) internal pure returns (uint256 _cost, uint256 _feeShares)
 	{
-		uint256 _netShares = _grossShares.mul(_withdrawalFee.sub(1e18)).div(1e18);
+		uint256 _netShares = _grossShares.mul(uint256(1e18).sub(_withdrawalFee)).div(1e18);
 		_cost = _totalSupply == 0 ? _netShares : _netShares.mul(_totalReserve).div(_totalSupply);
 		_feeShares = _grossShares.sub(_netShares);
 		return (_cost, _feeShares);
@@ -64,6 +64,52 @@ contract GCFormulae is GFormulae
 	function _calcUnderlyingCostFromCost(uint256 _cost, uint256 _exchangeRate) internal pure returns (uint256 _underlyingCost)
 	{
 		return _cost.mul(_exchangeRate).div(1e18);
+	}
+}
+
+contract Transfers
+{
+	using SafeERC20 for IERC20;
+
+	function _getBalance(address _token) internal view returns (uint256 _balance)
+	{
+		return IERC20(_token).balanceOf(address(this));
+	}
+
+	function _pullFunds(address _token, address _from, uint256 _amount) internal
+	{
+		IERC20(_token).safeTransferFrom(_from, address(this), _amount);
+	}
+
+	function _pushFunds(address _token, address _to, uint256 _amount) internal
+	{
+		IERC20(_token).safeTransfer(_to, _amount);
+	}
+
+	function _approveFunds(address _token, address _to, uint256 _amount) internal
+	{
+		IERC20(_token).safeApprove(_to, _amount);
+	}
+
+	function _convertFundsUSDCToDAI(uint256 _amount) internal
+	{
+		address _swap = Addresses.Curve_COMPOUND;
+		address _token = Swap(_swap).underlying_coins(1);
+		_approveFunds(_token, _swap, _amount);
+		Swap(_swap).exchange_underlying(1, 0, _amount, 0);
+	}
+
+	function _convertFundsCOMPToDAI(uint256 _amount) internal
+	{
+		if (_amount == 0) return;
+		address _router = Addresses.UniswapV2_ROUTER02;
+		address _token = Addresses.COMP;
+		address[] memory _path = new address[](3);
+		_path[0] = _token;
+		_path[1] = Router02(_router).WETH();
+		_path[2] = Addresses.DAI;
+		_approveFunds(_token, _router, _amount);
+		Router02(_router).swapExactTokensForTokens(_amount, 0, _path, address(this), block.timestamp);
 	}
 }
 
@@ -119,26 +165,6 @@ contract BalancerLiquidityPoolAbstraction
 		if (_amount1 > 0) {
 			BPool(_pool).exitswapExternAmountOut(_token1, _amount1, uint256(-1));
 		}
-	}
-}
-
-contract Transfers
-{
-	using SafeERC20 for IERC20;
-
-	function _getBalance(address _token) internal view returns (uint256 _balance)
-	{
-		return IERC20(_token).balanceOf(address(this));
-	}
-
-	function _pullFunds(address _token, address _from, uint256 _amount) internal
-	{
-		IERC20(_token).safeTransferFrom(_from, address(this), _amount);
-	}
-
-	function _pushFunds(address _token, address _to, uint256 _amount) internal
-	{
-		IERC20(_token).safeTransfer(_to, _amount);
 	}
 }
 
@@ -281,8 +307,9 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 	function deposit(uint256 _cost) external override nonReentrant
 	{
 		address _from = msg.sender;
-		require(_cost > 0, "deposit must be greater than 0");
+		require(_cost > 0, "deposit cost must be greater than 0");
 		(uint256 _netShares, uint256 _feeShares) = calcDepositSharesFromCost(_cost, totalReserve(), totalSupply(), depositFee());
+		require(_netShares > 0, "deposit shares must be greater than 0");
 		_pullFunds(reserveToken, _from, _cost);
 		_mint(_from, _netShares);
 		_mint(sharesToken, _feeShares.div(2));
@@ -292,8 +319,9 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 	function withdraw(uint256 _grossShares) external override nonReentrant
 	{
 		address _from = msg.sender;
-		require(_grossShares > 0, "withdraw must be greater than 0");
+		require(_grossShares > 0, "withdrawal shares must be greater than 0");
 		(uint256 _cost, uint256 _feeShares) = calcWithdrawalCostFromShares(_grossShares, totalReserve(), totalSupply(), withdrawalFee());
+		require(_cost > 0, "withdrawal cost must be greater than 0");
 		_pushFunds(reserveToken, _from, _cost);
 		_burn(_from, _grossShares);
 		_mint(sharesToken, _feeShares.div(2));
@@ -435,9 +463,10 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, CompoundLendingMarketAb
 	function depositUnderlying(uint256 _underlyingCost) external override nonReentrant
 	{
 		address _from = msg.sender;
-		require(_underlyingCost > 0, "deposit must be greater than 0");
+		require(_underlyingCost > 0, "deposit underlying cost must be greater than 0");
 		uint256 _cost = _calcCostFromUnderlyingCost(_underlyingCost, _getExchangeRate(reserveToken, underlyingToken));
 		(uint256 _netShares, uint256 _feeShares) = calcDepositSharesFromCost(_cost, totalReserve(), totalSupply(), depositFee());
+		require(_netShares > 0, "deposit shares must be greater than 0");
 		_pullFunds(underlyingToken, _from, _underlyingCost);
 		_mint(_from, _netShares);
 		_mint(sharesToken, _feeShares.div(2));
@@ -448,9 +477,10 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, CompoundLendingMarketAb
 	function withdrawUnderlying(uint256 _grossShares) external override nonReentrant
 	{
 		address _from = msg.sender;
-		require(_grossShares > 0, "withdraw must be greater than 0");
+		require(_grossShares > 0, "withdrawal shares must be greater than 0");
 		(uint256 _cost, uint256 _feeShares) = calcWithdrawalCostFromShares(_grossShares, totalReserve(), totalSupply(), withdrawalFee());
 		uint256 _underlyingCost = _calcUnderlyingCostFromCost(_cost, _getExchangeRate(reserveToken, underlyingToken));
+		require(_underlyingCost > 0, "withdrawal underlying cost must be greater than 0");
 		_redeem(reserveToken, _cost, underlyingToken, _underlyingCost);
 		_pushFunds(underlyingToken, _from, _underlyingCost);
 		_burn(_from, _grossShares);
@@ -461,6 +491,7 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, CompoundLendingMarketAb
 
 contract CurveExchangeAbstraction
 {
+	using SafeMath for uint256;
 	using SafeERC20 for IERC20;
 
 	function _C_calcConversionOutputFromInput(address _from, address _to, uint256 _inputAmount) internal view returns (uint256 _outputAmount)
@@ -470,6 +501,7 @@ contract CurveExchangeAbstraction
 		int128 _j = _swap.underlying_coins(0) == _to ? 0 : 1;
 		require(_swap.underlying_coins(_i) == _from);
 		require(_swap.underlying_coins(_j) == _to);
+		if (_inputAmount == 0) return 0;
 		return _swap.get_dy_underlying(_i, _j, _inputAmount);
 	}
 
@@ -480,18 +512,23 @@ contract CurveExchangeAbstraction
 		int128 _j = _swap.underlying_coins(0) == _to ? 0 : 1;
 		require(_swap.underlying_coins(_i) == _from);
 		require(_swap.underlying_coins(_j) == _to);
+		if (_outputAmount == 0) return 0;
 		return _swap.get_dx_underlying(_i, _j, _outputAmount);
 	}
 
-	function _C_convertBalance(address _from, address _to, uint256 _inputAmount, uint256 _outputAmount) internal
+	function _C_convertBalance(address _from, address _to, uint256 _inputAmount, uint256 _minOutputAmount) internal returns (uint256 _outputAmount)
 	{
 		Swap _swap = Swap(Addresses.Curve_COMPOUND);
 		int128 _i = _swap.underlying_coins(0) == _from ? 0 : 1;
 		int128 _j = _swap.underlying_coins(0) == _to ? 0 : 1;
 		require(_swap.underlying_coins(_i) == _from);
 		require(_swap.underlying_coins(_j) == _to);
+		if (_inputAmount == 0) return 0;
 		IERC20(_from).safeApprove(Addresses.Curve_COMPOUND, _inputAmount);
-		_swap.exchange_underlying(_i, _j, _inputAmount, _outputAmount);
+		uint256 _balanceBefore = IERC20(_to).balanceOf(address(this));
+		_swap.exchange_underlying(_i, _j, _inputAmount, _minOutputAmount);
+		uint256 _balanceAfter = IERC20(_to).balanceOf(address(this));
+		return _balanceAfter.sub(_balanceBefore);
 	}
 }
 
@@ -519,7 +556,7 @@ contract UniswapExchangeAbstraction
 		return _router.getAmountsIn(_outputAmount, _path)[0];
 	}
 
-	function _U_convertBalance(address _from, address _to, uint256 _inputAmount, uint256 _outputAmount) internal
+	function _U_convertBalance(address _from, address _to, uint256 _inputAmount, uint256 _minOutputAmount) internal returns (uint256 _outputAmount)
 	{
 		Router02 _router = Router02(Addresses.UniswapV2_ROUTER02);
 		address[] memory _path = new address[](3);
@@ -527,7 +564,7 @@ contract UniswapExchangeAbstraction
 		_path[1] = _router.WETH();
 		_path[2] = _to;
 		IERC20(_from).safeApprove(Addresses.UniswapV2_ROUTER02, _inputAmount);
-		_router.swapExactTokensForTokens(_inputAmount, _outputAmount, _path, address(this), uint256(-1));
+		return _router.swapExactTokensForTokens(_inputAmount, _minOutputAmount, _path, address(this), uint256(-1))[2];
 	}
 }
 
