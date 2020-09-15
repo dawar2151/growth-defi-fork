@@ -5,7 +5,7 @@ import { Assert } from "truffle/Assert.sol";
 
 import { Env } from "./Env.sol";
 import { Addresses } from "../contracts/Addresses.sol";
-import { Transfers, BalancerLiquidityPoolAbstraction } from "../contracts/gcDAI.sol";
+import { Transfers, BalancerLiquidityPoolAbstraction } from "../contracts/GTokenBase.sol";
 
 contract TestBalancerLiquidityPoolAbstraction is Env, Transfers, BalancerLiquidityPoolAbstraction
 {

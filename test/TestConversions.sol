@@ -5,11 +5,10 @@ import { Assert } from "truffle/Assert.sol";
 
 import { Env } from "./Env.sol";
 import { Addresses } from "../contracts/Addresses.sol";
-import { Transfers } from "../contracts/gcDAI.sol";
+import { Conversions } from "../contracts/gcDAI.sol";
 
-contract TestTransfers is Env, Transfers
+contract TestConversions is Env, Conversions
 {
-/*
 	function test01() public
 	{
 		_returnFullTokenBalance(Addresses.USDC);
@@ -94,5 +93,4 @@ contract TestTransfers is Env, Transfers
 		Assert.equal(_getBalance(Addresses.COMP), 0e18, "COMP balance must be 0e18");
 		Assert.isAbove(_getBalance(Addresses.DAI), 0e18, "DAI balance must be above 0e18");
 	}
-*/
 }
