@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.0;
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-
 import { Addresses } from "./Addresses.sol";
+import { Transfers } from "./Transfers.sol";
 import { GFormulae, GTokenBase } from "./GTokenBase.sol";
 import { GCToken } from "./GCToken.sol";
 import { Comptroller, CToken } from "./interop/Compound.sol";
@@ -22,10 +20,8 @@ contract GCFormulae is GFormulae
 	}
 }
 
-contract CompoundLendingMarketAbstraction
+contract CompoundLendingMarketAbstraction is Transfers
 {
-	using SafeERC20 for IERC20;
-
 	constructor (address _ctoken) internal
 	{
 		Comptroller _comptroller = Comptroller(Addresses.Compound_COMPTROLLER);
@@ -47,7 +43,7 @@ contract CompoundLendingMarketAbstraction
 
 	function _lend(address _ctoken, uint256 /* _camount */, address _token, uint256 _amount) internal
 	{
-		IERC20(_token).safeApprove(_ctoken, _amount);
+		_approveFunds(_token, _ctoken, _amount);
 		uint256 _result = CToken(_ctoken).mint(_amount);
 		require(_result == 0, "lend failure");
 	}
@@ -76,7 +72,7 @@ contract CompoundLendingMarketAbstraction
 
 	function _repay(address _ctoken, address _token, uint256 _amount) internal
 	{
-		IERC20(_token).safeApprove(_ctoken, _amount);
+		_approveFunds(_token, _ctoken, _amount);
 		uint256 _result = CToken(_ctoken).repayBorrow(_amount);
 		require(_result == 0, "repay failure");
 	}

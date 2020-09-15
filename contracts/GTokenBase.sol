@@ -4,8 +4,6 @@ pragma solidity ^0.6.0;
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import { Addresses } from "./Addresses.sol";
@@ -53,7 +51,6 @@ contract GFormulae
 contract BalancerLiquidityPoolAbstraction is Transfers
 {
 	using SafeMath for uint256;
-	using SafeERC20 for IERC20;
 
 	uint256 constant MIN_AMOUNT = 1e6;
 	uint256 constant TOKEN0_WEIGHT = 25e18; // 25/50 = 50%

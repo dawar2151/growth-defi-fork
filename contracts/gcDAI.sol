@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.0;
 
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-
 import { Addresses } from "./Addresses.sol";
 import { Transfers } from "./Transfers.sol";
 import { GCTokenBase } from "./GCTokenBase.sol";
@@ -12,11 +8,8 @@ import { GCTokenBase } from "./GCTokenBase.sol";
 import { Swap } from "./interop/Curve.sol";
 import { Router02 } from "./interop/UniswapV2.sol";
 
-contract CurveExchangeAbstraction
+contract CurveExchangeAbstraction is Transfers
 {
-	using SafeMath for uint256;
-	using SafeERC20 for IERC20;
-
 	function _C_calcConversionOutputFromInput(address _from, address _to, uint256 _inputAmount) internal view returns (uint256 _outputAmount)
 	{
 		Swap _swap = Swap(Addresses.Curve_COMPOUND);
@@ -47,18 +40,16 @@ contract CurveExchangeAbstraction
 		require(_swap.underlying_coins(_i) == _from);
 		require(_swap.underlying_coins(_j) == _to);
 		if (_inputAmount == 0) return 0;
-		IERC20(_from).safeApprove(Addresses.Curve_COMPOUND, _inputAmount);
-		uint256 _balanceBefore = IERC20(_to).balanceOf(address(this));
+		uint256 _balanceBefore = _getBalance(_to);
+		_approveFunds(_from, Addresses.Curve_COMPOUND, _inputAmount);
 		_swap.exchange_underlying(_i, _j, _inputAmount, _minOutputAmount);
-		uint256 _balanceAfter = IERC20(_to).balanceOf(address(this));
-		return _balanceAfter.sub(_balanceBefore);
+		uint256 _balanceAfter = _getBalance(_to);
+		return _balanceAfter - _balanceBefore;
 	}
 }
 
-contract UniswapExchangeAbstraction
+contract UniswapExchangeAbstraction is Transfers
 {
-	using SafeERC20 for IERC20;
-
 	function _U_calcConversionOutputFromInput(address _from, address _to, uint256 _inputAmount) internal view returns (uint256 _outputAmount)
 	{
 		Router02 _router = Router02(Addresses.UniswapV2_ROUTER02);
@@ -86,7 +77,7 @@ contract UniswapExchangeAbstraction
 		_path[0] = _from;
 		_path[1] = _router.WETH();
 		_path[2] = _to;
-		IERC20(_from).safeApprove(Addresses.UniswapV2_ROUTER02, _inputAmount);
+		_approveFunds(_from, Addresses.UniswapV2_ROUTER02, _inputAmount);
 		return _router.swapExactTokensForTokens(_inputAmount, _minOutputAmount, _path, address(this), uint256(-1))[2];
 	}
 }
@@ -115,10 +106,8 @@ contract Conversions is Transfers
 	}
 }
 
-contract gcDAI is GCTokenBase, CurveExchangeAbstraction, UniswapExchangeAbstraction
+contract gcDAI is GCTokenBase, Conversions
 {
-	using SafeMath for uint256;
-
 	uint256 constant IDEAL_COLLATERALIZATION_RATIO = 65e16; // 65%
 	uint256 constant LIMIT_COLLATERALIZATION_RATIO = 70e16; // 70%
 	uint256 constant LIMIT_ADJUSTMENT_AMOUNT = 1000e18; // $1,000
