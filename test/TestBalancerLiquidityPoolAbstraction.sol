@@ -13,9 +13,6 @@ contract TestBalancerLiquidityPoolAbstraction is Env, Transfers, BalancerLiquidi
 	{
 		_returnFullTokenBalance(Addresses.GRO);
 		_returnFullTokenBalance(Addresses.DAI);
-		Assert.equal(_getBalance(Addresses.GRO), 0e18, "GRO balance must be 0e18");
-		Assert.equal(_getBalance(Addresses.DAI), 0e18, "DAI balance must be 0e18");
-
 		_mintTokenBalance(Addresses.GRO, 10e18);
 		_mintTokenBalance(Addresses.DAI, 100e18);
 		Assert.equal(_getBalance(Addresses.GRO), 10e18, "GRO balance must be 10e18");
@@ -57,9 +54,6 @@ contract TestBalancerLiquidityPoolAbstraction is Env, Transfers, BalancerLiquidi
 	{
 		_returnFullTokenBalance(Addresses.GRO);
 		_returnFullTokenBalance(Addresses.DAI);
-		Assert.equal(_getBalance(Addresses.GRO), 0e18, "GRO balance must be 0e18");
-		Assert.equal(_getBalance(Addresses.DAI), 0e18, "DAI balance must be 0e18");
-
 		_mintTokenBalance(Addresses.GRO, 10e18);
 		_mintTokenBalance(Addresses.DAI, 100e18);
 		Assert.equal(_getBalance(Addresses.GRO), 10e18, "GRO balance must be 10e18");
@@ -86,9 +80,6 @@ contract TestBalancerLiquidityPoolAbstraction is Env, Transfers, BalancerLiquidi
 	{
 		_returnFullTokenBalance(Addresses.GRO);
 		_returnFullTokenBalance(Addresses.DAI);
-		Assert.equal(_getBalance(Addresses.GRO), 0e18, "GRO balance must be 0e18");
-		Assert.equal(_getBalance(Addresses.DAI), 0e18, "DAI balance must be 0e18");
-
 		_mintTokenBalance(Addresses.GRO, 10e18);
 		_mintTokenBalance(Addresses.DAI, 100e18);
 		Assert.equal(_getBalance(Addresses.GRO), 10e18, "GRO balance must be 10e18");
@@ -109,9 +100,6 @@ contract TestBalancerLiquidityPoolAbstraction is Env, Transfers, BalancerLiquidi
 	{
 		_returnFullTokenBalance(Addresses.GRO);
 		_returnFullTokenBalance(Addresses.DAI);
-		Assert.equal(_getBalance(Addresses.GRO), 0e18, "GRO balance must be 0e18");
-		Assert.equal(_getBalance(Addresses.DAI), 0e18, "DAI balance must be 0e18");
-
 		_mintTokenBalance(Addresses.GRO, 1e6);
 		_mintTokenBalance(Addresses.DAI, 1e6);
 		Assert.equal(_getBalance(Addresses.GRO), 1e6, "GRO balance must be 1e6");

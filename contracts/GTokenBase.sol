@@ -263,7 +263,7 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 	{
 		address _from = msg.sender;
 		_pullFunds(stakeToken, _from, _stakeAmount);
-		_pullFunds(sharesToken, _from, _sharesAmount);
+		_transfer(_from, sharesToken, _sharesAmount);
 		_allocatePool(_stakeAmount, _sharesAmount);
 	}
 
@@ -296,7 +296,7 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 	{
 		(address _migrationRecipient, uint256 _stakeAmount, uint256 _sharesAmount) = _completePoolMigration();
 		_pushFunds(stakeToken, _migrationRecipient, _stakeAmount);
-		_pushFunds(sharesToken, _migrationRecipient, _sharesAmount);
+		_transfer(sharesToken, _migrationRecipient, _sharesAmount);
 		emit CompleteLiquidityPoolMigration(_migrationRecipient, _stakeAmount, _sharesAmount);
 	}
 
