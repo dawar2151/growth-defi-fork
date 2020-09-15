@@ -118,12 +118,14 @@ contract BalancerLiquidityPoolAbstraction is Transfers
 	using SafeMath for uint256;
 	using SafeERC20 for IERC20;
 
+	uint256 constant MIN_AMOUNT = 1e6;
 	uint256 constant TOKEN0_WEIGHT = 25e18; // 25/50 = 50%
 	uint256 constant TOKEN1_WEIGHT = 25e18; // 25/50 = 50%
 	uint256 constant SWAP_FEE = 10e16; // 10%
 
 	function _createPool(address _token0, uint256 _amount0, address _token1, uint256 _amount1) internal returns (address _pool)
 	{
+		require(_amount0 >= MIN_AMOUNT && _amount1 >= MIN_AMOUNT, "amount below the minimum");
 		_pool = BFactory(Addresses.Balancer_FACTORY).newBPool();
 		_approveFunds(_token0, _pool, _amount0);
 		_approveFunds(_token1, _pool, _amount1);
@@ -134,26 +136,33 @@ contract BalancerLiquidityPoolAbstraction is Transfers
 		return _pool;
 	}
 
-	function _joinPool(address _pool, address _token, uint256 _amount) internal
+	function _joinPool(address _pool, uint256 _maxAmount1) internal returns (uint256 _amount1)
 	{
-		if (_amount == 0) return;
-		_approveFunds(_token, _pool, _amount);
-		BPool(_pool).joinswapExternAmountIn(_token, _amount, 0);
+		address[] memory _tokens = BPool(_pool).getFinalTokens();
+		address _token1 = _tokens[1];
+		uint256 _balanceAmount1 = BPool(_pool).getBalance(_token1);
+		if (_balanceAmount1 == 0) return 0;
+		uint256 _limitAmount1 = _balanceAmount1.div(2);
+		_amount1 = _maxAmount1 < _limitAmount1 ? _maxAmount1 : _limitAmount1;
+		_approveFunds(_token1, _pool, _amount1);
+		BPool(_pool).joinswapExternAmountIn(_token1, _amount1, 0);
+		return _amount1;
 	}
 
-	function _exitPool(address _pool, uint256 _rate, address _token0, address _token1) internal returns (uint256 _amount0, uint256 _amount1)
+	function _exitPool(address _pool, uint256 _percent) internal returns (uint256 _amount0, uint256 _amount1)
 	{
-		if (_rate == 0) return (0, 0);
-		_amount0 = _getBalance(_token0);
-		_amount1 = _getBalance(_token1);
+		if (_percent == 0) return (0, 0);
+		address[] memory _tokens = BPool(_pool).getFinalTokens();
+		_amount0 = _getBalance(_tokens[0]);
+		_amount1 = _getBalance(_tokens[1]);
 		uint256 _poolAmount = _getBalance(_pool);
-		uint256 _poolExitAmount = _poolAmount.mul(_rate).div(1e18);
+		uint256 _poolExitAmount = _poolAmount.mul(_percent).div(1e18);
 		uint256[] memory _minAmountsOut = new uint256[](2);
 		_minAmountsOut[0] = 0;
 		_minAmountsOut[1] = 0;
 		BPool(_pool).exitPool(_poolExitAmount, _minAmountsOut);
-		_amount0 = _getBalance(_token0).sub(_amount0);
-		_amount1 = _getBalance(_token1).sub(_amount1);
+		_amount0 = _getBalance(_tokens[0]).sub(_amount0);
+		_amount1 = _getBalance(_tokens[1]).sub(_amount1);
 		return (_amount0, _amount1);
 	}
 }
@@ -192,7 +201,7 @@ contract GLiquidityPoolManager is BalancerLiquidityPoolAbstraction
 	function _gulpPoolAssets() internal
 	{
 		if (_hasPool()) {
-			_joinPool(liquidityPool, sharesToken, _getBalance(sharesToken));
+			_joinPool(liquidityPool, _getBalance(sharesToken));
 		}
 	}
 
@@ -206,40 +215,39 @@ contract GLiquidityPoolManager is BalancerLiquidityPoolAbstraction
 	{
 		require(_hasPool(), "pool not available");
 		require(now > lastBurningTime + BURNING_INTERVAL, "must wait lock interval");
-		(_stakeAmount, _sharesAmount) = _exitPool(liquidityPool, burningRate, stakeToken, sharesToken);
 		lastBurningTime = now;
-		return (_stakeAmount, _sharesAmount);
+		return _exitPool(liquidityPool, burningRate);
 	}
 
 	function _allocatePool(uint256 _stakeAmount, uint256 _sharesAmount) internal
 	{
 		require(state == State.Created, "pool cannot be allocated");
-		liquidityPool = _createPool(stakeToken, _stakeAmount, sharesToken, _sharesAmount);
 		state = State.Allocated;
+		liquidityPool = _createPool(stakeToken, _stakeAmount, sharesToken, _sharesAmount);
 	}
 
 	function _initiatePoolMigration(address _migrationRecipient) internal
 	{
 		require(state == State.Allocated, "pool not allocated");
+		state = State.Migrating;
 		migrationRecipient = _migrationRecipient;
 		migrationUnlockTime = now + MIGRATION_INTERVAL;
-		state = State.Migrating;
 	}
 
 	function _cancelPoolMigration() internal
 	{
 		require(state == State.Migrating, "migration not initiated");
+		state = State.Allocated;
 		migrationRecipient = address(0);
 		migrationUnlockTime = uint256(-1);
-		state = State.Allocated;
 	}
 
 	function _completePoolMigration() internal returns (address _migrationRecipient, uint256 _stakeAmount, uint256 _sharesAmount)
 	{
 		require(state == State.Migrating, "migration not initiated");
 		require(now >= migrationUnlockTime, "must wait lock interval");
-		(_stakeAmount, _sharesAmount) = _exitPool(liquidityPool, 1e18, stakeToken, sharesToken);
 		state = State.Migrated;
+		(_stakeAmount, _sharesAmount) = _exitPool(liquidityPool, 1e18);
 		return (migrationRecipient, _stakeAmount, _sharesAmount);
 	}
 }

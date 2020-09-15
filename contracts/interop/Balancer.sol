@@ -28,11 +28,15 @@ interface BPool is IERC20
 	function isBound(address _token) external view returns (bool _is);
 	function getNumTokens() external view returns (uint256 _count);
 	function getCurrentTokens() external view returns (address[] memory _tokens);
+*/
 	function getFinalTokens() external view returns (address[] memory _tokens);
+/*
 	function getDenormalizedWeight(address _token) external view returns (uint256 _weight);
 	function getTotalDenormalizedWeight() external view returns (uint256 _weight);
 	function getNormalizedWeight(address _token) external view returns (uint256 _weight);
+*/
 	function getBalance(address _token) external view returns (uint256 _balance);
+/*
 	function getSwapFee() external view returns (uint256 _swapFee);
 	function getController() external view returns (address _manager);
 */
