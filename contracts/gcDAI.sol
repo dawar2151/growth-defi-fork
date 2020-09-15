@@ -113,62 +113,52 @@ contract Transfers
 	}
 }
 
-contract BalancerLiquidityPoolAbstraction
+contract BalancerLiquidityPoolAbstraction is Transfers
 {
 	using SafeMath for uint256;
 	using SafeERC20 for IERC20;
 
-	uint256 constant TOKEN0_WEIGHT = 50e16; // 50%
-	uint256 constant TOKEN1_WEIGHT = 50e16; // 50%
+	uint256 constant TOKEN0_WEIGHT = 25e18; // 25/50 = 50%
+	uint256 constant TOKEN1_WEIGHT = 25e18; // 25/50 = 50%
 	uint256 constant SWAP_FEE = 10e16; // 10%
 
 	function _createPool(address _token0, uint256 _amount0, address _token1, uint256 _amount1) internal returns (address _pool)
 	{
 		_pool = BFactory(Addresses.Balancer_FACTORY).newBPool();
-		IERC20(_token0).safeApprove(_pool, _amount0);
+		_approveFunds(_token0, _pool, _amount0);
+		_approveFunds(_token1, _pool, _amount1);
 		BPool(_pool).bind(_token0, _amount0, TOKEN0_WEIGHT);
-		IERC20(_token1).safeApprove(_pool, _amount1);
 		BPool(_pool).bind(_token1, _amount1, TOKEN1_WEIGHT);
 		BPool(_pool).setSwapFee(SWAP_FEE);
 		BPool(_pool).finalize();
 		return _pool;
 	}
 
-	function _getPoolBalances(address _pool, address _token0, address _token1) internal view returns (uint256 _amount0, uint256 _amount1)
+	function _joinPool(address _pool, address _token, uint256 _amount) internal
 	{
-		uint256 _thisSupply = BPool(_pool).balanceOf(address(this));
-		uint256 _totalSupply = BPool(_pool).totalSupply();
-		uint256 _balance0 = BPool(_pool).getBalance(_token0);
-		uint256 _balance1 = BPool(_pool).getBalance(_token1);
-		_amount0 = _balance0.mul(_thisSupply).div(_totalSupply);
-		_amount1 = _balance1.mul(_thisSupply).div(_totalSupply);
+		if (_amount == 0) return;
+		_approveFunds(_token, _pool, _amount);
+		BPool(_pool).joinswapExternAmountIn(_token, _amount, 0);
+	}
+
+	function _exitPool(address _pool, uint256 _rate, address _token0, address _token1) internal returns (uint256 _amount0, uint256 _amount1)
+	{
+		if (_rate == 0) return (0, 0);
+		_amount0 = _getBalance(_token0);
+		_amount1 = _getBalance(_token1);
+		uint256 _poolAmount = _getBalance(_pool);
+		uint256 _poolExitAmount = _poolAmount.mul(_rate).div(1e18);
+		uint256[] memory _minAmountsOut = new uint256[](2);
+		_minAmountsOut[0] = 0;
+		_minAmountsOut[1] = 0;
+		BPool(_pool).exitPool(_poolExitAmount, _minAmountsOut);
+		_amount0 = _getBalance(_token0).sub(_amount0);
+		_amount1 = _getBalance(_token1).sub(_amount1);
 		return (_amount0, _amount1);
-	}
-
-	function _joinPool(address _pool, address _token0, uint256 _amount0, address _token1, uint256 _amount1) internal
-	{
-		if (_amount0 > 0) {
-			IERC20(_token0).safeApprove(_pool, _amount0);
-			BPool(_pool).joinswapExternAmountIn(_token0, _amount0, 0);
-		}
-		if (_amount1 > 0) {
-			IERC20(_token1).safeApprove(_pool, _amount1);
-			BPool(_pool).joinswapExternAmountIn(_token1, _amount1, 0);
-		}
-	}
-
-	function _exitPool(address _pool, address _token0, uint256 _amount0, address _token1, uint256 _amount1) internal
-	{
-		if (_amount0 > 0) {
-			BPool(_pool).exitswapExternAmountOut(_token0, _amount0, uint256(-1));
-		}
-		if (_amount1 > 0) {
-			BPool(_pool).exitswapExternAmountOut(_token1, _amount1, uint256(-1));
-		}
 	}
 }
 
-contract GLiquidityPoolManager is Transfers, BalancerLiquidityPoolAbstraction
+contract GLiquidityPoolManager is BalancerLiquidityPoolAbstraction
 {
 	enum State { Created, Allocated, Migrating, Migrated }
 
@@ -202,7 +192,7 @@ contract GLiquidityPoolManager is Transfers, BalancerLiquidityPoolAbstraction
 	function _gulpPoolAssets() internal
 	{
 		if (_hasPool()) {
-			_joinPool(liquidityPool, stakeToken, _getBalance(stakeToken), sharesToken, _getBalance(sharesToken));
+			_joinPool(liquidityPool, sharesToken, _getBalance(sharesToken));
 		}
 	}
 
@@ -216,11 +206,9 @@ contract GLiquidityPoolManager is Transfers, BalancerLiquidityPoolAbstraction
 	{
 		require(_hasPool(), "pool not available");
 		require(now > lastBurningTime + BURNING_INTERVAL, "must wait lock interval");
-		(_stakeAmount, _sharesAmount) = _getPoolBalances(liquidityPool, stakeToken, sharesToken);
-		_stakeAmount = _stakeAmount.mul(burningRate).div(1e18);
-		_sharesAmount = _sharesAmount.mul(burningRate).div(1e18);
-		_exitPool(liquidityPool, stakeToken, _stakeAmount, sharesToken, _sharesAmount);
+		(_stakeAmount, _sharesAmount) = _exitPool(liquidityPool, burningRate, stakeToken, sharesToken);
 		lastBurningTime = now;
+		return (_stakeAmount, _sharesAmount);
 	}
 
 	function _allocatePool(uint256 _stakeAmount, uint256 _sharesAmount) internal
@@ -250,8 +238,7 @@ contract GLiquidityPoolManager is Transfers, BalancerLiquidityPoolAbstraction
 	{
 		require(state == State.Migrating, "migration not initiated");
 		require(now >= migrationUnlockTime, "must wait lock interval");
-		(_stakeAmount, _sharesAmount) = _getPoolBalances(liquidityPool, stakeToken, sharesToken);
-		_exitPool(liquidityPool, stakeToken, _stakeAmount, sharesToken, _sharesAmount);
+		(_stakeAmount, _sharesAmount) = _exitPool(liquidityPool, 1e18, stakeToken, sharesToken);
 		state = State.Migrated;
 		return (migrationRecipient, _stakeAmount, _sharesAmount);
 	}

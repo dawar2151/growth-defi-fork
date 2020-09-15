@@ -8,6 +8,7 @@ import { GFormulae } from "../contracts/gcDAI.sol";
 
 contract TestGFormulae is Env, GFormulae
 {
+/*
 	function test01() public
 	{
 		uint256 _cost1 = 101e18;
@@ -85,4 +86,5 @@ contract TestGFormulae is Env, GFormulae
 		Assert.equal(_grossShares1, _grossShares2, "gross shares must be equal");
 		Assert.equal(_feeShares1, _feeShares2, "fee shares must be equal");
 	}
+*/
 }

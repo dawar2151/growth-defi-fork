@@ -32,9 +32,7 @@ interface BPool is IERC20
 	function getDenormalizedWeight(address _token) external view returns (uint256 _weight);
 	function getTotalDenormalizedWeight() external view returns (uint256 _weight);
 	function getNormalizedWeight(address _token) external view returns (uint256 _weight);
-*/
 	function getBalance(address _token) external view returns (uint256 _balance);
-/*
 	function getSwapFee() external view returns (uint256 _swapFee);
 	function getController() external view returns (address _manager);
 */
@@ -52,7 +50,9 @@ interface BPool is IERC20
 	function getSpotPrice(address _tokenIn, address _tokenOut) external view returns (uint256 _spotPrice);
 	function getSpotPriceSansFee(address tokenIn, address tokenOut) external view returns (uint256 _spotPrice);
 	function joinPool(uint256 _poolAmountOut, uint256[] calldata _maxAmountsIn) external;
+*/
 	function exitPool(uint256 _poolAmountIn, uint256[] calldata _minAmountsOut) external;
+/*
 	function swapExactAmountIn(address _tokenIn, uint256 _tokenAmountIn, address _tokenOut, uint256 _minAmountOut, uint256 _maxPrice) external returns (uint256 _tokenAmountOut, uint256 _spotPriceAfter);
 	function swapExactAmountOut(address _tokenIn, uint256 _maxAmountIn, address _tokenOut, uint256 _tokenAmountOut, uint256 _maxPrice) external returns (uint256 _tokenAmountIn, uint256 _spotPriceAfter);
 */
@@ -60,6 +60,6 @@ interface BPool is IERC20
 /*
 	function joinswapPoolAmountOut(address _tokenIn, uint256 _poolAmountOut, uint256 _maxAmountIn) external returns (uint256 _tokenAmountIn);
 	function exitswapPoolAmountIn(address _tokenOut, uint256 _poolAmountIn, uint256 _minAmountOut) external returns (uint256 _tokenAmountOut);
-*/
 	function exitswapExternAmountOut(address _tokenOut, uint256 _tokenAmountOut, uint256 _maxPoolAmountIn) external returns (uint256 _poolAmountIn);
+*/
 }
