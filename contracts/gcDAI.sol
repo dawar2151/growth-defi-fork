@@ -152,7 +152,7 @@ contract gcDAI is GCTokenBase, Conversions
 		uint256 _underlyingCost = _calcUnderlyingCostFromCost(_cost, _getExchangeRate(reserveToken, underlyingToken));
 
 		address _borrowUnderlyingToken = _getUnderlyingToken(borrowToken);
-		uint256 _borrowAmount = _getBorrowAmount(borrowToken);
+		uint256 _borrowAmount = _getBorrowedAmount(borrowToken);
 		uint256 _borrowedUnderlyingCost = _C_calcConversionInputFromOutput(underlyingToken, _borrowUnderlyingToken, _borrowAmount);
 
 		uint256 _totalReserveUnderlying = _underlyingCost.sub(_borrowedUnderlyingCost);
@@ -194,7 +194,7 @@ contract gcDAI is GCTokenBase, Conversions
 		uint256 _cost = _getBalance(reserveToken);
 		uint256 _underlyingCost = _calcUnderlyingCostFromCost(_cost, _getExchangeRate(reserveToken, underlyingToken));
 
-		uint256 _borrowAmount = _getBorrowAmount(borrowToken);
+		uint256 _borrowAmount = _getBorrowedAmount(borrowToken);
 		uint256 _borrowedUnderlyingCost = _C_calcConversionInputFromOutput(underlyingToken, borrowUnderlyingToken, _borrowAmount);
 
 		uint256 _idealUnderlyingCost = _underlyingCost.mul(IDEAL_COLLATERALIZATION_RATIO).div(1e18);

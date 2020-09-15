@@ -113,23 +113,23 @@ interface CToken is IERC20
 /*
 	// function initialExchangeRateMantissa() external view returns (uint256);
 	// function getAccountSnapshot(address _account) external view returns (uint256, uint256, uint256, uint256);
-	// function exchangeRateStored() external view returns (uint256 _exchangeRateStored);
+*/
+	function exchangeRateStored() external view returns (uint256 _exchangeRateStored);
+/*
 	// function borrowBalanceStored(address _account) external view returns (uint256);
 	// function accrueInterest() external returns (uint256 _accrueInterest);
 	// function seize(address _liquidator, address _borrower, uint256 _seizeTokens) external returns (uint256);
 */
 	function exchangeRateCurrent() external returns (uint256 _exchangeRate);
-/*
 	function getCash() external view returns (uint256 _cash);
+/*
 	function totalBorrowsCurrent() external returns (uint256 _totalBorrows);
 */
 	function borrowBalanceCurrent(address _account) external returns (uint256 _borrowBalance);
+/*
 	function borrowRatePerBlock() external view returns (uint256 _borrowRate);
-/*
 	function balanceOfUnderlying(address _owner) external returns (uint256 _underlyingBalance);
-*/
 	function supplyRatePerBlock() external view returns (uint256 _supplyRate);
-/*
 	function totalReserves() external view returns (uint256 _totalReserves);
 	function reserveFactorMantissa() external view returns (uint256 _reserveFactor);
 	function mint() external payable; // ETH
@@ -173,4 +173,3 @@ interface CToken is IERC20
 	// event Failure(uint256 _error, uint256 _info, uint256 _detail);
 */
 }
-

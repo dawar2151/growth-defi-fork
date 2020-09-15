@@ -5,7 +5,7 @@ import { Addresses } from "./Addresses.sol";
 import { Transfers } from "./Transfers.sol";
 import { GFormulae, GTokenBase } from "./GTokenBase.sol";
 import { GCToken } from "./GCToken.sol";
-import { Comptroller, CToken } from "./interop/Compound.sol";
+import { Comptroller, PriceOracle, CToken } from "./interop/Compound.sol";
 
 contract GCFormulae is GFormulae
 {
@@ -24,10 +24,10 @@ contract CompoundLendingMarketAbstraction is Transfers
 {
 	constructor (address _ctoken) internal
 	{
-		Comptroller _comptroller = Comptroller(Addresses.Compound_COMPTROLLER);
+		address _comptroller = Addresses.Compound_COMPTROLLER;
 		address[] memory _ctokens = new address[](1);
 		_ctokens[0] = _ctoken;
-		uint256 _result = _comptroller.enterMarkets(_ctokens)[0];
+		uint256 _result = Comptroller(_comptroller).enterMarkets(_ctokens)[0];
 		require(_result == 0, "enterMarkets failed");
 	}
 
@@ -36,45 +36,71 @@ contract CompoundLendingMarketAbstraction is Transfers
 		return CToken(_ctoken).underlying();
 	}
 
-	function _getExchangeRate(address _ctoken, address /* _token */) internal returns (uint256 _exchangeRate)
+	function _getExchangeRate(address _ctoken) internal returns (uint256 _exchangeRate)
 	{
 		return CToken(_ctoken).exchangeRateCurrent();
 	}
 
-	function _lend(address _ctoken, uint256 /* _camount */, address _token, uint256 _amount) internal
+	function _getAvailableAmount(address _ctoken) internal view returns (uint256 _amount)
 	{
-		_approveFunds(_token, _ctoken, _amount);
-		uint256 _result = CToken(_ctoken).mint(_amount);
-		require(_result == 0, "lend failure");
+		address _comptroller = Addresses.Compound_COMPTROLLER;
+		(uint256 _result, uint256 _liquidity, uint256 _shortfall) = Comptroller(_comptroller).getAccountLiquidity(address(this));
+		if (_result != 0) return 0;
+		if (_shortfall > 0) return 0;
+		address _priceOracle = Comptroller(_comptroller).oracle();
+		uint256 _price = PriceOracle(_priceOracle).getUnderlyingPrice(_ctoken);
+		uint256 _accountAmount = _liquidity / _price;
+		uint256 _marketAmount = CToken(_ctoken).getCash();
+		return _accountAmount < _marketAmount ? _accountAmount : _marketAmount;
 	}
 
-	function _getRedeemAmount(address /* _ctoken */) internal pure returns (uint256 _redeemAmount)
-	{
-		return 0; // TODO calculate amount available for redeeming
-	}
-
-	function _redeem(address _ctoken, uint256 /* _camount */, address /* _token */, uint256 _amount) internal
-	{
-		uint256 _result = CToken(_ctoken).redeemUnderlying(_amount);
-		require(_result == 0, "redeem failure");
-	}
-
-	function _getBorrowAmount(address _ctoken) internal returns (uint256 _borrowAmount)
+	function _getBorrowAmount(address _ctoken) internal returns (uint256 _amount)
 	{
 		return CToken(_ctoken).borrowBalanceCurrent(address(this));
 	}
 
-	function _borrow(address _ctoken, address /* _token */, uint256 _amount) internal
+	function _lend(address _ctoken, uint256 _amount) internal returns (bool _success)
 	{
-		uint256 _result = CToken(_ctoken).borrow(_amount);
-		require(_result == 0, "borrow failure");
+		address _token = _getUnderlyingToken(_ctoken);
+		_approveFunds(_token, _ctoken, _amount);
+		return CToken(_ctoken).mint(_amount) == 0;
 	}
 
-	function _repay(address _ctoken, address _token, uint256 _amount) internal
+	function _redeem(address _ctoken, uint256 _amount) internal returns (bool _success)
 	{
+		return CToken(_ctoken).redeemUnderlying(_amount) == 0;
+	}
+
+	function _borrow(address _ctoken, uint256 _amount) internal returns (bool _success)
+	{
+		return CToken(_ctoken).borrow(_amount) == 0;
+	}
+
+	function _repay(address _ctoken, uint256 _amount) internal returns (bool _success)
+	{
+		address _token = _getUnderlyingToken(_ctoken);
 		_approveFunds(_token, _ctoken, _amount);
-		uint256 _result = CToken(_ctoken).repayBorrow(_amount);
-		require(_result == 0, "repay failure");
+		return CToken(_ctoken).repayBorrow(_amount) == 0;
+	}
+
+	function _safeLend(address _ctoken, uint256 _amount) internal
+	{
+		require(_lend(_ctoken, _amount), "lend failure");
+	}
+
+	function _safeRedeem(address _ctoken, uint256 _amount) internal
+	{
+		require(_redeem(_ctoken, _amount), "redeem failure");
+	}
+
+	function _safeBorrow(address _ctoken, uint256 _amount) internal
+	{
+		require(_borrow(_ctoken, _amount), "borrow failure");
+	}
+
+	function _safeRepay(address _ctoken, uint256 _amount) internal
+	{
+		require(_repay(_ctoken, _amount), "repay failure");
 	}
 }
 
@@ -100,20 +126,20 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, CompoundLendingMarketAb
 
 	function totalReserveUnderlying() public override returns (uint256 _totalReserveUnderlying)
 	{
-		return _calcUnderlyingCostFromCost(totalReserve(), _getExchangeRate(reserveToken, underlyingToken));
+		return _calcUnderlyingCostFromCost(totalReserve(), _getExchangeRate(reserveToken));
 	}
 
 	function depositUnderlying(uint256 _underlyingCost) external override nonReentrant
 	{
 		address _from = msg.sender;
 		require(_underlyingCost > 0, "deposit underlying cost must be greater than 0");
-		uint256 _cost = _calcCostFromUnderlyingCost(_underlyingCost, _getExchangeRate(reserveToken, underlyingToken));
+		uint256 _cost = _calcCostFromUnderlyingCost(_underlyingCost, _getExchangeRate(reserveToken));
 		(uint256 _netShares, uint256 _feeShares) = calcDepositSharesFromCost(_cost, totalReserve(), totalSupply(), depositFee());
 		require(_netShares > 0, "deposit shares must be greater than 0");
 		_pullFunds(underlyingToken, _from, _underlyingCost);
+		_safeLend(reserveToken, _underlyingCost);
 		_mint(_from, _netShares);
 		_mint(sharesToken, _feeShares.div(2));
-		_lend(reserveToken, _cost, underlyingToken, _underlyingCost);
 		_gulpPoolAssets();
 	}
 
@@ -122,9 +148,9 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, CompoundLendingMarketAb
 		address _from = msg.sender;
 		require(_grossShares > 0, "withdrawal shares must be greater than 0");
 		(uint256 _cost, uint256 _feeShares) = calcWithdrawalCostFromShares(_grossShares, totalReserve(), totalSupply(), withdrawalFee());
-		uint256 _underlyingCost = _calcUnderlyingCostFromCost(_cost, _getExchangeRate(reserveToken, underlyingToken));
+		uint256 _underlyingCost = _calcUnderlyingCostFromCost(_cost, _getExchangeRate(reserveToken));
 		require(_underlyingCost > 0, "withdrawal underlying cost must be greater than 0");
-		_redeem(reserveToken, _cost, underlyingToken, _underlyingCost);
+		_safeRedeem(reserveToken, _underlyingCost);
 		_pushFunds(underlyingToken, _from, _underlyingCost);
 		_burn(_from, _grossShares);
 		_mint(sharesToken, _feeShares.div(2));
