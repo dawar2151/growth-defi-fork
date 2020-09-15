@@ -25,7 +25,7 @@ contract TestBalancerLiquidityPoolAbstraction is Env, Transfers, BalancerLiquidi
 
 		_returnFullTokenBalance(_pool);
 
-		_joinPool(_pool, 0e18);
+		_joinPool(_pool, Addresses.DAI, 0e18);
 
 		Assert.equal(_getBalance(Addresses.GRO), 0e18, "GRO balance must be 0e18");
 		Assert.equal(_getBalance(Addresses.DAI), 0e18, "DAI balance must be 0e18");
@@ -34,7 +34,7 @@ contract TestBalancerLiquidityPoolAbstraction is Env, Transfers, BalancerLiquidi
 		Assert.equal(_getBalance(Addresses.GRO), 0e18, "GRO balance must be 0e18");
 		Assert.equal(_getBalance(Addresses.DAI), 20e18, "DAI balance must be 20e18");
 
-		_joinPool(_pool, 20e18);
+		_joinPool(_pool, Addresses.DAI, 20e18);
 
 		Assert.equal(_getBalance(Addresses.GRO), 0e18, "GRO balance must be 0e18");
 		Assert.equal(_getBalance(Addresses.DAI), 0e18, "DAI balance must be 0e18");
@@ -70,7 +70,7 @@ contract TestBalancerLiquidityPoolAbstraction is Env, Transfers, BalancerLiquidi
 		Assert.equal(_getBalance(Addresses.GRO), 0e18, "GRO balance must be 0e18");
 		Assert.equal(_getBalance(Addresses.DAI), 51e18, "DAI balance must be 51e18");
 
-		_joinPool(_pool, 51e18);
+		_joinPool(_pool, Addresses.DAI, 51e18);
 
 		Assert.equal(_getBalance(Addresses.GRO), 0e18, "GRO balance must be 0e18");
 		Assert.equal(_getBalance(Addresses.DAI), 1e18, "DAI balance must be 1e18");
@@ -115,7 +115,7 @@ contract TestBalancerLiquidityPoolAbstraction is Env, Transfers, BalancerLiquidi
 		Assert.equal(_getBalance(Addresses.GRO), 1e6, "GRO balance must be 1e6");
 		Assert.equal(_getBalance(Addresses.DAI), 1e6, "DAI balance must be 1e6");
 
-		_joinPool(_pool, 1e6);
+		_joinPool(_pool, Addresses.DAI, 1e6);
 
 		Assert.equal(_getBalance(Addresses.GRO), 1e6, "GRO balance must be 1e6");
 		Assert.equal(_getBalance(Addresses.DAI), 1e6, "DAI balance must be 1e6");

@@ -70,17 +70,15 @@ contract BalancerLiquidityPoolAbstraction is Transfers
 		return _pool;
 	}
 
-	function _joinPool(address _pool, uint256 _maxAmount1) internal returns (uint256 _amount1)
+	function _joinPool(address _pool, address _token, uint256 _maxAmount) internal returns (uint256 _amount)
 	{
-		address[] memory _tokens = BPool(_pool).getFinalTokens();
-		address _token1 = _tokens[1];
-		uint256 _balanceAmount1 = BPool(_pool).getBalance(_token1);
-		if (_balanceAmount1 == 0) return 0;
-		uint256 _limitAmount1 = _balanceAmount1.div(2);
-		_amount1 = _maxAmount1 < _limitAmount1 ? _maxAmount1 : _limitAmount1;
-		_approveFunds(_token1, _pool, _amount1);
-		BPool(_pool).joinswapExternAmountIn(_token1, _amount1, 0);
-		return _amount1;
+		uint256 _balanceAmount = BPool(_pool).getBalance(_token);
+		if (_balanceAmount == 0) return 0;
+		uint256 _limitAmount = _balanceAmount.div(2);
+		_amount = _maxAmount < _limitAmount ? _maxAmount : _limitAmount;
+		_approveFunds(_token, _pool, _amount);
+		BPool(_pool).joinswapExternAmountIn(_token, _amount, 0);
+		return _amount;
 	}
 
 	function _exitPool(address _pool, uint256 _percent) internal returns (uint256 _amount0, uint256 _amount1)
@@ -109,7 +107,7 @@ contract GLiquidityPoolManager is BalancerLiquidityPoolAbstraction
 	uint256 constant BURNING_INTERVAL = 7 days;
 	uint256 constant MIGRATION_INTERVAL = 7 days;
 
-	address public immutable stakeToken;
+	address public immutable stakesToken;
 	address public immutable sharesToken;
 
 	State public state = State.Created;
@@ -121,9 +119,9 @@ contract GLiquidityPoolManager is BalancerLiquidityPoolAbstraction
 	address public migrationRecipient = address(0);
 	uint256 public migrationUnlockTime = uint256(-1);
 
-	constructor (address _stakeToken, address _sharesToken) internal
+	constructor (address _stakesToken, address _sharesToken) internal
 	{
-		stakeToken = _stakeToken;
+		stakesToken = _stakesToken;
 		sharesToken = _sharesToken;
 	}
 
@@ -135,7 +133,8 @@ contract GLiquidityPoolManager is BalancerLiquidityPoolAbstraction
 	function _gulpPoolAssets() internal
 	{
 		if (_hasPool()) {
-			_joinPool(liquidityPool, _getBalance(sharesToken));
+			_joinPool(liquidityPool, stakesToken, _getBalance(stakesToken));
+			_joinPool(liquidityPool, sharesToken, _getBalance(sharesToken));
 		}
 	}
 
@@ -145,7 +144,7 @@ contract GLiquidityPoolManager is BalancerLiquidityPoolAbstraction
 		burningRate = _burningRate;
 	}
 
-	function _burnPoolPortion() internal returns (uint256 _stakeAmount, uint256 _sharesAmount)
+	function _burnPoolPortion() internal returns (uint256 _stakesAmount, uint256 _sharesAmount)
 	{
 		require(_hasPool(), "pool not available");
 		require(now > lastBurningTime + BURNING_INTERVAL, "must wait lock interval");
@@ -153,11 +152,11 @@ contract GLiquidityPoolManager is BalancerLiquidityPoolAbstraction
 		return _exitPool(liquidityPool, burningRate);
 	}
 
-	function _allocatePool(uint256 _stakeAmount, uint256 _sharesAmount) internal
+	function _allocatePool(uint256 _stakesAmount, uint256 _sharesAmount) internal
 	{
 		require(state == State.Created, "pool cannot be allocated");
 		state = State.Allocated;
-		liquidityPool = _createPool(stakeToken, _stakeAmount, sharesToken, _sharesAmount);
+		liquidityPool = _createPool(stakesToken, _stakesAmount, sharesToken, _sharesAmount);
 	}
 
 	function _initiatePoolMigration(address _migrationRecipient) internal
@@ -178,13 +177,13 @@ contract GLiquidityPoolManager is BalancerLiquidityPoolAbstraction
 		return _migrationRecipient;
 	}
 
-	function _completePoolMigration() internal returns (address _migrationRecipient, uint256 _stakeAmount, uint256 _sharesAmount)
+	function _completePoolMigration() internal returns (address _migrationRecipient, uint256 _stakesAmount, uint256 _sharesAmount)
 	{
 		require(state == State.Migrating, "migration not initiated");
 		require(now >= migrationUnlockTime, "must wait lock interval");
 		state = State.Migrated;
-		(_stakeAmount, _sharesAmount) = _exitPool(liquidityPool, 1e18);
-		return (migrationRecipient, _stakeAmount, _sharesAmount);
+		(_stakesAmount, _sharesAmount) = _exitPool(liquidityPool, 1e18);
+		return (migrationRecipient, _stakesAmount, _sharesAmount);
 	}
 }
 
@@ -195,8 +194,8 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 
 	address public immutable reserveToken;
 
-	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakeToken, address _reserveToken)
-		ERC20(_name, _symbol) GLiquidityPoolManager(_stakeToken, address(this)) public
+	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakesToken, address _reserveToken)
+		ERC20(_name, _symbol) GLiquidityPoolManager(_stakesToken, address(this)) public
 	{
 		_setupDecimals(_decimals);
 		reserveToken = _reserveToken;
@@ -259,12 +258,12 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 		_gulpPoolAssets();
 	}
 
-	function allocateLiquidityPool(uint256 _stakeAmount, uint256 _sharesAmount) public override onlyOwner nonReentrant
+	function allocateLiquidityPool(uint256 _stakesAmount, uint256 _sharesAmount) public override onlyOwner nonReentrant
 	{
 		address _from = msg.sender;
-		_pullFunds(stakeToken, _from, _stakeAmount);
+		_pullFunds(stakesToken, _from, _stakesAmount);
 		_transfer(_from, sharesToken, _sharesAmount);
-		_allocatePool(_stakeAmount, _sharesAmount);
+		_allocatePool(_stakesAmount, _sharesAmount);
 	}
 
 	function setLiquidityPoolBurningRate(uint256 _burningRate) public override onlyOwner nonReentrant
@@ -274,10 +273,10 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 
 	function burnLiquidityPoolPortion() public override onlyOwner nonReentrant
 	{
-		(uint256 _stakeAmount, uint256 _sharesAmount) = _burnPoolPortion();
-		_pushFunds(stakeToken, address(0), _stakeAmount);
+		(uint256 _stakesAmount, uint256 _sharesAmount) = _burnPoolPortion();
+		_pushFunds(stakesToken, address(0), _stakesAmount);
 		_burn(sharesToken, _sharesAmount);
-		emit BurnLiquidityPoolPortion(_stakeAmount, _sharesAmount);
+		emit BurnLiquidityPoolPortion(_stakesAmount, _sharesAmount);
 	}
 
 	function initiateLiquidityPoolMigration(address _migrationRecipient) public override onlyOwner nonReentrant
@@ -294,14 +293,14 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 
 	function completeLiquidityPoolMigration() public override onlyOwner nonReentrant
 	{
-		(address _migrationRecipient, uint256 _stakeAmount, uint256 _sharesAmount) = _completePoolMigration();
-		_pushFunds(stakeToken, _migrationRecipient, _stakeAmount);
+		(address _migrationRecipient, uint256 _stakesAmount, uint256 _sharesAmount) = _completePoolMigration();
+		_pushFunds(stakesToken, _migrationRecipient, _stakesAmount);
 		_transfer(sharesToken, _migrationRecipient, _sharesAmount);
-		emit CompleteLiquidityPoolMigration(_migrationRecipient, _stakeAmount, _sharesAmount);
+		emit CompleteLiquidityPoolMigration(_migrationRecipient, _stakesAmount, _sharesAmount);
 	}
 
-	event BurnLiquidityPoolPortion(uint256 _stakeAmount, uint256 _sharesAmount);
+	event BurnLiquidityPoolPortion(uint256 _stakesAmount, uint256 _sharesAmount);
 	event InitiateLiquidityPoolMigration(address indexed _migrationRecipient);
 	event CancelLiquidityPoolMigration(address indexed _migrationRecipient);
-	event CompleteLiquidityPoolMigration(address indexed _migrationRecipient, uint256 _stakeAmount, uint256 _sharesAmount);
+	event CompleteLiquidityPoolMigration(address indexed _migrationRecipient, uint256 _stakesAmount, uint256 _sharesAmount);
 }
