@@ -113,9 +113,7 @@ interface CToken is IERC20
 /*
 	// function initialExchangeRateMantissa() external view returns (uint256);
 	// function getAccountSnapshot(address _account) external view returns (uint256, uint256, uint256, uint256);
-*/
 	function exchangeRateStored() external view returns (uint256 _exchangeRateStored);
-/*
 	// function borrowBalanceStored(address _account) external view returns (uint256);
 	// function accrueInterest() external returns (uint256 _accrueInterest);
 	// function seize(address _liquidator, address _borrower, uint256 _seizeTokens) external returns (uint256);

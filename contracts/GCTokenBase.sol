@@ -124,7 +124,7 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, CompoundLendingMarketAb
 		return _calcUnderlyingCostFromCost(_cost, _exchangeRate);
 	}
 
-	function totalReserveUnderlying() public override returns (uint256 _totalReserveUnderlying)
+	function totalReserveUnderlying() public virtual override returns (uint256 _totalReserveUnderlying)
 	{
 		return _calcUnderlyingCostFromCost(totalReserve(), _getExchangeRate(reserveToken));
 	}
@@ -136,11 +136,13 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, CompoundLendingMarketAb
 		uint256 _cost = _calcCostFromUnderlyingCost(_underlyingCost, _getExchangeRate(reserveToken));
 		(uint256 _netShares, uint256 _feeShares) = calcDepositSharesFromCost(_cost, totalReserve(), totalSupply(), depositFee());
 		require(_netShares > 0, "deposit shares must be greater than 0");
+		_beforeDeposit(_from, _cost, _netShares, _feeShares);
 		_pullFunds(underlyingToken, _from, _underlyingCost);
 		_safeLend(reserveToken, _underlyingCost);
 		_mint(_from, _netShares);
 		_mint(sharesToken, _feeShares.div(2));
 		_gulpPoolAssets();
+		_afterDeposit(_from, _cost, _netShares, _feeShares);
 	}
 
 	function withdrawUnderlying(uint256 _grossShares) external override nonReentrant
@@ -150,10 +152,12 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, CompoundLendingMarketAb
 		(uint256 _cost, uint256 _feeShares) = calcWithdrawalCostFromShares(_grossShares, totalReserve(), totalSupply(), withdrawalFee());
 		uint256 _underlyingCost = _calcUnderlyingCostFromCost(_cost, _getExchangeRate(reserveToken));
 		require(_underlyingCost > 0, "withdrawal underlying cost must be greater than 0");
+		_beforeWithdrawal(_from, _grossShares, _feeShares, _cost);
 		_safeRedeem(reserveToken, _underlyingCost);
 		_pushFunds(underlyingToken, _from, _underlyingCost);
 		_burn(_from, _grossShares);
 		_mint(sharesToken, _feeShares.div(2));
 		_gulpPoolAssets();
+		_afterWithdrawal(_from, _grossShares, _feeShares, _cost);
 	}
 }

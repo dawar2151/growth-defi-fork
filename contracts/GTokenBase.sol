@@ -240,10 +240,12 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 		require(_cost > 0, "deposit cost must be greater than 0");
 		(uint256 _netShares, uint256 _feeShares) = calcDepositSharesFromCost(_cost, totalReserve(), totalSupply(), depositFee());
 		require(_netShares > 0, "deposit shares must be greater than 0");
+		_beforeDeposit(_from, _cost, _netShares, _feeShares);
 		_pullFunds(reserveToken, _from, _cost);
 		_mint(_from, _netShares);
 		_mint(sharesToken, _feeShares.div(2));
 		_gulpPoolAssets();
+		_afterDeposit(_from, _cost, _netShares, _feeShares);
 	}
 
 	function withdraw(uint256 _grossShares) external override nonReentrant
@@ -252,10 +254,12 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 		require(_grossShares > 0, "withdrawal shares must be greater than 0");
 		(uint256 _cost, uint256 _feeShares) = calcWithdrawalCostFromShares(_grossShares, totalReserve(), totalSupply(), withdrawalFee());
 		require(_cost > 0, "withdrawal cost must be greater than 0");
+		_beforeWithdrawal(_from, _grossShares, _feeShares, _cost);
 		_pushFunds(reserveToken, _from, _cost);
 		_burn(_from, _grossShares);
 		_mint(sharesToken, _feeShares.div(2));
 		_gulpPoolAssets();
+		_afterWithdrawal(_from, _grossShares, _feeShares, _cost);
 	}
 
 	function allocateLiquidityPool(uint256 _stakesAmount, uint256 _sharesAmount) public override onlyOwner nonReentrant
@@ -298,6 +302,11 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 		_transfer(sharesToken, _migrationRecipient, _sharesAmount);
 		emit CompleteLiquidityPoolMigration(_migrationRecipient, _stakesAmount, _sharesAmount);
 	}
+
+	function _beforeDeposit(address _from, uint256 _cost, uint256 _netShares, uint256 _feeShares) internal view virtual { }
+	function _beforeWithdrawal(address _from, uint256 _grossShares, uint256 _feeShares, uint256 _cost) internal view virtual { }
+	function _afterDeposit(address _from, uint256 _cost, uint256 _netShares, uint256 _feeShares) internal virtual { }
+	function _afterWithdrawal(address _from, uint256 _grossShares, uint256 _feeShares, uint256 _cost) internal virtual { }
 
 	event BurnLiquidityPoolPortion(uint256 _stakesAmount, uint256 _sharesAmount);
 	event InitiateLiquidityPoolMigration(address indexed _migrationRecipient);
