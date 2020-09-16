@@ -192,7 +192,7 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 	uint256 constant DEPOSIT_FEE = 1e16; // 1%
 	uint256 constant WITHDRAWAL_FEE = 1e16; // 1%
 
-	address public immutable reserveToken;
+	address public immutable override reserveToken;
 
 	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakesToken, address _reserveToken)
 		ERC20(_name, _symbol) GLiquidityPoolManager(_stakesToken, address(this)) public
@@ -229,7 +229,7 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 		return _hasPool() ? WITHDRAWAL_FEE : 0;
 	}
 
-	function totalReserve() public virtual override returns (uint256 _totalReserve)
+	function totalReserve() public view virtual override returns (uint256 _totalReserve)
 	{
 		return _getBalance(reserveToken);
 	}

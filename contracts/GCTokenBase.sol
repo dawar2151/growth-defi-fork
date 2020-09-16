@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.0;
 
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+
 import { Addresses } from "./Addresses.sol";
 import { Transfers } from "./Transfers.sol";
 import { GFormulae, GTokenBase } from "./GTokenBase.sol";
@@ -22,6 +24,8 @@ contract GCFormulae is GFormulae
 
 contract CompoundLendingMarketAbstraction is Transfers
 {
+	using SafeMath for uint256;
+
 	constructor (address _ctoken) internal
 	{
 		address _comptroller = Addresses.Compound_COMPTROLLER;
@@ -36,7 +40,12 @@ contract CompoundLendingMarketAbstraction is Transfers
 		return CToken(_ctoken).underlying();
 	}
 
-	function _getExchangeRate(address _ctoken) internal returns (uint256 _exchangeRate)
+	function _getExchangeRate(address _ctoken) internal view returns (uint256 _exchangeRate)
+	{
+		return CToken(_ctoken).exchangeRateStored();
+	}
+
+	function _fetchExchangeRate(address _ctoken) internal returns (uint256 _exchangeRate)
 	{
 		return CToken(_ctoken).exchangeRateCurrent();
 	}
@@ -49,12 +58,27 @@ contract CompoundLendingMarketAbstraction is Transfers
 		if (_shortfall > 0) return 0;
 		address _priceOracle = Comptroller(_comptroller).oracle();
 		uint256 _price = PriceOracle(_priceOracle).getUnderlyingPrice(_ctoken);
-		uint256 _accountAmount = _liquidity / _price;
+		uint256 _accountAmount = _liquidity.mul(1e18).div(_price);
 		uint256 _marketAmount = CToken(_ctoken).getCash();
 		return _accountAmount < _marketAmount ? _accountAmount : _marketAmount;
 	}
 
-	function _getBorrowAmount(address _ctoken) internal returns (uint256 _amount)
+	function _getLendAmount(address _ctoken) internal view returns (uint256 _amount)
+	{
+		return CToken(_ctoken).balanceOf(address(this)).mul(_getExchangeRate(_ctoken)).div(1e18);
+	}
+
+	function _fetchLendAmount(address _ctoken) internal returns (uint256 _amount)
+	{
+		return CToken(_ctoken).balanceOfUnderlying(address(this));
+	}
+
+	function _getBorrowAmount(address _ctoken) internal view returns (uint256 _amount)
+	{
+		return CToken(_ctoken).borrowBalanceStored(address(this));
+	}
+
+	function _fetchBorrowAmount(address _ctoken) internal returns (uint256 _amount)
 	{
 		return CToken(_ctoken).borrowBalanceCurrent(address(this));
 	}
@@ -124,12 +148,12 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, CompoundLendingMarketAb
 		return _calcUnderlyingCostFromCost(_cost, _exchangeRate);
 	}
 
-	function exchangeRate() public override nonReentrant returns (uint256 _exchangeRate)
+	function exchangeRate() public view override returns (uint256 _exchangeRate)
 	{
 		return _getExchangeRate(reserveToken);
 	}
 
-	function totalReserveUnderlying() public override returns (uint256 _totalReserveUnderlying)
+	function totalReserveUnderlying() public view override returns (uint256 _totalReserveUnderlying)
 	{
 		return _calcUnderlyingCostFromCost(_getBalance(reserveToken), _getExchangeRate(reserveToken));
 	}

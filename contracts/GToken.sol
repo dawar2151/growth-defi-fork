@@ -18,11 +18,11 @@ interface GToken is IERC20
 	// function lastBurningTime() external view returns (uint256 _lastBurningTime);
 	// function migrationRecipient() external view returns (address _migrationRecipient);
 	// function migrationUnlockTime() external view returns (uint256 _migrationUnlockTime);
-
+	function reserveToken() external view returns (address _reserveToken);
 	function depositFee() external view returns (uint256 _depositFee);
 	function withdrawalFee() external view returns (uint256 _withdrawalFee);
+	function totalReserve() external view returns (uint256 _totalReserve);
 
-	function totalReserve() external returns (uint256 _totalReserve);
 	function deposit(uint256 _cost) external;
 	function withdraw(uint256 _grossShares) external;
 

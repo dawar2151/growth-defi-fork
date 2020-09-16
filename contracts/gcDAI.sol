@@ -112,17 +112,17 @@ contract gcDAI is GCTokenBase, Conversions
 	uint256 constant LIMIT_COLLATERALIZATION_RATIO = 70e16; // 70%
 	uint256 constant LIMIT_ADJUSTMENT_AMOUNT = 1000e18; // $1,000
 
-	address public immutable bonusToken;
-	address public immutable borrowToken;
+	address public immutable miningToken;
+	address public immutable borrowReserveToken;
 	address public immutable borrowUnderlyingToken;
 
-	bool private enableBorrowStrategy = false;
+	bool public leverageStrategyEnabled = false;
 
 	constructor ()
 		GCTokenBase("growth cDAI", "gcDAI", 18, Addresses.GRO, Addresses.cDAI) public
 	{
-		bonusToken = Addresses.COMP;
-		borrowToken = Addresses.cUSDC;
+		miningToken = Addresses.COMP;
+		borrowReserveToken = Addresses.cUSDC;
 		borrowUnderlyingToken = _getUnderlyingToken(Addresses.cUSDC);
 	}
 /*
@@ -131,19 +131,25 @@ contract gcDAI is GCTokenBase, Conversions
 		return _calcTotalReserve();
 	}
 
-	function setEnableBorrowStrategy(bool _enableBorrowStrategy) public onlyOwner
+	function setLeverageStrategyEnabled(bool _leverageStrategyEnabled) public onlyOwner
 	{
-		enableBorrowStrategy = _enableBorrowStrategy;
+		leverageStrategyEnabled = _leverageStrategyEnabled;
 	}
 
-	function _gulpBonusAsset() internal
+	function _prepareDeposit(uint256 /* _cost * /) internal override {
+	}
+
+	function _prepareWithdrawal(uint256 /* _cost * /) internal override {
+	}
+
+	function _adjustReserve() internal override {
+		_gulpMiningAsset();
+	}
+
+	function _gulpMiningAsset() internal
 	{
-		uint256 _bonusAmount = _getBalance(bonusToken);
-		if (_bonusAmount == 0) return;
-		uint256 _underlyingCost = _U_calcConversionOutputFromInput(bonusToken, underlyingToken, _bonusAmount);
-		uint256 _cost = _calcCostFromUnderlyingCost(_underlyingCost, _getExchangeRate(reserveToken, underlyingToken));
-		_U_convertBalance(bonusToken, underlyingToken, _bonusAmount, _underlyingCost);
-		_lend(reserveToken, _cost, underlyingToken, _underlyingCost);
+		_convertFundsCOMPToDAI(_getBalance(miningToken));
+		_safeLend(reserveToken, _getBalance(underlyingToken));
 	}
 
 	function _calcTotalReserve() internal returns (uint256 _totalReserve)
