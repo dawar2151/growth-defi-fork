@@ -194,7 +194,9 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 	}
 
 	function _prepareDeposit(uint256 _cost) internal virtual { }
+
 	function _prepareWithdrawal(uint256 _cost) internal virtual { }
+
 	function _adjustReserve() internal virtual { }
 
 	function _burnStakes(uint256 _stakesAmount) internal virtual

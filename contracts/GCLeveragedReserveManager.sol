@@ -6,28 +6,48 @@ import { UniswapV2ExchangeAbstraction } from "./UniswapV2ExchangeAbstraction.sol
 
 contract GCLeveragedReserveManager is CompoundLendingMarketAbstraction, UniswapV2ExchangeAbstraction
 {
-	uint256 constant LEVERAGE_ADJUSTMENT_AMOUNT = 1000e18; // $1,000
-	uint256 constant IDEAL_COLLATERALIZATION_RATIO = 88e16; // 88% of 75% = 66%
-	uint256 constant LIMIT_COLLATERALIZATION_RATIO = 92e16; // 92% of 75% = 69%
+	uint256 constant DEFAULT_IDEAL_COLLATERALIZATION_RATIO = 88e16; // 88% of 75% = 66%
+	uint256 constant DEFAULT_LIMIT_COLLATERALIZATION_RATIO = 92e16; // 92% of 75% = 69%
 
+	address private immutable miningToken;
 	address private immutable reserveToken;
 	address private immutable underlyingToken;
-	address private immutable miningToken;
-	address immutable leverageToken;
+	address private immutable leverageToken;
 	address private immutable borrowToken;
 
 	bool private leverageEnabled = false;
-	uint256 private leverageAdjustmentAmount = LEVERAGE_ADJUSTMENT_AMOUNT;
-	uint256 private idealCollateralizationRatio = IDEAL_COLLATERALIZATION_RATIO;
-	uint256 private limitCollateralizationRatio = LIMIT_COLLATERALIZATION_RATIO;
+	uint256 private leverageAdjustmentAmount;
+	uint256 private idealCollateralizationRatio = DEFAULT_IDEAL_COLLATERALIZATION_RATIO;
+	uint256 private limitCollateralizationRatio = DEFAULT_LIMIT_COLLATERALIZATION_RATIO;
 
-	constructor (address _reserveToken, address _miningToken, address _leverageToken) internal
+	constructor (address _miningToken, address _reserveToken, address _leverageToken, uint256 _leverageAdjustmentAmount) internal
 	{
+		miningToken = _miningToken;
 		reserveToken = _reserveToken;
 		underlyingToken = _getUnderlyingToken(_reserveToken);
-		miningToken = _miningToken;
 		leverageToken = _leverageToken;
 		borrowToken = _getUnderlyingToken(_leverageToken);
+		leverageAdjustmentAmount = _leverageAdjustmentAmount;
+	}
+
+	function _getLeverageEnabled() internal view returns (bool _leverageEnabled)
+	{
+		return leverageEnabled;
+	}
+
+	function _getLeverageAdjustmentAmount() internal view returns (uint256 _leverageAdjustmentAmount)
+	{
+		return leverageAdjustmentAmount;
+	}
+
+	function _getIdealCollateralizationRatio() internal view returns (uint256 _idealCollateralizationRatio)
+	{
+		return idealCollateralizationRatio;
+	}
+
+	function _getLimitCollateralizationRatio() internal view returns (uint256 _limitCollateralizationRatio)
+	{
+		return limitCollateralizationRatio;
 	}
 
 	function _setLeverageEnabled(bool _leverageEnabled) internal
@@ -55,14 +75,22 @@ contract GCLeveragedReserveManager is CompoundLendingMarketAbstraction, UniswapV
 		limitCollateralizationRatio = _limitCollateralizationRatio;
 	}
 
-	function _increaseLeverageLimited(uint256 _amount) internal returns (bool _success)
+	function _gulpMiningAssets() internal returns (bool _success)
 	{
-		return _increaseLeverage(_min(_amount, leverageAdjustmentAmount));
+		_convertMiningToUnderlying(_getBalance(miningToken));
+		return _lend(reserveToken, _getBalance(underlyingToken));
 	}
 
-	function _decreaseLeverageLimited(uint256 _amount) internal returns (bool _success)
+	function _adjustLeverage() internal returns (bool _success)
 	{
-		return _decreaseLeverage(_min(_amount, leverageAdjustmentAmount));
+		uint256 _borrowingAmount = _calcConversionUnderlyingToBorrowGivenBorrow(_fetchBorrowAmount(leverageToken));
+		if (!leverageEnabled) return _decreaseLeverageLimited(_borrowingAmount);
+		uint256 _lendingAmount = _fetchLendAmount(reserveToken);
+		uint256 _limitAmount = _calcLimitAmount(_lendingAmount, _getCollateralRatio(reserveToken));
+		if (_borrowingAmount > _limitAmount) return _decreaseLeverageLimited(_borrowingAmount.sub(_limitAmount));
+		uint256 _idealAmount = _calcIdealAmount(_lendingAmount, _getCollateralRatio(reserveToken));
+		if (_borrowingAmount < _idealAmount) return _increaseLeverageLimited(_idealAmount.sub(_borrowingAmount));
+		return true;
 	}
 
 	function _calcIdealAmount(uint256 _amount, uint256 _collateralRatio) internal view returns (uint256 _idealAmount)
@@ -75,22 +103,14 @@ contract GCLeveragedReserveManager is CompoundLendingMarketAbstraction, UniswapV
 		return _amount.mul(_collateralRatio).div(1e18).mul(limitCollateralizationRatio).div(1e18);
 	}
 
-	function _gulpMiningAssets() internal
+	function _increaseLeverageLimited(uint256 _amount) internal returns (bool _success)
 	{
-		_convertMiningToUnderlying(_getBalance(miningToken));
-		_lend(reserveToken, _getBalance(underlyingToken));
+		return _increaseLeverage(_min(_amount, leverageAdjustmentAmount));
 	}
 
-	function _adjustLeverage() internal returns (bool _success)
+	function _decreaseLeverageLimited(uint256 _amount) internal returns (bool _success)
 	{
-		uint256 _borrowingAmount = _calcConversionUnderlyingToBorrowGivenUnderlying(_fetchBorrowAmount(leverageToken));
-		if (!leverageEnabled) return _decreaseLeverageLimited(_borrowingAmount);
-		uint256 _lendingAmount = _fetchLendAmount(reserveToken);
-		uint256 _limitAmount = _calcLimitAmount(_lendingAmount, _getCollateralRatio(reserveToken));
-		if (_borrowingAmount > _limitAmount) return _decreaseLeverageLimited(_borrowingAmount.sub(_limitAmount));
-		uint256 _idealAmount = _calcIdealAmount(_lendingAmount, _getCollateralRatio(reserveToken));
-		if (_borrowingAmount < _idealAmount) return _increaseLeverageLimited(_idealAmount.sub(_borrowingAmount));
-		return true;
+		return _decreaseLeverage(_min(_amount, leverageAdjustmentAmount));
 	}
 
 	function _increaseLeverage(uint256 _amount) internal returns (bool _success)
@@ -134,13 +154,13 @@ contract GCLeveragedReserveManager is CompoundLendingMarketAbstraction, UniswapV
 		_convertBalance(miningToken, underlyingToken, _inputAmount, 0);
 	}
 
-	function _convertUnderlyingToBorrow(uint256 _inputAmount) internal virtual
-	{
-		_convertBalance(underlyingToken, borrowToken, _inputAmount, 0);
-	}
-
 	function _convertBorrowToUnderlying(uint256 _inputAmount) internal virtual
 	{
 		_convertBalance(borrowToken, underlyingToken, _inputAmount, 0);
+	}
+
+	function _convertUnderlyingToBorrow(uint256 _inputAmount) internal virtual
+	{
+		_convertBalance(underlyingToken, borrowToken, _inputAmount, 0);
 	}
 }

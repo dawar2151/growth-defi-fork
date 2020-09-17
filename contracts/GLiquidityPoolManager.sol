@@ -7,7 +7,7 @@ contract GLiquidityPoolManager is BalancerLiquidityPoolAbstraction
 {
 	enum State { Created, Allocated, Migrating, Migrated }
 
-	uint256 constant BURNING_RATE = 5e15; // 0.5%
+	uint256 constant DEFAULT_BURNING_RATE = 5e15; // 0.5%
 	uint256 constant BURNING_INTERVAL = 7 days;
 	uint256 constant MIGRATION_INTERVAL = 7 days;
 
@@ -17,7 +17,7 @@ contract GLiquidityPoolManager is BalancerLiquidityPoolAbstraction
 	State private state = State.Created;
 	address private liquidityPool = address(0);
 
-	uint256 private burningRate = BURNING_RATE;
+	uint256 private burningRate = DEFAULT_BURNING_RATE;
 	uint256 private lastBurningTime = 0;
 
 	address private migrationRecipient = address(0);

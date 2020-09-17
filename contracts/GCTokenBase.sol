@@ -21,13 +21,15 @@ contract GCFormulae is GFormulae
 
 contract GCTokenBase is GTokenBase, GCToken, GCFormulae, GCLeveragedReserveManager
 {
+	address public immutable override leverageToken;
 	address public immutable override underlyingToken;
 
-	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakeToken, address _reserveToken, address _miningToken, address _leverageToken)
+	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakeToken, address _miningToken, address _reserveToken, address _leverageToken, uint256 _leverageAdjustmentAmount)
 		GTokenBase(_name, _symbol, _decimals, _stakeToken, _reserveToken)
-		GCLeveragedReserveManager(_reserveToken, _miningToken, _leverageToken) public
+		GCLeveragedReserveManager(_miningToken, _reserveToken, _leverageToken, _leverageAdjustmentAmount) public
 	{
 		_safeEnter(_reserveToken);
+		leverageToken = _leverageToken;
 		underlyingToken = _getUnderlyingToken(_reserveToken);
 	}
 
@@ -55,18 +57,18 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, GCLeveragedReserveManag
 	{
 		uint256 _lendingReserveUnderlying = lendingReserveUnderlying();
 		uint256 _borrowingReserveUnderlying = borrowingReserveUnderlying();
-		if (_lendingReserveUnderlying < _borrowingReserveUnderlying) return 0;
+		if (_lendingReserveUnderlying <= _borrowingReserveUnderlying) return 0;
 		return _lendingReserveUnderlying.sub(_borrowingReserveUnderlying);
 	}
 
-	function borrowingReserveUnderlying() public view returns (uint256 _borrowingReserveUnderlying)
-	{
-		return _calcConversionUnderlyingToBorrowGivenBorrow(_getBorrowAmount(leverageToken));
-	}
-
-	function lendingReserveUnderlying() public view returns (uint256 _lendingReserveUnderlying)
+	function lendingReserveUnderlying() public view override returns (uint256 _lendingReserveUnderlying)
 	{
 		return _getLendAmount(reserveToken);
+	}
+
+	function borrowingReserveUnderlying() public view override returns (uint256 _borrowingReserveUnderlying)
+	{
+		return _calcConversionUnderlyingToBorrowGivenBorrow(_getBorrowAmount(leverageToken));
 	}
 
 	function depositUnderlying(uint256 _underlyingCost) external override nonReentrant
@@ -101,22 +103,42 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, GCLeveragedReserveManag
 		_adjustReserve();
 	}
 
-	function setLeverageEnabled(bool _leverageEnabled) public override onlyOwner
+	function leverageEnabled() public view override returns (bool _leverageEnabled)
+	{
+		return _getLeverageEnabled();
+	}
+
+	function leverageAdjustmentAmount() public view override returns (uint256 _leverageAdjustmentAmount)
+	{
+		return _getLeverageAdjustmentAmount();
+	}
+
+	function idealCollateralizationRatio() external view override returns (uint256 _idealCollateralizationRatio)
+	{
+		return _getIdealCollateralizationRatio();
+	}
+
+	function limitCollateralizationRatio() external view override returns (uint256 _limitCollateralizationRatio)
+	{
+		return _getLimitCollateralizationRatio();
+	}
+
+	function setLeverageEnabled(bool _leverageEnabled) public override onlyOwner nonReentrant
 	{
 		_setLeverageEnabled(_leverageEnabled);
 	}
 
-	function setLeverageAdjustmentAmount(uint256 _leverageAdjustmentAmount) public override onlyOwner
+	function setLeverageAdjustmentAmount(uint256 _leverageAdjustmentAmount) public override onlyOwner nonReentrant
 	{
 		_setLeverageAdjustmentAmount(_leverageAdjustmentAmount);
 	}
 
-	function setIdealCollateralizationRatio(uint256 _idealCollateralizationRatio) public override onlyOwner
+	function setIdealCollateralizationRatio(uint256 _idealCollateralizationRatio) public override onlyOwner nonReentrant
 	{
 		_setIdealCollateralizationRatio(_idealCollateralizationRatio);
 	}
 
-	function setLimitCollateralizationRatio(uint256 _limitCollateralizationRatio) public override onlyOwner
+	function setLimitCollateralizationRatio(uint256 _limitCollateralizationRatio) public override onlyOwner nonReentrant
 	{
 		_setLimitCollateralizationRatio(_limitCollateralizationRatio);
 	}
@@ -124,13 +146,12 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, GCLeveragedReserveManag
 	function _prepareWithdrawal(uint256 _cost) internal override {
 		uint256 _requiredAmount = _calcUnderlyingCostFromCost(_cost, _fetchExchangeRate(reserveToken));
 		uint256 _availableAmount = _getAvailableAmount(reserveToken);
-		if (_requiredAmount > _availableAmount) {
-			require(_decreaseLeverage(_requiredAmount.sub(_availableAmount)), "unliquid market, try again later");
-		}
+		if (_requiredAmount <= _availableAmount) return;
+		require(_decreaseLeverage(_requiredAmount.sub(_availableAmount)), "unliquid market, try again later");
 	}
 
 	function _adjustReserve() internal override {
-		_gulpMiningAssets();
-		_adjustLeverage();
+		require(_gulpMiningAssets(), "failure gulping mining assets");
+		require(_adjustLeverage(), "failure adjusting leverage");
 	}
 }
