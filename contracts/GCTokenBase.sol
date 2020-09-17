@@ -2,22 +2,10 @@
 pragma solidity ^0.6.0;
 
 import { GToken } from "./GToken.sol";
-import { GFormulae, GTokenBase } from "./GTokenBase.sol";
+import { GTokenBase } from "./GTokenBase.sol";
 import { GCToken } from "./GCToken.sol";
+import { GCFormulae } from "./GCFormulae.sol";
 import { GCLeveragedReserveManager } from "./GCLeveragedReserveManager.sol";
-
-contract GCFormulae is GFormulae
-{
-	function _calcCostFromUnderlyingCost(uint256 _underlyingCost, uint256 _exchangeRate) internal pure returns (uint256 _cost)
-	{
-		return _underlyingCost.mul(1e18).div(_exchangeRate);
-	}
-
-	function _calcUnderlyingCostFromCost(uint256 _cost, uint256 _exchangeRate) internal pure returns (uint256 _underlyingCost)
-	{
-		return _cost.mul(_exchangeRate).div(1e18);
-	}
-}
 
 contract GCTokenBase is GTokenBase, GCToken, GCFormulae, GCLeveragedReserveManager
 {
