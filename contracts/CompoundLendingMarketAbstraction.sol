@@ -7,7 +7,7 @@ import { Addresses } from "./Addresses.sol";
 import { Transfers } from "./Transfers.sol";
 import { Comptroller, PriceOracle, CToken } from "./interop/Compound.sol";
 
-contract CompoundLendingMarketAbstraction is Transfers
+contract CompoundLendingMarketAbstraction is Addresses, Transfers
 {
 	using SafeMath for uint256;
 
@@ -18,14 +18,14 @@ contract CompoundLendingMarketAbstraction is Transfers
 
 	function _getCollateralRatio(address _ctoken) internal view returns (uint256 _collateralFactor)
 	{
-		address _comptroller = Addresses.Compound_COMPTROLLER;
+		address _comptroller = Compound_COMPTROLLER;
 		(, _collateralFactor) = Comptroller(_comptroller).markets(_ctoken);
 		return _collateralFactor;
 	}
 
 	function _getAvailableAmount(address _ctoken) internal view returns (uint256 _amount)
 	{
-		address _comptroller = Addresses.Compound_COMPTROLLER;
+		address _comptroller = Compound_COMPTROLLER;
 		(uint256 _result, uint256 _liquidity, uint256 _shortfall) = Comptroller(_comptroller).getAccountLiquidity(address(this));
 		if (_result != 0) return 0;
 		if (_shortfall > 0) return 0;
@@ -68,7 +68,7 @@ contract CompoundLendingMarketAbstraction is Transfers
 
 	function _enter(address _ctoken) internal returns (bool _success)
 	{
-		address _comptroller = Addresses.Compound_COMPTROLLER;
+		address _comptroller = Compound_COMPTROLLER;
 		address[] memory _ctokens = new address[](1);
 		_ctokens[0] = _ctoken;
 		return Comptroller(_comptroller).enterMarkets(_ctokens)[0] == 0;
