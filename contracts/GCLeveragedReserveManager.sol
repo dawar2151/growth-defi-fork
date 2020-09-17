@@ -104,6 +104,18 @@ contract GCLeveragedReserveManager is CompoundLendingMarketAbstraction, UniswapV
 		return _amount.mul(_collateralRatio).div(1e18).mul(limitCollateralizationRatio).div(1e18);
 	}
 
+	function _getAvailableUnderlying() internal view returns (uint256 _availableUnderlying)
+	{
+		uint256 _lendingAmount = _getLendAmount(reserveToken);
+		uint256 _limitAmount = _calcLimitAmount(_lendingAmount, _getCollateralRatio(reserveToken));
+		return _getAvailableAmount(reserveToken, _limitAmount);
+	}
+
+	function _getAvailableBorrow() internal view returns (uint256 _availableBorrow)
+	{
+		return _calcConversionUnderlyingToBorrowGivenUnderlying(_getAvailableUnderlying());
+	}
+
 	function _increaseLeverageLimited(uint256 _amount) internal returns (bool _success)
 	{
 		return _increaseLeverage(_min(_amount, leverageAdjustmentAmount));
@@ -116,7 +128,7 @@ contract GCLeveragedReserveManager is CompoundLendingMarketAbstraction, UniswapV
 
 	function _increaseLeverage(uint256 _amount) internal returns (bool _success)
 	{
-		_success = _borrow(leverageToken, _min(_calcConversionUnderlyingToBorrowGivenUnderlying(_amount), _getAvailableAmount(leverageToken)));
+		_success = _borrow(leverageToken, _min(_calcConversionUnderlyingToBorrowGivenUnderlying(_amount), _getAvailableBorrow()));
 		if (!_success) return false;
 		_convertBorrowToUnderlying(_getBalance(borrowToken));
 		_repay(leverageToken, _min(_getBalance(borrowToken), _getBorrowAmount(leverageToken)));
@@ -126,7 +138,7 @@ contract GCLeveragedReserveManager is CompoundLendingMarketAbstraction, UniswapV
 
 	function _decreaseLeverage(uint256 _amount) internal returns (bool _success)
 	{
-		_success = _redeem(reserveToken, _min(_calcConversionUnderlyingToBorrowGivenBorrow(_calcConversionBorrowToUnderlyingGivenUnderlying(_amount)), _getAvailableAmount(reserveToken)));
+		_success = _redeem(reserveToken, _min(_calcConversionUnderlyingToBorrowGivenBorrow(_calcConversionBorrowToUnderlyingGivenUnderlying(_amount)), _getAvailableUnderlying()));
 		if (!_success) return false;
 		_convertUnderlyingToBorrow(_getBalance(underlyingToken));
 		_success = _repay(leverageToken, _min(_getBalance(borrowToken), _getBorrowAmount(leverageToken)));

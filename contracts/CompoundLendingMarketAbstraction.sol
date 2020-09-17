@@ -20,7 +20,12 @@ contract CompoundLendingMarketAbstraction is Addresses, Math, Transfers
 		return _collateralFactor;
 	}
 
-	function _getAvailableAmount(address _ctoken) internal view returns (uint256 _amount)
+	function _getMarketAmount(address _ctoken) internal view returns (uint256 _marketAmount)
+	{
+		return CToken(_ctoken).getCash();
+	}
+
+	function _getLiquidityAmount(address _ctoken) internal view returns (uint256 _liquidityAmount)
 	{
 		address _comptroller = Compound_COMPTROLLER;
 		(uint256 _result, uint256 _liquidity, uint256 _shortfall) = Comptroller(_comptroller).getAccountLiquidity(address(this));
@@ -28,9 +33,14 @@ contract CompoundLendingMarketAbstraction is Addresses, Math, Transfers
 		if (_shortfall > 0) return 0;
 		address _priceOracle = Comptroller(_comptroller).oracle();
 		uint256 _price = PriceOracle(_priceOracle).getUnderlyingPrice(_ctoken);
-		uint256 _accountAmount = _liquidity.mul(1e18).div(_price);
-		uint256 _marketAmount = CToken(_ctoken).getCash();
-		return _min(_accountAmount, _marketAmount);
+		return _liquidity.mul(1e18).div(_price);
+	}
+
+	function _getAvailableAmount(address _ctoken, uint256 _marginAmount) internal view returns (uint256 _availableAmount)
+	{
+		uint256 _liquidityAmount = _getLiquidityAmount(_ctoken);
+		if (_liquidityAmount <= _marginAmount) return 0;
+		return _min(_liquidityAmount.sub(_marginAmount), _getMarketAmount(_ctoken));
 	}
 
 	function _getExchangeRate(address _ctoken) internal view returns (uint256 _exchangeRate)

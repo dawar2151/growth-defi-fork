@@ -132,7 +132,7 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, GCLeveragedReserveManag
 
 	function _prepareWithdrawal(uint256 _cost) internal override {
 		uint256 _requiredAmount = _calcUnderlyingCostFromCost(_cost, _fetchExchangeRate(reserveToken));
-		uint256 _availableAmount = _getAvailableAmount(reserveToken);
+		uint256 _availableAmount = _getAvailableUnderlying();
 		if (_requiredAmount <= _availableAmount) return;
 		require(_decreaseLeverage(_requiredAmount.sub(_availableAmount)), "unliquid market, try again later");
 	}
