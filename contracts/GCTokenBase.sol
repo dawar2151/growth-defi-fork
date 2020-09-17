@@ -26,7 +26,7 @@ contract CompoundLendingMarketAbstraction is Transfers
 {
 	using SafeMath for uint256;
 
-	constructor (address _ctoken) internal
+	function _initLendingMarket(address _ctoken) internal
 	{
 		address _comptroller = Addresses.Compound_COMPTROLLER;
 		address[] memory _ctokens = new address[](1);
@@ -140,9 +140,9 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, CompoundLendingMarketAb
 	address public immutable override underlyingToken;
 
 	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakeToken, address _reserveToken)
-		GTokenBase(_name, _symbol, _decimals, _stakeToken, _reserveToken)
-		CompoundLendingMarketAbstraction(_reserveToken) public
+		GTokenBase(_name, _symbol, _decimals, _stakeToken, _reserveToken) public
 	{
+		_initLendingMarket(_reserveToken);
 		underlyingToken = _getUnderlyingToken(_reserveToken);
 	}
 

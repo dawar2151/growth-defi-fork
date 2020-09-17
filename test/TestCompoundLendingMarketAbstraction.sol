@@ -7,8 +7,12 @@ import { Env } from "./Env.sol";
 import { Addresses } from "../contracts/Addresses.sol";
 import { GCFormulae, CompoundLendingMarketAbstraction } from "../contracts/GCTokenBase.sol";
 
-contract TestCompoundLendingMarketAbstraction is Env, GCFormulae, CompoundLendingMarketAbstraction(Addresses.cDAI)
+contract TestCompoundLendingMarketAbstraction is Env, GCFormulae, CompoundLendingMarketAbstraction
 {
+	constructor () public {
+		_initLendingMarket(Addresses.cDAI);
+	}
+
 	function test01() public
 	{
 		AssertAddress.equal(_getUnderlyingToken(Addresses.cDAI), Addresses.DAI, "DAI must be the underlying of cDAI");
