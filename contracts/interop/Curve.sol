@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+/*
 interface Registry
 {
 	struct PoolCoins {
@@ -59,17 +60,19 @@ interface Registry
 	event PoolRemoved(address indexed _pool);
 }
 
-
 interface Calculator
 {
 	function get_dx(int128 _n_coins, uint256[8] calldata _balances, uint256 _amp, uint256 _fee, uint256[8] calldata _rates, uint256[8] calldata _precisions, bool _underlying, int128 _i, int128 _j, uint256 _dy) external view returns (uint256 _dx);
 	function get_dy(int128 _n_coins, uint256[8] calldata _balances, uint256 _amp, uint256 _fee, uint256[8] calldata _rates, uint256[8] calldata _precisions, bool _underlying, int128 _i, int128 _j, uint256[100] calldata _dx) external view returns (uint256[100] calldata _dy);
 }
-
+*/
 interface Swap
 {
+/*
 	function coins(int128 _i) external view returns (address _coin);
+*/
 	function underlying_coins(int128 _i) external view returns (address _underlying_coin);
+/*
 	function balances(int128 _i) external view returns (uint256 _balance);
 	function A() external view returns (uint256 _A);
 	function fee() external view returns (uint256 _fee);
@@ -87,15 +90,19 @@ interface Swap
 	function get_virtual_price() external view returns (uint256 _virtual_price);
 	function get_dx(int128 _i, int128 _j, uint256 _dy) external view returns (uint256 _dx);
 	function get_dy(int128 _i, int128 _j, uint256 _dx) external view returns (uint256 _dy);
+*/
 	function get_dx_underlying(int128 _i, int128 _j, uint256 _dy) external view returns (uint256 _dx);
 	function get_dy_underlying(int128 _i, int128 _j, uint256 _dx) external view returns (uint256 _dy);
+/*
 	function calc_token_amount(uint256[2] calldata _amounts, bool _deposit) external view returns (uint256 _amount);
 	function calc_token_amount(uint256[3] calldata _amounts, bool _deposit) external view returns (uint256 _amount);
 	function calc_token_amount(uint256[4] calldata _amounts, bool _deposit) external view returns (uint256 _amount);
 	function calc_withdraw_one_coin(uint256 _token_amount, int128 _i) external view returns (uint256 _amount);
 
 	function exchange(int128 _i, int128 _j, uint256 _dx, uint256 _min_dy) external;
+*/
 	function exchange_underlying(int128 _i, int128 _j, uint256 _dx, uint256 _min_dy) external;
+/*
 	function add_liquidity(uint256[2] calldata _amounts, uint256 _min_mint_amount) external;
 	function add_liquidity(uint256[3] calldata _amounts, uint256 _min_mint_amount) external;
 	function add_liquidity(uint256[4] calldata _amounts, uint256 _min_mint_amount) external;
@@ -141,8 +148,9 @@ interface Swap
 	event NewParameters(uint256 _A, uint256 _fee, uint256 _admin_fee);
 	event RampA(uint256 _old_A, uint256 _new_A, uint256 _initial_time, uint256 _future_time);
 	event StopRampA(uint256 _A, uint256 _t);
+*/
 }
-
+/*
 interface Token is IERC20
 {
 	function set_minter(address _minter) external;
@@ -265,3 +273,4 @@ interface Adapter
 	event SwapReceived(uint256 _mintedAmount, uint256 _wbtcAmount);
 	event SwapReceived(uint256 _mintedAmount, uint256 _erc20BTCAmount, int128 _j);
 }
+*/
