@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.0;
 
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-
 import { Addresses } from "./Addresses.sol";
+import { Math } from "./Math.sol";
 import { Transfers } from "./Transfers.sol";
 import { Comptroller, PriceOracle, CToken } from "./interop/Compound.sol";
 
-contract CompoundLendingMarketAbstraction is Addresses, Transfers
+contract CompoundLendingMarketAbstraction is Addresses, Math, Transfers
 {
-	using SafeMath for uint256;
-
 	function _getUnderlyingToken(address _ctoken) internal view returns (address _token)
 	{
 		return CToken(_ctoken).underlying();
@@ -33,7 +30,7 @@ contract CompoundLendingMarketAbstraction is Addresses, Transfers
 		uint256 _price = PriceOracle(_priceOracle).getUnderlyingPrice(_ctoken);
 		uint256 _accountAmount = _liquidity.mul(1e18).div(_price);
 		uint256 _marketAmount = CToken(_ctoken).getCash();
-		return _accountAmount < _marketAmount ? _accountAmount : _marketAmount;
+		return _min(_accountAmount, _marketAmount);
 	}
 
 	function _getExchangeRate(address _ctoken) internal view returns (uint256 _exchangeRate)

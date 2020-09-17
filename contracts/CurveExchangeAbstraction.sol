@@ -44,5 +44,3 @@ contract CurveExchangeAbstraction is Addresses, Transfers
 		return _balanceAfter - _balanceBefore;
 	}
 }
-
-

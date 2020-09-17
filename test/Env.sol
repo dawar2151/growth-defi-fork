@@ -1,17 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.0;
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-
 import { Addresses } from "../contracts/Addresses.sol";
 import { Transfers } from "../contracts/Transfers.sol";
 import { Router02 } from "../contracts/interop/UniswapV2.sol";
 
 contract Env is Addresses, Transfers
 {
-	using SafeERC20 for IERC20;
-
 	uint256 public initialBalance = 5 ether;
 
 	receive() external payable {}
@@ -27,6 +22,7 @@ contract Env is Addresses, Transfers
 
 	function _returnFullTokenBalance(address _token) internal
 	{
-		IERC20(_token).safeTransfer(msg.sender, IERC20(_token).balanceOf(address(this)));
+		address _from = msg.sender;
+		_pushFunds(_token, _from, _getBalance(_token));
 	}
 }

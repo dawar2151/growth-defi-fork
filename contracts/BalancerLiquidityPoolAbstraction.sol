@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.0;
 
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-
 import { Addresses } from "./Addresses.sol";
+import { Math } from "./Math.sol";
 import { Transfers } from "./Transfers.sol";
 import { BFactory, BPool } from "./interop/Balancer.sol";
 
-contract BalancerLiquidityPoolAbstraction is Addresses, Transfers
+contract BalancerLiquidityPoolAbstraction is Addresses, Math, Transfers
 {
-	using SafeMath for uint256;
-
 	uint256 constant MIN_AMOUNT = 1e6;
 	uint256 constant TOKEN0_WEIGHT = 25e18; // 25/50 = 50%
 	uint256 constant TOKEN1_WEIGHT = 25e18; // 25/50 = 50%
@@ -34,7 +31,7 @@ contract BalancerLiquidityPoolAbstraction is Addresses, Transfers
 		uint256 _balanceAmount = BPool(_pool).getBalance(_token);
 		if (_balanceAmount == 0) return 0;
 		uint256 _limitAmount = _balanceAmount.div(2);
-		_amount = _maxAmount < _limitAmount ? _maxAmount : _limitAmount;
+		_amount = _min(_maxAmount, _limitAmount);
 		_approveFunds(_token, _pool, _amount);
 		BPool(_pool).joinswapExternAmountIn(_token, _amount, 0);
 		return _amount;

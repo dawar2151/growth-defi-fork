@@ -75,11 +75,6 @@ contract GLeveragedReserveManager is CompoundLendingMarketAbstraction
 	{
 		return _amount.mul(_collateralRatio).div(1e18).mul(limitCollateralizationRatio).div(1e18);
 	}
-
-	function _min(uint256 _amount1, uint256 _amount2) internal pure returns (uint256 _minAmount)
-	{
-		return _amount1 < _amount2 ? _amount1 : _amount2;
-	}
 }
 
 contract gcDAI is Addresses, Conversions, GCTokenBase, GLeveragedReserveManager

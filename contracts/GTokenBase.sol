@@ -2,17 +2,15 @@
 pragma solidity ^0.6.0;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
+import { Math } from "./Math.sol";
 import { GToken } from "./GToken.sol";
 import { BalancerLiquidityPoolAbstraction } from "./BalancerLiquidityPoolAbstraction.sol";
 
-contract GFormulae
+contract GFormulae is Math
 {
-	using SafeMath for uint256;
-
 	function _calcDepositSharesFromCost(uint256 _cost, uint256 _totalReserve, uint256 _totalSupply, uint256 _depositFee) internal pure returns (uint256 _netShares, uint256 _feeShares)
 	{
 		uint256 _grossShares = _totalReserve == _totalSupply ? _cost : _cost.mul(_totalSupply).div(_totalReserve);
