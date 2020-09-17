@@ -36,10 +36,9 @@ contract GLiquidityPoolManager is BalancerLiquidityPoolAbstraction
 
 	function _gulpPoolAssets() internal
 	{
-		if (_hasPool()) {
-			_joinPool(liquidityPool, stakesToken, _getBalance(stakesToken));
-			_joinPool(liquidityPool, sharesToken, _getBalance(sharesToken));
-		}
+		if (!_hasPool()) return;
+		_joinPool(liquidityPool, stakesToken, _getBalance(stakesToken));
+		_joinPool(liquidityPool, sharesToken, _getBalance(sharesToken));
 	}
 
 	function _getLiquidityPool() internal view returns (address _liquidityPool)
