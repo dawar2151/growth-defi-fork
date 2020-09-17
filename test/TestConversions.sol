@@ -4,7 +4,7 @@ pragma solidity ^0.6.0;
 import { Assert } from "truffle/Assert.sol";
 
 import { Env } from "./Env.sol";
-import { Conversions } from "../contracts/gcDAI.sol";
+import { Conversions } from "../contracts/Conversions.sol";
 
 contract TestConversions is Env, Conversions
 {

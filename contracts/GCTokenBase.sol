@@ -80,7 +80,7 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, GCLeveragedReserveManag
 		_pullFunds(underlyingToken, _from, _underlyingCost);
 		_safeLend(reserveToken, _underlyingCost);
 		_mint(_from, _netShares);
-		_mint(sharesToken, _feeShares.div(2));
+		_mint(address(this), _feeShares.div(2));
 		_gulpPoolAssets();
 		_adjustReserve();
 	}
@@ -96,7 +96,7 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, GCLeveragedReserveManag
 		_safeRedeem(reserveToken, _underlyingCost);
 		_pushFunds(underlyingToken, _from, _underlyingCost);
 		_burn(_from, _grossShares);
-		_mint(sharesToken, _feeShares.div(2));
+		_mint(address(this), _feeShares.div(2));
 		_gulpPoolAssets();
 		_adjustReserve();
 	}

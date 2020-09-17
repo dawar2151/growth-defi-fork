@@ -11,8 +11,8 @@ contract GLiquidityPoolManager is BalancerLiquidityPoolAbstraction
 	uint256 constant BURNING_INTERVAL = 7 days;
 	uint256 constant MIGRATION_INTERVAL = 7 days;
 
-	address immutable stakesToken;
-	address immutable sharesToken;
+	address private immutable stakesToken;
+	address private immutable sharesToken;
 
 	State private state = State.Created;
 	address private liquidityPool = address(0);
@@ -40,6 +40,31 @@ contract GLiquidityPoolManager is BalancerLiquidityPoolAbstraction
 			_joinPool(liquidityPool, stakesToken, _getBalance(stakesToken));
 			_joinPool(liquidityPool, sharesToken, _getBalance(sharesToken));
 		}
+	}
+
+	function _getLiquidityPool() internal view returns (address _liquidityPool)
+	{
+		return liquidityPool;
+	}
+
+	function _getBurningRate() internal view returns (uint256 _burningRate)
+	{
+		return burningRate;
+	}
+
+	function _getLastBurningTime() internal view returns (uint256 _lastBurningTime)
+	{
+		return lastBurningTime;
+	}
+
+	function _getMigrationRecipient() internal view returns (address _migrationRecipient)
+	{
+		return migrationRecipient;
+	}
+
+	function _getMigrationUnlockTime() internal view returns (uint256 _migrationUnlockTime)
+	{
+		return migrationUnlockTime;
 	}
 
 	function _setBurningRate(uint256 _burningRate) internal

@@ -49,6 +49,7 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 	uint256 constant DEPOSIT_FEE = 1e16; // 1%
 	uint256 constant WITHDRAWAL_FEE = 1e16; // 1%
 
+	address public immutable override stakesToken;
 	address public immutable override reserveToken;
 
 	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakesToken, address _reserveToken)
@@ -56,6 +57,7 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 		GLiquidityPoolManager(_stakesToken, address(this)) public
 	{
 		_setupDecimals(_decimals);
+		stakesToken = _stakesToken;
 		reserveToken = _reserveToken;
 	}
 
@@ -79,6 +81,11 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 		return _calcWithdrawalCostFromShares(_grossShares, _totalReserve, _totalSupply, _withdrawalFee);
 	}
 
+	function totalReserve() public view virtual override returns (uint256 _totalReserve)
+	{
+		return _getBalance(reserveToken);
+	}
+
 	function depositFee() public view override returns (uint256 _depositFee) {
 		return _hasPool() ? DEPOSIT_FEE : 0;
 	}
@@ -87,9 +94,29 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 		return _hasPool() ? WITHDRAWAL_FEE : 0;
 	}
 
-	function totalReserve() public view virtual override returns (uint256 _totalReserve)
+	function liquidityPool() public view override returns (address _liquidityPool)
 	{
-		return _getBalance(reserveToken);
+		return _getLiquidityPool();
+	}
+
+	function liquidityPoolBurningRate() public view override returns (uint256 _burningRate)
+	{
+		return _getBurningRate();
+	}
+
+	function liquidityPoolLastBurningTime() public view override returns (uint256 _lastBurningTime)
+	{
+		return _getLastBurningTime();
+	}
+
+	function liquidityPoolMigrationRecipient() public view override returns (address _migrationRecipient)
+	{
+		return _getMigrationRecipient();
+	}
+
+	function liquidityPoolMigrationUnlockTime() public view override returns (uint256 _migrationUnlockTime)
+	{
+		return _getMigrationUnlockTime();
 	}
 
 	function deposit(uint256 _cost) external override nonReentrant
@@ -101,7 +128,7 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 		_prepareDeposit(_cost);
 		_pullFunds(reserveToken, _from, _cost);
 		_mint(_from, _netShares);
-		_mint(sharesToken, _feeShares.div(2));
+		_mint(address(this), _feeShares.div(2));
 		_gulpPoolAssets();
 		_adjustReserve();
 	}
@@ -115,7 +142,7 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 		_prepareWithdrawal(_cost);
 		_pushFunds(reserveToken, _from, _cost);
 		_burn(_from, _grossShares);
-		_mint(sharesToken, _feeShares.div(2));
+		_mint(address(this), _feeShares.div(2));
 		_gulpPoolAssets();
 		_adjustReserve();
 	}
@@ -124,7 +151,7 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 	{
 		address _from = msg.sender;
 		_pullFunds(stakesToken, _from, _stakesAmount);
-		_transfer(_from, sharesToken, _sharesAmount);
+		_transfer(_from, address(this), _sharesAmount);
 		_allocatePool(_stakesAmount, _sharesAmount);
 	}
 
@@ -136,8 +163,8 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 	function burnLiquidityPoolPortion() public override onlyOwner nonReentrant
 	{
 		(uint256 _stakesAmount, uint256 _sharesAmount) = _burnPoolPortion();
-		_pushFunds(stakesToken, address(0), _stakesAmount);
-		_burn(sharesToken, _sharesAmount);
+		_burnStakes(_stakesAmount);
+		_burn(address(this), _sharesAmount);
 		emit BurnLiquidityPoolPortion(_stakesAmount, _sharesAmount);
 	}
 
@@ -157,7 +184,7 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 	{
 		(address _migrationRecipient, uint256 _stakesAmount, uint256 _sharesAmount) = _completePoolMigration();
 		_pushFunds(stakesToken, _migrationRecipient, _stakesAmount);
-		_transfer(sharesToken, _migrationRecipient, _sharesAmount);
+		_transfer(address(this), _migrationRecipient, _sharesAmount);
 		emit CompleteLiquidityPoolMigration(_migrationRecipient, _stakesAmount, _sharesAmount);
 	}
 
@@ -169,6 +196,11 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 	function _prepareDeposit(uint256 _cost) internal virtual { }
 	function _prepareWithdrawal(uint256 _cost) internal virtual { }
 	function _adjustReserve() internal virtual { }
+
+	function _burnStakes(uint256 _stakesAmount) internal virtual
+	{
+		_pushFunds(stakesToken, address(0), _stakesAmount);
+	}
 
 	event BurnLiquidityPoolPortion(uint256 _stakesAmount, uint256 _sharesAmount);
 	event InitiateLiquidityPoolMigration(address indexed _migrationRecipient);
