@@ -240,9 +240,8 @@ contract gcDAI is Conversions, GCTokenBase, GLeveragedReserveManager
 	function _prepareWithdrawal(uint256 _cost) internal override {
 		uint256 _requiredAmount = _calcUnderlyingCostFromCost(_cost, _fetchExchangeRate(reserveToken));
 		uint256 _availableAmount = _getAvailableAmount(reserveToken);
-		if (_requiredDAI > _availableDAI) {
-			uint256 _decrementDAI = _requiredDAI.sub(_availableDAI);
-			require(_decreaseLeverage(_decrementDAI), "unliquid market, try again later");
+		if (_requiredAmount > _availableAmount) {
+			require(_decreaseLeverage(_requiredAmount.sub(_availableAmount)), "unliquid market, try again later");
 		}
 	}
 
@@ -312,7 +311,7 @@ contract gcDAI is Conversions, GCTokenBase, GLeveragedReserveManager
 		_success = _redeem(reserveToken, _min(_requiredAmount, _availableAmount));
 		if (!_success) return _success;
 		_convertFundsDAIToUSDC(_getBalance(underlyingToken));
-		return _repay(leverageToken, _getBalance(borrowToken));
+		return _repay(leverageToken, _min(_getBalance(borrowToken), _getBorrowAmount(leverageToken)));
 	}
 
 	function _min(uint256 _amount1, uint256 _amount2) internal pure returns (uint256 _minAmount)
