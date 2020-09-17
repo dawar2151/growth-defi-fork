@@ -12,7 +12,8 @@
     "@truffle/hdwallet-provider": "^1.0.40",
     "dotenv": "^8.2.0",
     "ganache-cli": "^6.10.2",
-    "truffle": "^5.1.44"
+    "truffle": "^5.1.44",
+    "truffle-flattener": "^1.5.0"
   },
   "scripts": {
     "build": "truffle compile",
@@ -22,6 +23,7 @@
     "deploy:rinkeby": "truffle migrate --network rinkeby",
     "deploy:kovan": "truffle migrate --network kovan",
     "deploy:goerli": "truffle migrate --network goerli",
+    "source": "truffle-flattener contracts/*.sol > growthdefi.sol",
     "test": "truffle test"
   },
   "repository": {
