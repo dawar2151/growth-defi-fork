@@ -28,7 +28,6 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, GCLeveragedReserveManag
 		GTokenBase(_name, _symbol, _decimals, _stakeToken, _reserveToken)
 		GCLeveragedReserveManager(_miningToken, _reserveToken, _leverageToken, _leverageAdjustmentAmount) public
 	{
-		_safeEnter(_reserveToken);
 		leverageToken = _leverageToken;
 		underlyingToken = _getUnderlyingToken(_reserveToken);
 	}

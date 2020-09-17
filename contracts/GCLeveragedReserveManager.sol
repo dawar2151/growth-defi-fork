@@ -28,6 +28,7 @@ contract GCLeveragedReserveManager is CompoundLendingMarketAbstraction, UniswapV
 		leverageToken = _leverageToken;
 		borrowToken = _getUnderlyingToken(_leverageToken);
 		leverageAdjustmentAmount = _leverageAdjustmentAmount;
+		_safeEnter(_reserveToken);
 	}
 
 	function _getLeverageEnabled() internal view returns (bool _leverageEnabled)
