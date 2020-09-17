@@ -195,7 +195,8 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 	address public immutable override reserveToken;
 
 	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakesToken, address _reserveToken)
-		ERC20(_name, _symbol) GLiquidityPoolManager(_stakesToken, address(this)) public
+		ERC20(_name, _symbol)
+		GLiquidityPoolManager(_stakesToken, address(this)) public
 	{
 		_setupDecimals(_decimals);
 		reserveToken = _reserveToken;
@@ -301,6 +302,11 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GFormulae, GLiqu
 		_pushFunds(stakesToken, _migrationRecipient, _stakesAmount);
 		_transfer(sharesToken, _migrationRecipient, _sharesAmount);
 		emit CompleteLiquidityPoolMigration(_migrationRecipient, _stakesAmount, _sharesAmount);
+	}
+
+	function adjustReserve() public override onlyOwner nonReentrant
+	{
+		_adjustReserve();
 	}
 
 	function _prepareDeposit(uint256 _cost) internal virtual { }

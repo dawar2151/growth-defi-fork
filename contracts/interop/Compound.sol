@@ -42,8 +42,8 @@ interface Comptroller
 /*
 	function exitMarket(address _cTokenAddress) external returns (uint256 _errorCode);
 	function getAssetsIn(address _account) external view returns (address[] memory _markets);
-	function markets(address _cTokenAddress) external view returns (bool _isListed, uint256 _collateralFactorMantissa);
 */
+	function markets(address _cTokenAddress) external view returns (bool _isListed, uint256 _collateralFactorMantissa);
 	function getAccountLiquidity(address _account) external view returns (uint256 _error, uint256 _liquidity, uint256 _shortfall);
 /*
 	function closeFactorMantissa() external view returns (uint256 _closeFactor);

@@ -40,6 +40,13 @@ contract CompoundLendingMarketAbstraction is Transfers
 		return CToken(_ctoken).underlying();
 	}
 
+	function _getCollateralRatio(address _ctoken) internal view returns (uint256 _collateralFactor)
+	{
+		address _comptroller = Addresses.Compound_COMPTROLLER;
+		(, _collateralFactor) = Comptroller(_comptroller).markets(_ctoken);
+		return _collateralFactor;
+	}
+
 	function _getExchangeRate(address _ctoken) internal view returns (uint256 _exchangeRate)
 	{
 		return CToken(_ctoken).exchangeRateStored();
@@ -133,7 +140,8 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, CompoundLendingMarketAb
 	address public immutable override underlyingToken;
 
 	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakeToken, address _reserveToken)
-		GTokenBase(_name, _symbol, _decimals, _stakeToken, _reserveToken) CompoundLendingMarketAbstraction(_reserveToken) public
+		GTokenBase(_name, _symbol, _decimals, _stakeToken, _reserveToken)
+		CompoundLendingMarketAbstraction(_reserveToken) public
 	{
 		underlyingToken = _getUnderlyingToken(_reserveToken);
 	}
@@ -153,7 +161,7 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, CompoundLendingMarketAb
 		return _getExchangeRate(reserveToken);
 	}
 
-	function totalReserveUnderlying() public view override returns (uint256 _totalReserveUnderlying)
+	function totalReserveUnderlying() public view virtual override returns (uint256 _totalReserveUnderlying)
 	{
 		return _calcUnderlyingCostFromCost(_getBalance(reserveToken), _getExchangeRate(reserveToken));
 	}

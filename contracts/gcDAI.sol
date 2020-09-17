@@ -48,7 +48,7 @@ contract CurveExchangeAbstraction is Transfers
 	}
 }
 
-contract UniswapExchangeAbstraction is Transfers
+contract UniswapV2ExchangeAbstraction is Transfers
 {
 	function _U_calcConversionOutputFromInput(address _from, address _to, uint256 _inputAmount) internal view returns (uint256 _outputAmount)
 	{
@@ -84,12 +84,44 @@ contract UniswapExchangeAbstraction is Transfers
 
 contract Conversions is Transfers
 {
+	function _calcConversionDAIToUSDCGivenDAI(uint256 _inputAmount) internal view returns (uint256 _outputAmount)
+	{
+		address _swap = Addresses.Curve_COMPOUND;
+		return Swap(_swap).get_dy_underlying(0, 1, _inputAmount);
+	}
+
+	function _calcConversionDAIToUSDCGivenUSDC(uint256 _outputAmount) internal view returns (uint256 _inputAmount)
+	{
+		address _swap = Addresses.Curve_COMPOUND;
+		return Swap(_swap).get_dx_underlying(0, 1, _outputAmount);
+	}
+
+	function _calcConversionUSDCToDAIGivenUSDC(uint256 _inputAmount) internal view returns (uint256 _outputAmount)
+	{
+		address _swap = Addresses.Curve_COMPOUND;
+		return Swap(_swap).get_dy_underlying(1, 0, _inputAmount);
+	}
+
+	function _calcConversionUSDCToDAIGivenDAI(uint256 _outputAmount) internal view returns (uint256 _inputAmount)
+	{
+		address _swap = Addresses.Curve_COMPOUND;
+		return Swap(_swap).get_dx_underlying(1, 0, _outputAmount);
+	}
+
 	function _convertFundsUSDCToDAI(uint256 _amount) internal
 	{
 		address _swap = Addresses.Curve_COMPOUND;
 		address _token = Swap(_swap).underlying_coins(1);
 		_approveFunds(_token, _swap, _amount);
 		Swap(_swap).exchange_underlying(1, 0, _amount, 0);
+	}
+
+	function _convertFundsDAIToUSDC(uint256 _amount) internal
+	{
+		address _swap = Addresses.Curve_COMPOUND;
+		address _token = Swap(_swap).underlying_coins(0);
+		_approveFunds(_token, _swap, _amount);
+		Swap(_swap).exchange_underlying(0, 1, _amount, 0);
 	}
 
 	function _convertFundsCOMPToDAI(uint256 _amount) internal
@@ -106,125 +138,185 @@ contract Conversions is Transfers
 	}
 }
 
-contract gcDAI is GCTokenBase, Conversions
+contract GLeveragedReserveManager
 {
-	uint256 constant IDEAL_COLLATERALIZATION_RATIO = 65e16; // 65%
-	uint256 constant LIMIT_COLLATERALIZATION_RATIO = 70e16; // 70%
-	uint256 constant LIMIT_ADJUSTMENT_AMOUNT = 1000e18; // $1,000
+	uint256 constant LEVERAGE_ADJUSTMENT_AMOUNT = 1000e18; // $1,000
+	uint256 constant IDEAL_COLLATERALIZATION_RATIO = 88e16; // 88% of 75% = 66%
+	uint256 constant LIMIT_COLLATERALIZATION_RATIO = 92e16; // 92% of 75% = 69%
 
 	address public immutable miningToken;
-	address public immutable borrowReserveToken;
-	address public immutable borrowUnderlyingToken;
+	address public immutable leverageToken;
+	address public immutable borrowToken;
 
-	bool public leverageStrategyEnabled = false;
+	bool public leverageEnabled = false;
+	uint256 public leverageAdjustmentAmount = LEVERAGE_ADJUSTMENT_AMOUNT;
+	uint256 public idealCollateralizationRatio = IDEAL_COLLATERALIZATION_RATIO;
+	uint256 public limitCollateralizationRatio = LIMIT_COLLATERALIZATION_RATIO;
 
+	constructor (address _miningToken, address _leverageToken, address _borrowToken) internal
+	{
+		miningToken = _miningToken;
+		leverageToken = _leverageToken;
+		borrowToken = _borrowToken;
+	}
+
+	function _setLeverageEnabled(bool _leverageEnabled) internal
+	{
+		leverageEnabled = _leverageEnabled;
+	}
+
+	function _setLeverageAdjustmentAmount(uint256 _leverageAdjustmentAmount) internal
+	{
+		require(_leverageAdjustmentAmount > 0, "invalid amount");
+		leverageAdjustmentAmount = _leverageAdjustmentAmount;
+	}
+
+	function _setIdealCollateralizationRatio(uint256 _idealCollateralizationRatio) internal
+	{
+		require(_idealCollateralizationRatio >= 5e16, "invalid ratio");
+		require(_idealCollateralizationRatio + 5e16 <= limitCollateralizationRatio, "invalid ratio gap");
+		idealCollateralizationRatio = _idealCollateralizationRatio;
+	}
+
+	function _setLimitCollateralizationRatio(uint256 _limitCollateralizationRatio) internal
+	{
+		require(_limitCollateralizationRatio <= 95e16, "invalid ratio");
+		require(idealCollateralizationRatio + 5e16 <= _limitCollateralizationRatio, "invalid ratio gap");
+		limitCollateralizationRatio = _limitCollateralizationRatio;
+	}
+}
+
+contract gcDAI is Conversions, GCTokenBase, GLeveragedReserveManager
+{
 	constructor ()
-		GCTokenBase("growth cDAI", "gcDAI", 18, Addresses.GRO, Addresses.cDAI) public
+		GCTokenBase("growth cDAI", "gcDAI", 18, Addresses.GRO, Addresses.cDAI)
+		GLeveragedReserveManager(Addresses.COMP, Addresses.cUSDC, _getUnderlyingToken(Addresses.cUSDC)) public
 	{
-		miningToken = Addresses.COMP;
-		borrowReserveToken = Addresses.cUSDC;
-		borrowUnderlyingToken = _getUnderlyingToken(Addresses.cUSDC);
-	}
-/*
-	function totalReserve() public override returns (uint256 _totalReserve)
-	{
-		return _calcTotalReserve();
 	}
 
-	function setLeverageStrategyEnabled(bool _leverageStrategyEnabled) public onlyOwner
+	function totalReserve() public view override returns (uint256 _totalReserve)
 	{
-		leverageStrategyEnabled = _leverageStrategyEnabled;
+		return _calcCostFromUnderlyingCost(totalReserveUnderlying(), _getExchangeRate(reserveToken));
 	}
 
-	function _prepareDeposit(uint256 /* _cost * /) internal override {
+	function totalReserveUnderlying() public view override returns (uint256 _totalReserveUnderlying)
+	{
+		uint256 _lendingReserveUnderlying = lendingReserveUnderlying();
+		uint256 _borrowingReserveUnderlying = borrowingReserveUnderlying();
+		// TODO deal with _lendingReserveUnderlying <= _borrowingReserveUnderlying
+		return _lendingReserveUnderlying.sub(_borrowingReserveUnderlying);
 	}
 
-	function _prepareWithdrawal(uint256 /* _cost * /) internal override {
+	function lendingReserveUnderlying() public view returns (uint256 _lendingReserveUnderlying)
+	{
+		return _getLendAmount(reserveToken);
+	}
+
+	function borrowingReserveUnderlying() public view returns (uint256 _borrowingReserveUnderlying)
+	{
+		return _calcConversionDAIToUSDCGivenUSDC(_getBorrowAmount(leverageToken));
+	}
+
+	function setLeverageEnabled(bool _leverageEnabled) public onlyOwner
+	{
+		_setLeverageEnabled(_leverageEnabled);
+	}
+
+	function setLeverageAdjustmentAmount(uint256 _leverageAdjustmentAmount) public onlyOwner
+	{
+		_setLeverageAdjustmentAmount(_leverageAdjustmentAmount);
+	}
+
+	function setIdealCollateralizationRatio(uint256 _idealCollateralizationRatio) public onlyOwner
+	{
+		_setIdealCollateralizationRatio(_idealCollateralizationRatio);
+	}
+
+	function setLimitCollateralizationRatio(uint256 _limitCollateralizationRatio) public onlyOwner
+	{
+		_setLimitCollateralizationRatio(_limitCollateralizationRatio);
+	}
+
+	function _prepareWithdrawal(uint256 _cost) internal override {
+		uint256 _requiredAmount = _calcUnderlyingCostFromCost(_cost, _fetchExchangeRate(reserveToken));
+		uint256 _availableAmount = _getAvailableAmount(reserveToken);
+		if (_requiredDAI > _availableDAI) {
+			uint256 _decrementDAI = _requiredDAI.sub(_availableDAI);
+			require(_decreaseLeverage(_decrementDAI), "unliquid market, try again later");
+		}
 	}
 
 	function _adjustReserve() internal override {
-		_gulpMiningAsset();
+		_gulpMiningAssets();
+		_adjustLeverage();
 	}
 
-	function _gulpMiningAsset() internal
+	function _gulpMiningAssets() internal
 	{
 		_convertFundsCOMPToDAI(_getBalance(miningToken));
+		_convertFundsUSDCToDAI(_getBalance(borrowToken));
 		_safeLend(reserveToken, _getBalance(underlyingToken));
 	}
 
-	function _calcTotalReserve() internal returns (uint256 _totalReserve)
+	function _adjustLeverage() internal returns (bool _success)
 	{
-		uint256 _cost = _getBalance(reserveToken);
-		uint256 _underlyingCost = _calcUnderlyingCostFromCost(_cost, _getExchangeRate(reserveToken, underlyingToken));
-
-		address _borrowUnderlyingToken = _getUnderlyingToken(borrowToken);
-		uint256 _borrowAmount = _getBorrowedAmount(borrowToken);
-		uint256 _borrowedUnderlyingCost = _C_calcConversionInputFromOutput(underlyingToken, _borrowUnderlyingToken, _borrowAmount);
-
-		uint256 _totalReserveUnderlying = _underlyingCost.sub(_borrowedUnderlyingCost);
-
-		return _calcCostFromUnderlyingCost(_totalReserveUnderlying, _getExchangeRate(reserveToken, underlyingToken));
-	}
-
-	function _ensureRedeemCost(uint256 _cost) internal
-	{
-		uint256 _underlyingCost = _calcUnderlyingCostFromCost(_cost, _getExchangeRate(reserveToken, underlyingToken));
-		uint256 _availableUnderlyingCost = _getRedeemAmount(reserveToken);
-		if (_underlyingCost > _availableUnderlyingCost) {
-			uint256 _requiredUnderlyingCost = _underlyingCost.sub(_availableUnderlyingCost);
-			_decreaseDebt(_requiredUnderlyingCost);
+		uint256 _borrowingAmount = _calcConversionDAIToUSDCGivenDAI(_fetchBorrowAmount(leverageToken));
+		if (!leverageEnabled) {
+			return _decreaseLeverageLimited(_borrowingAmount);
+		}
+		uint256 _lendingAmount = _fetchLendAmount(reserveToken);
+		uint256 _limitAmount = _lendingAmount.mul(_calcActualLimitCollateralizationRatio()).div(1e18);
+		if (_borrowingAmount > _limitAmount) {
+			return _decreaseLeverageLimited(_borrowingAmount.sub(_limitAmount));
+		}
+		uint256 _idealAmount = _lendingAmount.mul(_calcActualIdealCollateralizationRatio()).div(1e18);
+		if (_borrowingAmount < _idealAmount) {
+			return _increaseLeverageLimited(_idealAmount.sub(_borrowingAmount));
 		}
 	}
 
-	function _increaseDebt(uint256 _underlyingCost) internal
+	function _calcActualIdealCollateralizationRatio() internal view returns (uint256 _idealCollateralizationRatio)
 	{
-		uint256 _borrowCost = _C_calcConversionOutputFromInput(underlyingToken, borrowUnderlyingToken, _underlyingCost);
-		_underlyingCost = _C_calcConversionOutputFromInput(borrowUnderlyingToken, underlyingToken, _borrowCost);
-		_borrow(borrowToken, borrowUnderlyingToken, _borrowCost);
-		uint256 _cost = _calcCostFromUnderlyingCost(_underlyingCost, _getExchangeRate(reserveToken, underlyingToken));
-		_U_convertBalance(borrowUnderlyingToken, underlyingToken, _borrowCost, _underlyingCost);
-		_lend(reserveToken, _cost, underlyingToken, _underlyingCost);
+		return idealCollateralizationRatio.mul(_getCollateralRatio(reserveToken)).div(1e18);
 	}
 
-	function _decreaseDebt(uint256 _underlyingCost) internal
+	function _calcActualLimitCollateralizationRatio() internal view returns (uint256 _limitCollateralizationRatio)
 	{
-		uint256 _cost = _calcCostFromUnderlyingCost(_underlyingCost, _getExchangeRate(reserveToken, underlyingToken));
-		uint256 _borrowCost = _C_calcConversionOutputFromInput(underlyingToken, borrowUnderlyingToken, _underlyingCost);
-		_redeem(reserveToken, _cost, underlyingToken, _underlyingCost);
-		_U_convertBalance(underlyingToken, borrowUnderlyingToken, _underlyingCost, _borrowCost);
-		_repay(borrowToken, borrowUnderlyingToken, _borrowCost);
+		return limitCollateralizationRatio.mul(_getCollateralRatio(reserveToken)).div(1e18);
 	}
 
-	function _adjustBorrowStrategy() internal
+	function _increaseLeverageLimited(uint256 _amount) internal returns (bool _success)
 	{
-		uint256 _cost = _getBalance(reserveToken);
-		uint256 _underlyingCost = _calcUnderlyingCostFromCost(_cost, _getExchangeRate(reserveToken, underlyingToken));
-
-		uint256 _borrowAmount = _getBorrowedAmount(borrowToken);
-		uint256 _borrowedUnderlyingCost = _C_calcConversionInputFromOutput(underlyingToken, borrowUnderlyingToken, _borrowAmount);
-
-		uint256 _idealUnderlyingCost = _underlyingCost.mul(IDEAL_COLLATERALIZATION_RATIO).div(1e18);
-		uint256 _limitUnderlyingCost = _underlyingCost.mul(LIMIT_COLLATERALIZATION_RATIO).div(1e18);
-		bool _overCollateralized = _borrowedUnderlyingCost < _idealUnderlyingCost;
-		bool _underCollateralized = _borrowedUnderlyingCost > _limitUnderlyingCost;
-
-		if (enableBorrowStrategy && _overCollateralized) {
-			uint256 _incrementUnderlyingCost = _idealUnderlyingCost.sub(_borrowedUnderlyingCost);
-			if (_incrementUnderlyingCost > LIMIT_ADJUSTMENT_AMOUNT) _incrementUnderlyingCost = LIMIT_ADJUSTMENT_AMOUNT;
-			_increaseDebt(_incrementUnderlyingCost);
-		}
-		else
-		if (!enableBorrowStrategy) {
-			uint256 _decrementUnderlyingCost = _borrowedUnderlyingCost;
-			if (_decrementUnderlyingCost > LIMIT_ADJUSTMENT_AMOUNT) _decrementUnderlyingCost = LIMIT_ADJUSTMENT_AMOUNT;
-			_decreaseDebt(_decrementUnderlyingCost);
-		}
-		else
-		if (_underCollateralized) {
-			uint256 _decrementUnderlyingCost = _borrowedUnderlyingCost.sub(_idealUnderlyingCost);
-			if (_decrementUnderlyingCost > LIMIT_ADJUSTMENT_AMOUNT) _decrementUnderlyingCost = LIMIT_ADJUSTMENT_AMOUNT;
-			_decreaseDebt(_decrementUnderlyingCost);
-		}
+		return _increaseLeverage(_min(_amount, leverageAdjustmentAmount));
 	}
-*/
+
+	function _decreaseLeverageLimited(uint256 _amount) internal returns (bool _success)
+	{
+		return _decreaseLeverage(_min(_amount, leverageAdjustmentAmount));
+	}
+
+	function _increaseLeverage(uint256 _amount) internal returns (bool _success)
+	{
+		uint256 _requiredAmount = _calcConversionDAIToUSDCGivenDAI(_amount);
+		uint256 _availableAmount = _getAvailableAmount(leverageToken);
+		_success = _borrow(leverageToken, _min(_requiredAmount, _availableAmount));
+		if (!_success) return _success;
+		_convertFundsUSDCToDAI(_getBalance(borrowToken));
+		return _lend(reserveToken, _getBalance(underlyingToken));
+	}
+
+	function _decreaseLeverage(uint256 _amount) internal returns (bool _success)
+	{
+		uint256 _requiredAmount = _calcConversionDAIToUSDCGivenUSDC(_calcConversionUSDCToDAIGivenDAI(_amount));
+		uint256 _availableAmount = _getAvailableAmount(reserveToken);
+		_success = _redeem(reserveToken, _min(_requiredAmount, _availableAmount));
+		if (!_success) return _success;
+		_convertFundsDAIToUSDC(_getBalance(underlyingToken));
+		return _repay(leverageToken, _getBalance(borrowToken));
+	}
+
+	function _min(uint256 _amount1, uint256 _amount2) internal pure returns (uint256 _minAmount)
+	{
+		return _amount1 < _amount2 ? _amount1 : _amount2;
+	}
 }
