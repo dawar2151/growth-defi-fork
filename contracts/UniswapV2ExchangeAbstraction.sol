@@ -34,7 +34,7 @@ contract UniswapV2ExchangeAbstraction is Addresses, Transfers
 		_path[0] = _from;
 		_path[1] = Router02(_router).WETH();
 		_path[2] = _to;
-		_approveFunds(_from, UniswapV2_ROUTER02, _inputAmount);
+		_approveFunds(_from, _router, _inputAmount);
 		return Router02(_router).swapExactTokensForTokens(_inputAmount, _minOutputAmount, _path, address(this), uint256(-1))[2];
 	}
 }

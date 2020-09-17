@@ -7,7 +7,7 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.s
 
 import { Math } from "./Math.sol";
 import { GToken } from "./GToken.sol";
-import { BalancerLiquidityPoolAbstraction } from "./BalancerLiquidityPoolAbstraction.sol";
+import { GLiquidityPoolManager } from "./GLiquidityPoolManager.sol";
 
 contract GFormulae is Math
 {
@@ -41,94 +41,6 @@ contract GFormulae is Math
 		_cost = _totalReserve == _totalSupply ? _netShares : _netShares.mul(_totalReserve).div(_totalSupply);
 		_feeShares = _grossShares.sub(_netShares);
 		return (_cost, _feeShares);
-	}
-}
-
-contract GLiquidityPoolManager is BalancerLiquidityPoolAbstraction
-{
-	enum State { Created, Allocated, Migrating, Migrated }
-
-	uint256 constant BURNING_RATE = 5e15; // 0.5%
-	uint256 constant BURNING_INTERVAL = 7 days;
-	uint256 constant MIGRATION_INTERVAL = 7 days;
-
-	address public immutable stakesToken;
-	address public immutable sharesToken;
-
-	State public state = State.Created;
-	address public liquidityPool = address(0);
-
-	uint256 public burningRate = BURNING_RATE;
-	uint256 public lastBurningTime = 0;
-
-	address public migrationRecipient = address(0);
-	uint256 public migrationUnlockTime = uint256(-1);
-
-	constructor (address _stakesToken, address _sharesToken) internal
-	{
-		stakesToken = _stakesToken;
-		sharesToken = _sharesToken;
-	}
-
-	function _hasPool() internal view returns (bool _hasMigrated)
-	{
-		return state == State.Allocated || state == State.Migrating;
-	}
-
-	function _gulpPoolAssets() internal
-	{
-		if (_hasPool()) {
-			_joinPool(liquidityPool, stakesToken, _getBalance(stakesToken));
-			_joinPool(liquidityPool, sharesToken, _getBalance(sharesToken));
-		}
-	}
-
-	function _setBurningRate(uint256 _burningRate) internal
-	{
-		require(_burningRate <= 1e18, "invalid rate");
-		burningRate = _burningRate;
-	}
-
-	function _burnPoolPortion() internal returns (uint256 _stakesAmount, uint256 _sharesAmount)
-	{
-		require(_hasPool(), "pool not available");
-		require(now > lastBurningTime + BURNING_INTERVAL, "must wait lock interval");
-		lastBurningTime = now;
-		return _exitPool(liquidityPool, burningRate);
-	}
-
-	function _allocatePool(uint256 _stakesAmount, uint256 _sharesAmount) internal
-	{
-		require(state == State.Created, "pool cannot be allocated");
-		state = State.Allocated;
-		liquidityPool = _createPool(stakesToken, _stakesAmount, sharesToken, _sharesAmount);
-	}
-
-	function _initiatePoolMigration(address _migrationRecipient) internal
-	{
-		require(state == State.Allocated, "pool not allocated");
-		state = State.Migrating;
-		migrationRecipient = _migrationRecipient;
-		migrationUnlockTime = now + MIGRATION_INTERVAL;
-	}
-
-	function _cancelPoolMigration() internal returns (address _migrationRecipient)
-	{
-		require(state == State.Migrating, "migration not initiated");
-		_migrationRecipient = migrationRecipient;
-		state = State.Allocated;
-		migrationRecipient = address(0);
-		migrationUnlockTime = uint256(-1);
-		return _migrationRecipient;
-	}
-
-	function _completePoolMigration() internal returns (address _migrationRecipient, uint256 _stakesAmount, uint256 _sharesAmount)
-	{
-		require(state == State.Migrating, "migration not initiated");
-		require(now >= migrationUnlockTime, "must wait lock interval");
-		state = State.Migrated;
-		(_stakesAmount, _sharesAmount) = _exitPool(liquidityPool, 1e18);
-		return (migrationRecipient, _stakesAmount, _sharesAmount);
 	}
 }
 

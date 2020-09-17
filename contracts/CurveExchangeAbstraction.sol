@@ -38,7 +38,7 @@ contract CurveExchangeAbstraction is Addresses, Transfers
 		require(Swap(_swap).underlying_coins(_j) == _to);
 		if (_inputAmount == 0) return 0;
 		uint256 _balanceBefore = _getBalance(_to);
-		_approveFunds(_from, Curve_COMPOUND, _inputAmount);
+		_approveFunds(_from, _swap, _inputAmount);
 		Swap(_swap).exchange_underlying(_i, _j, _inputAmount, _minOutputAmount);
 		uint256 _balanceAfter = _getBalance(_to);
 		return _balanceAfter - _balanceBefore;
