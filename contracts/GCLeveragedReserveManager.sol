@@ -19,8 +19,8 @@ library GCLeveragedReserveManager
 	struct Self {
 		address miningToken;
 		address reserveToken;
-		address underlyingToken;
 		address leverageToken;
+		address underlyingToken;
 		address borrowToken;
 
 		bool leverageEnabled;
@@ -34,8 +34,8 @@ library GCLeveragedReserveManager
 	{
 		_self.miningToken = _miningToken;
 		_self.reserveToken = _reserveToken;
-		_self.underlyingToken = G.getUnderlyingToken(_reserveToken);
 		_self.leverageToken = _leverageToken;
+		_self.underlyingToken = G.getUnderlyingToken(_reserveToken);
 		_self.borrowToken = G.getUnderlyingToken(_leverageToken);
 
 		_self.leverageEnabled = false;
@@ -145,7 +145,7 @@ library GCLeveragedReserveManager
 		return _amount.mul(G.getCollateralRatio(_self.reserveToken)).mul(_self.limitCollateralizationRatio).div(1e36);
 	}
 
-	function _calcDeviationAmount(Self storage _self, uint256 _amount) internal view returns (uint256 _limitAmount)
+	function _calcDeviationAmount(Self storage _self, uint256 _amount) internal view returns (uint256 _deviationAmount)
 	{
 		return _amount.mul(G.getCollateralRatio(_self.reserveToken)).mul(_self.collateralizationDeviationRatio).div(1e36);
 	}
