@@ -70,7 +70,7 @@ contract GCTokenBase is GTokenBase, GCToken, GCLeveragedReserveManager
 		G.safeLend(reserveToken, _underlyingCost);
 		_mint(_from, _netShares);
 		_mint(address(this), _feeShares.div(2));
-		_gulpPoolAssets();
+		lpm.gulpPoolAssets();
 		_adjustReserve();
 	}
 
@@ -86,7 +86,7 @@ contract GCTokenBase is GTokenBase, GCToken, GCLeveragedReserveManager
 		G.pushFunds(underlyingToken, _from, _underlyingCost);
 		_burn(_from, _grossShares);
 		_mint(address(this), _feeShares.div(2));
-		_gulpPoolAssets();
+		lpm.gulpPoolAssets();
 		_adjustReserve();
 	}
 
