@@ -152,9 +152,9 @@ contract GCTokenBase is GTokenBase, GCToken
 		uint256 _newLend = G.fetchLendAmount(reserveToken);
 		uint256 _newBorrow = G.fetchBorrowAmount(leverageToken);
 		if (_newLend != _oldLend || _newBorrow != _oldBorrow) {
-			event LogReserveChange(_newLend, lrm.calcConversionUnderlyingToBorrowGivenBorrow(_newBorrow));
+			event ReserveChange(_newLend, lrm.calcConversionUnderlyingToBorrowGivenBorrow(_newBorrow));
 		}
 	}
 
-	event LogReserveChange(uint256 _lendingReserveUnderlying, uint256 _borrowingReserveUnderlying);
+	event ReserveChange(uint256 _lendingReserveUnderlying, uint256 _borrowingReserveUnderlying);
 }
