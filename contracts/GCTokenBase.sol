@@ -7,17 +7,21 @@ import { GCToken } from "./GCToken.sol";
 import { GCLeveragedReserveManager } from "./GCLeveragedReserveManager.sol";
 import { G } from "./G.sol";
 
-contract GCTokenBase is GTokenBase, GCToken, GCLeveragedReserveManager
+contract GCTokenBase is GTokenBase, GCToken
 {
+	using GCLeveragedReserveManager for GCLeveragedReserveManager.Self;
+
 	address public immutable override leverageToken;
 	address public immutable override underlyingToken;
 
+	GCLeveragedReserveManager.Self private lrm;
+
 	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakeToken, address _miningToken, address _reserveToken, address _leverageToken, uint256 _leverageAdjustmentAmount)
-		GTokenBase(_name, _symbol, _decimals, _stakeToken, _reserveToken)
-		GCLeveragedReserveManager(_miningToken, _reserveToken, _leverageToken, _leverageAdjustmentAmount) public
+		GTokenBase(_name, _symbol, _decimals, _stakeToken, _reserveToken) public
 	{
 		leverageToken = _leverageToken;
 		underlyingToken = G.getUnderlyingToken(_reserveToken);
+		lrm.init(_miningToken, _reserveToken, _leverageToken, _leverageAdjustmentAmount);
 	}
 
 	function calcCostFromUnderlyingCost(uint256 _underlyingCost, uint256 _exchangeRate) public pure override returns (uint256 _cost)
@@ -55,7 +59,7 @@ contract GCTokenBase is GTokenBase, GCToken, GCLeveragedReserveManager
 
 	function borrowingReserveUnderlying() public view override returns (uint256 _borrowingReserveUnderlying)
 	{
-		return _calcConversionUnderlyingToBorrowGivenBorrow(G.getBorrowAmount(leverageToken));
+		return lrm.calcConversionUnderlyingToBorrowGivenBorrow(G.getBorrowAmount(leverageToken));
 	}
 
 	function depositUnderlying(uint256 _underlyingCost) external override nonReentrant
@@ -92,53 +96,53 @@ contract GCTokenBase is GTokenBase, GCToken, GCLeveragedReserveManager
 
 	function leverageEnabled() public view override returns (bool _leverageEnabled)
 	{
-		return _getLeverageEnabled();
+		return lrm.getLeverageEnabled();
 	}
 
 	function leverageAdjustmentAmount() public view override returns (uint256 _leverageAdjustmentAmount)
 	{
-		return _getLeverageAdjustmentAmount();
+		return lrm.getLeverageAdjustmentAmount();
 	}
 
 	function idealCollateralizationRatio() external view override returns (uint256 _idealCollateralizationRatio)
 	{
-		return _getIdealCollateralizationRatio();
+		return lrm.getIdealCollateralizationRatio();
 	}
 
 	function limitCollateralizationRatio() external view override returns (uint256 _limitCollateralizationRatio)
 	{
-		return _getLimitCollateralizationRatio();
+		return lrm.getLimitCollateralizationRatio();
 	}
 
 	function setLeverageEnabled(bool _leverageEnabled) public override onlyOwner nonReentrant
 	{
-		_setLeverageEnabled(_leverageEnabled);
+		lrm.setLeverageEnabled(_leverageEnabled);
 	}
 
 	function setLeverageAdjustmentAmount(uint256 _leverageAdjustmentAmount) public override onlyOwner nonReentrant
 	{
-		_setLeverageAdjustmentAmount(_leverageAdjustmentAmount);
+		lrm.setLeverageAdjustmentAmount(_leverageAdjustmentAmount);
 	}
 
 	function setIdealCollateralizationRatio(uint256 _idealCollateralizationRatio) public override onlyOwner nonReentrant
 	{
-		_setIdealCollateralizationRatio(_idealCollateralizationRatio);
+		lrm.setIdealCollateralizationRatio(_idealCollateralizationRatio);
 	}
 
 	function setLimitCollateralizationRatio(uint256 _limitCollateralizationRatio) public override onlyOwner nonReentrant
 	{
-		_setLimitCollateralizationRatio(_limitCollateralizationRatio);
+		lrm.setLimitCollateralizationRatio(_limitCollateralizationRatio);
 	}
 
 	function _prepareWithdrawal(uint256 _cost) internal override {
 		uint256 _requiredAmount = G.calcUnderlyingCostFromCost(_cost, G.fetchExchangeRate(reserveToken));
-		uint256 _availableAmount = _getAvailableUnderlying();
+		uint256 _availableAmount = lrm.getAvailableUnderlying();
 		if (_requiredAmount <= _availableAmount) return;
-		require(_decreaseLeverage(_requiredAmount.sub(_availableAmount)), "unliquid market, try again later");
+		require(lrm.decreaseLeverage(_requiredAmount.sub(_availableAmount)), "unliquid market, try again later");
 	}
 
 	function _adjustReserve() internal override {
-		require(_gulpMiningAssets(), "failure gulping mining assets");
-		require(_adjustLeverage(), "failure adjusting leverage");
+		require(lrm.gulpMiningAssets(), "failure gulping mining assets");
+		require(lrm.adjustLeverage(), "failure adjusting leverage");
 	}
 }

@@ -13,7 +13,7 @@ contract gcDAI is GCTokenBase
 		GCTokenBase("growth cDAI", "gcDAI", 18, Addresses.GRO, Addresses.COMP, Addresses.cDAI, Addresses.cUSDC, DEFAULT_LEVERAGE_ADJUSTMENT_AMOUNT) public
 	{
 	}
-
+/*
 	function _calcConversionUnderlyingToBorrowGivenUnderlying(uint256 _inputAmount) internal view override returns (uint256 _outputAmount)
 	{
 		return G.calcConversionDAIToUSDCGivenDAI(_inputAmount);
@@ -38,4 +38,5 @@ contract gcDAI is GCTokenBase
 	{
 		return G.convertFundsUSDCToDAI(_inputAmount);
 	}
+*/
 }
