@@ -19,7 +19,7 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	address public immutable override stakesToken;
 	address public immutable override reserveToken;
 
-	GLiquidityPoolManager.Self /*private*/ lpm;
+	GLiquidityPoolManager.Self lpm;
 
 	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakesToken, address _reserveToken)
 		ERC20(_name, _symbol) public
@@ -65,30 +65,30 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 
 	function liquidityPool() public view override returns (address _liquidityPool)
 	{
-		return lpm.getLiquidityPool();
+		return lpm.liquidityPool;
 	}
 
 	function liquidityPoolBurningRate() public view override returns (uint256 _burningRate)
 	{
-		return lpm.getBurningRate();
+		return lpm.burningRate;
 	}
 
 	function liquidityPoolLastBurningTime() public view override returns (uint256 _lastBurningTime)
 	{
-		return lpm.getLastBurningTime();
+		return lpm.lastBurningTime;
 	}
 
 	function liquidityPoolMigrationRecipient() public view override returns (address _migrationRecipient)
 	{
-		return lpm.getMigrationRecipient();
+		return lpm.migrationRecipient;
 	}
 
 	function liquidityPoolMigrationUnlockTime() public view override returns (uint256 _migrationUnlockTime)
 	{
-		return lpm.getMigrationUnlockTime();
+		return lpm.migrationUnlockTime;
 	}
 
-	function deposit(uint256 _cost) external override nonReentrant
+	function deposit(uint256 _cost) public override nonReentrant
 	{
 		address _from = msg.sender;
 		require(_cost > 0, "deposit cost must be greater than 0");
@@ -102,7 +102,7 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 		_adjustReserve();
 	}
 
-	function withdraw(uint256 _grossShares) external override nonReentrant
+	function withdraw(uint256 _grossShares) public override nonReentrant
 	{
 		address _from = msg.sender;
 		require(_grossShares > 0, "withdrawal shares must be greater than 0");
@@ -159,6 +159,34 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 
 	function adjustReserve() public override onlyOwner nonReentrant
 	{
+		_adjustReserve();
+	}
+
+	function _deposit(uint256 _cost) internal
+	{
+		address _from = msg.sender;
+		require(_cost > 0, "deposit cost must be greater than 0");
+		(uint256 _netShares, uint256 _feeShares) = G.calcDepositSharesFromCost(_cost, totalReserve(), totalSupply(), depositFee());
+		require(_netShares > 0, "deposit shares must be greater than 0");
+		_prepareDeposit(_cost);
+		G.pullFunds(reserveToken, _from, _cost);
+		_mint(_from, _netShares);
+		_mint(address(this), _feeShares.div(2));
+		lpm.gulpPoolAssets();
+		_adjustReserve();
+	}
+
+	function _withdraw(uint256 _grossShares) internal
+	{
+		address _from = msg.sender;
+		require(_grossShares > 0, "withdrawal shares must be greater than 0");
+		(uint256 _cost, uint256 _feeShares) = G.calcWithdrawalCostFromShares(_grossShares, totalReserve(), totalSupply(), withdrawalFee());
+		require(_cost > 0, "withdrawal cost must be greater than 0");
+		_prepareWithdrawal(_cost);
+		G.pushFunds(reserveToken, _from, _cost);
+		_burn(_from, _grossShares);
+		_mint(address(this), _feeShares.div(2));
+		lpm.gulpPoolAssets();
 		_adjustReserve();
 	}
 

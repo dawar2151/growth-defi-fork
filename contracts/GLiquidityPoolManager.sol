@@ -5,6 +5,8 @@ import { G } from "./G.sol";
 
 library GLiquidityPoolManager
 {
+	using GLiquidityPoolManager for GLiquidityPoolManager.Self;
+
 	uint256 constant DEFAULT_BURNING_RATE = 5e15; // 0.5%
 	uint256 constant BURNING_INTERVAL = 7 days;
 	uint256 constant MIGRATION_INTERVAL = 7 days;
@@ -40,41 +42,21 @@ library GLiquidityPoolManager
 		_self.migrationUnlockTime = uint256(-1);
 	}
 
-	function hasPool(Self storage _self) public view returns (bool _hasMigrated)
+	function _hasPool(Self storage _self) internal view returns (bool _poolAvailable)
 	{
 		return _self.state == State.Allocated || _self.state == State.Migrating;
 	}
 
+	function hasPool(Self storage _self) public view returns (bool _poolAvailable)
+	{
+		return _self._hasPool();
+	}
+
 	function gulpPoolAssets(Self storage _self) public
 	{
-		if (!hasPool(_self)) return;
+		if (!_self._hasPool()) return;
 		G.joinPool(_self.liquidityPool, _self.stakesToken, G.getBalance(_self.stakesToken));
 		G.joinPool(_self.liquidityPool, _self.sharesToken, G.getBalance(_self.sharesToken));
-	}
-
-	function getLiquidityPool(Self storage _self) public view returns (address _liquidityPool)
-	{
-		return _self.liquidityPool;
-	}
-
-	function getBurningRate(Self storage _self) public view returns (uint256 _burningRate)
-	{
-		return _self.burningRate;
-	}
-
-	function getLastBurningTime(Self storage _self) public view returns (uint256 _lastBurningTime)
-	{
-		return _self.lastBurningTime;
-	}
-
-	function getMigrationRecipient(Self storage _self) public view returns (address _migrationRecipient)
-	{
-		return _self.migrationRecipient;
-	}
-
-	function getMigrationUnlockTime(Self storage _self) public view returns (uint256 _migrationUnlockTime)
-	{
-		return _self.migrationUnlockTime;
 	}
 
 	function setBurningRate(Self storage _self, uint256 _burningRate) public
@@ -85,7 +67,7 @@ library GLiquidityPoolManager
 
 	function burnPoolPortion(Self storage _self) public returns (uint256 _stakesAmount, uint256 _sharesAmount)
 	{
-		require(hasPool(_self), "pool not available");
+		require(_self._hasPool(), "pool not available");
 		require(now > _self.lastBurningTime + BURNING_INTERVAL, "must wait lock interval");
 		_self.lastBurningTime = now;
 		return G.exitPool(_self.liquidityPool, _self.burningRate);

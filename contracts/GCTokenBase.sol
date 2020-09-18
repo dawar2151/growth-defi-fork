@@ -14,7 +14,7 @@ contract GCTokenBase is GTokenBase, GCToken
 	address public immutable override leverageToken;
 	address public immutable override underlyingToken;
 
-	GCLeveragedReserveManager.Self private lrm;
+	GCLeveragedReserveManager.Self lrm;
 
 	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakeToken, address _miningToken, address _reserveToken, address _leverageToken, uint256 _leverageAdjustmentAmount)
 		GTokenBase(_name, _symbol, _decimals, _stakeToken, _reserveToken) public
@@ -38,7 +38,6 @@ contract GCTokenBase is GTokenBase, GCToken
 	{
 		return G.getExchangeRate(reserveToken);
 	}
-
 	function totalReserve() public view override(GToken, GTokenBase) returns (uint256 _totalReserve)
 	{
 		return G.calcCostFromUnderlyingCost(totalReserveUnderlying(), G.getExchangeRate(reserveToken));
@@ -62,7 +61,7 @@ contract GCTokenBase is GTokenBase, GCToken
 		return lrm.calcConversionUnderlyingToBorrowGivenBorrow(G.getBorrowAmount(leverageToken));
 	}
 
-	function depositUnderlying(uint256 _underlyingCost) external override nonReentrant
+	function depositUnderlying(uint256 _underlyingCost) public override nonReentrant
 	{
 		address _from = msg.sender;
 		require(_underlyingCost > 0, "deposit underlying cost must be greater than 0");
@@ -78,7 +77,7 @@ contract GCTokenBase is GTokenBase, GCToken
 		_adjustReserve();
 	}
 
-	function withdrawUnderlying(uint256 _grossShares) external override nonReentrant
+	function withdrawUnderlying(uint256 _grossShares) public override nonReentrant
 	{
 		address _from = msg.sender;
 		require(_grossShares > 0, "withdrawal shares must be greater than 0");
@@ -96,22 +95,22 @@ contract GCTokenBase is GTokenBase, GCToken
 
 	function leverageEnabled() public view override returns (bool _leverageEnabled)
 	{
-		return lrm.getLeverageEnabled();
+		return lrm.leverageEnabled;
 	}
 
 	function leverageAdjustmentAmount() public view override returns (uint256 _leverageAdjustmentAmount)
 	{
-		return lrm.getLeverageAdjustmentAmount();
+		return lrm.leverageAdjustmentAmount;
 	}
 
-	function idealCollateralizationRatio() external view override returns (uint256 _idealCollateralizationRatio)
+	function idealCollateralizationRatio() public view override returns (uint256 _idealCollateralizationRatio)
 	{
-		return lrm.getIdealCollateralizationRatio();
+		return lrm.idealCollateralizationRatio;
 	}
 
-	function limitCollateralizationRatio() external view override returns (uint256 _limitCollateralizationRatio)
+	function limitCollateralizationRatio() public view override returns (uint256 _limitCollateralizationRatio)
 	{
-		return lrm.getLimitCollateralizationRatio();
+		return lrm.limitCollateralizationRatio;
 	}
 
 	function setLeverageEnabled(bool _leverageEnabled) public override onlyOwner nonReentrant
