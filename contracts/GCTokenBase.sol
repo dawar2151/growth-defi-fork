@@ -67,11 +67,11 @@ contract GCTokenBase is GTokenBase, GCToken
 	function depositUnderlying(uint256 _underlyingCost) public override nonReentrant
 	{
 		address _from = msg.sender;
-		require(_underlyingCost > 0, "deposit underlying cost must be greater than 0");
+		require(_underlyingCost > 0, "underlying cost must be greater than 0");
 		uint256 _cost = GCFormulae._calcCostFromUnderlyingCost(_underlyingCost, exchangeRate());
 		(uint256 _netShares, uint256 _feeShares) = GFormulae._calcDepositSharesFromCost(_cost, totalReserve(), totalSupply(), depositFee());
-		require(_netShares > 0, "deposit shares must be greater than 0");
-		_prepareDeposit(_cost);
+		require(_netShares > 0, "shares must be greater than 0");
+		require(_prepareDeposit(_cost), "operation not available at the moment");
 		G.pullFunds(underlyingToken, _from, _underlyingCost);
 		G.safeLend(reserveToken, _underlyingCost);
 		_mint(_from, _netShares);
@@ -83,11 +83,11 @@ contract GCTokenBase is GTokenBase, GCToken
 	function withdrawUnderlying(uint256 _grossShares) public override nonReentrant
 	{
 		address _from = msg.sender;
-		require(_grossShares > 0, "withdrawal shares must be greater than 0");
+		require(_grossShares > 0, "shares must be greater than 0");
 		(uint256 _cost, uint256 _feeShares) = GFormulae._calcWithdrawalCostFromShares(_grossShares, totalReserve(), totalSupply(), withdrawalFee());
 		uint256 _underlyingCost = GCFormulae._calcUnderlyingCostFromCost(_cost, exchangeRate());
-		require(_underlyingCost > 0, "withdrawal underlying cost must be greater than 0");
-		_prepareWithdrawal(_cost);
+		require(_underlyingCost > 0, "underlying cost must be greater than 0");
+		require(_prepareWithdrawal(_cost), "operation not available at the moment");
 		G.safeRedeem(reserveToken, _underlyingCost);
 		G.pushFunds(underlyingToken, _from, _underlyingCost);
 		_burn(_from, _grossShares);
@@ -136,24 +136,27 @@ contract GCTokenBase is GTokenBase, GCToken
 		lrm.setLimitCollateralizationRatio(_limitCollateralizationRatio);
 	}
 
-	function _prepareWithdrawal(uint256 _cost) internal override {
+	function _prepareWithdrawal(uint256 _cost) internal override returns (bool _success)
+	{
 		uint256 _requiredAmount = GCFormulae._calcUnderlyingCostFromCost(_cost, G.fetchExchangeRate(reserveToken));
 		uint256 _availableAmount = lrm.getAvailableUnderlying();
-		if (_requiredAmount <= _availableAmount) return;
-		require(lrm.decreaseLeverage(_requiredAmount.sub(_availableAmount)), "unliquid market, try again later");
+		if (_requiredAmount <= _availableAmount) return true;
+		return lrm.decreaseLeverage(_requiredAmount.sub(_availableAmount));
 	}
 
-	function _adjustReserve() internal override {
-
+	function _adjustReserve() internal override returns (bool _success)
+	{
+		_success = true;
 		uint256 _oldLend = G.fetchLendAmount(reserveToken);
 		uint256 _oldBorrow = G.fetchBorrowAmount(leverageToken);
-		require(lrm.gulpMiningAssets(), "failure gulping mining assets");
-		require(lrm.adjustLeverage(), "failure adjusting leverage");
+		_success = _success && lrm.gulpMiningAssets();
+		_success = _success && lrm.adjustLeverage();
 		uint256 _newLend = G.fetchLendAmount(reserveToken);
 		uint256 _newBorrow = G.fetchBorrowAmount(leverageToken);
 		if (_newLend != _oldLend || _newBorrow != _oldBorrow) {
 			emit ReserveChange(_newLend, lrm.calcConversionUnderlyingToBorrowGivenBorrow(_newBorrow));
 		}
+		return _success;
 	}
 
 	event ReserveChange(uint256 _lendingReserveUnderlying, uint256 _borrowingReserveUnderlying);

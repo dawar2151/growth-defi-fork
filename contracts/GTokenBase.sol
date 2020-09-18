@@ -92,10 +92,10 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	function deposit(uint256 _cost) public override nonReentrant
 	{
 		address _from = msg.sender;
-		require(_cost > 0, "deposit cost must be greater than 0");
+		require(_cost > 0, "cost must be greater than 0");
 		(uint256 _netShares, uint256 _feeShares) = GFormulae._calcDepositSharesFromCost(_cost, totalReserve(), totalSupply(), depositFee());
-		require(_netShares > 0, "deposit shares must be greater than 0");
-		_prepareDeposit(_cost);
+		require(_netShares > 0, "shares must be greater than 0");
+		require(_prepareDeposit(_cost), "operation not available at the moment");
 		G.pullFunds(reserveToken, _from, _cost);
 		_mint(_from, _netShares);
 		_mint(address(this), _feeShares.div(2));
@@ -106,10 +106,10 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	function withdraw(uint256 _grossShares) public override nonReentrant
 	{
 		address _from = msg.sender;
-		require(_grossShares > 0, "withdrawal shares must be greater than 0");
+		require(_grossShares > 0, "shares must be greater than 0");
 		(uint256 _cost, uint256 _feeShares) = GFormulae._calcWithdrawalCostFromShares(_grossShares, totalReserve(), totalSupply(), withdrawalFee());
-		require(_cost > 0, "withdrawal cost must be greater than 0");
-		_prepareWithdrawal(_cost);
+		require(_cost > 0, "cost must be greater than 0");
+		require(_prepareWithdrawal(_cost), "operation not available at the moment");
 		G.pushFunds(reserveToken, _from, _cost);
 		_burn(_from, _grossShares);
 		_mint(address(this), _feeShares.div(2));
@@ -160,14 +160,23 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 
 	function adjustReserve() public override onlyOwner nonReentrant
 	{
-		_adjustReserve();
+		require(_adjustReserve(), "failure adjusting reserve");
 	}
 
-	function _prepareDeposit(uint256 _cost) internal virtual { }
+	function _prepareDeposit(uint256 _cost) internal virtual returns (bool _success)
+	{
+		return true;
+	}
 
-	function _prepareWithdrawal(uint256 _cost) internal virtual { }
+	function _prepareWithdrawal(uint256 _cost) internal virtual returns (bool _success)
+	{
+		return true;
+	}
 
-	function _adjustReserve() internal virtual { }
+	function _adjustReserve() internal virtual returns (bool _success)
+	{
+		return true;
+	}
 
 	function _burnStakes(uint256 _stakesAmount) internal virtual
 	{
