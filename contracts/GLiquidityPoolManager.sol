@@ -7,9 +7,9 @@ library GLiquidityPoolManager
 {
 	using GLiquidityPoolManager for GLiquidityPoolManager.Self;
 
+	uint256 constant DEFAULT_BURNING_RATE = 5e15; // 0.5%
 	uint256 constant BURNING_INTERVAL = 7 days;
 	uint256 constant MIGRATION_INTERVAL = 7 days;
-	uint256 constant DEFAULT_BURNING_RATE = 5e15; // 0.5%
 
 	enum State { Created, Allocated, Migrating, Migrated }
 
@@ -98,8 +98,9 @@ library GLiquidityPoolManager
 		require(_self.state == State.Migrating, "migration not initiated");
 		require(now >= _self.migrationUnlockTime, "must wait lock interval");
 		_self.state = State.Migrated;
+		_migrationRecipient = _self.migrationRecipient;
 		(_stakesAmount, _sharesAmount) = G.exitPool(_self.liquidityPool, 1e18);
-		return (_self.migrationRecipient, _stakesAmount, _sharesAmount);
+		return (_migrationRecipient, _stakesAmount, _sharesAmount);
 	}
 
 	function _hasPool(Self storage _self) internal view returns (bool _poolAvailable)
