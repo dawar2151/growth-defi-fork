@@ -40,9 +40,10 @@ contract GCTokenBase is GTokenBase, GCToken
 	{
 		return G.getExchangeRate(reserveToken);
 	}
+
 	function totalReserve() public view override(GToken, GTokenBase) returns (uint256 _totalReserve)
 	{
-		return GCFormulae._calcCostFromUnderlyingCost(totalReserveUnderlying(), G.getExchangeRate(reserveToken));
+		return GCFormulae._calcCostFromUnderlyingCost(totalReserveUnderlying(), exchangeRate());
 	}
 
 	function totalReserveUnderlying() public view override returns (uint256 _totalReserveUnderlying)
@@ -67,7 +68,7 @@ contract GCTokenBase is GTokenBase, GCToken
 	{
 		address _from = msg.sender;
 		require(_underlyingCost > 0, "deposit underlying cost must be greater than 0");
-		uint256 _cost = GCFormulae._calcCostFromUnderlyingCost(_underlyingCost, G.getExchangeRate(reserveToken));
+		uint256 _cost = GCFormulae._calcCostFromUnderlyingCost(_underlyingCost, exchangeRate());
 		(uint256 _netShares, uint256 _feeShares) = GFormulae._calcDepositSharesFromCost(_cost, totalReserve(), totalSupply(), depositFee());
 		require(_netShares > 0, "deposit shares must be greater than 0");
 		_prepareDeposit(_cost);
@@ -84,7 +85,7 @@ contract GCTokenBase is GTokenBase, GCToken
 		address _from = msg.sender;
 		require(_grossShares > 0, "withdrawal shares must be greater than 0");
 		(uint256 _cost, uint256 _feeShares) = GFormulae._calcWithdrawalCostFromShares(_grossShares, totalReserve(), totalSupply(), withdrawalFee());
-		uint256 _underlyingCost = GCFormulae._calcUnderlyingCostFromCost(_cost, G.getExchangeRate(reserveToken));
+		uint256 _underlyingCost = GCFormulae._calcUnderlyingCostFromCost(_cost, exchangeRate());
 		require(_underlyingCost > 0, "withdrawal underlying cost must be greater than 0");
 		_prepareWithdrawal(_cost);
 		G.safeRedeem(reserveToken, _underlyingCost);
@@ -143,7 +144,17 @@ contract GCTokenBase is GTokenBase, GCToken
 	}
 
 	function _adjustReserve() internal override {
+
+		uint256 _oldLend = G.fetchLendAmount(reserveToken);
+		uint256 _oldBorrow = G.fetchBorrowAmount(leverageToken);
 		require(lrm.gulpMiningAssets(), "failure gulping mining assets");
 		require(lrm.adjustLeverage(), "failure adjusting leverage");
+		uint256 _newLend = G.fetchLendAmount(reserveToken);
+		uint256 _newBorrow = G.fetchBorrowAmount(leverageToken);
+		if (_newLend != _oldLend || _newBorrow != _oldBorrow) {
+			event LogReserveChange(_newLend, lrm.calcConversionUnderlyingToBorrowGivenBorrow(_newBorrow));
+		}
 	}
+
+	event LogReserveChange(uint256 _lendingReserveUnderlying, uint256 _borrowingReserveUnderlying);
 }
