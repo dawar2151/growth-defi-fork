@@ -10,6 +10,7 @@ library GCLeveragedReserveManager
 	using SafeMath for uint256;
 	using GCLeveragedReserveManager for GCLeveragedReserveManager.Self;
 
+	uint256 constant DELEVERAGING_UNROLL_LIMIT = 10;
 	uint256 constant MINIMUM_RATIO_GRANULARITY = 4e16; // 4%
 	uint256 constant DEFAULT_IDEAL_COLLATERALIZATION_RATIO = 88e16; // 88% of 75% = 66%
 	uint256 constant DEFAULT_LIMIT_COLLATERALIZATION_RATIO = 92e16; // 92% of 75% = 69%
@@ -76,8 +77,15 @@ library GCLeveragedReserveManager
 	function ensureLiquidity(Self storage _self, uint256 _requiredAmount) public returns (bool _success)
 	{
 		uint256 _availableAmount = _self._getAvailableUnderlying();
-		if (_requiredAmount <= _availableAmount) return true;
-		return _self._decreaseLeverage(_requiredAmount.sub(_availableAmount));
+		for (uint256 _i; _i < DELEVERAGING_UNROLL_LIMIT; _i++) {
+			if (_requiredAmount <= _availableAmount) return true;
+			_success = _self._decreaseLeverage(_requiredAmount.sub(_availableAmount));
+			if (!_success) return false;
+			uint256 _newAvailableAmount = _self._getAvailableUnderlying();
+			if (_newAvailableAmount <= _availableAmount) return false;
+			_availableAmount = _newAvailableAmount;
+		}
+		return false;
 	}
 
 	function gulpMiningAssets(Self storage _self) public returns (bool _success)
@@ -95,10 +103,11 @@ library GCLeveragedReserveManager
 		uint256 _borrowAmount = _self._calcConversionUnderlyingToBorrowGivenBorrow(G.fetchBorrowAmount(_self.leverageToken));
 		if (!_self.leverageEnabled) return _self._decreaseLeverageLimited(_borrowAmount);
 		uint256 _lendAmount = G.fetchLendAmount(_self.reserveToken);
-		uint256 _limitAmount = _self._calcLimitAmount(_lendAmount);
-		if (_borrowAmount > _limitAmount) return _self._decreaseLeverageLimited(_borrowAmount.sub(_limitAmount));
 		uint256 _idealAmount = _self._calcIdealAmount(_lendAmount);
-		if (_borrowAmount < _idealAmount) return _self._increaseLeverageLimited(_idealAmount.sub(_borrowAmount));
+		uint256 _limitAmount = _self._calcLimitAmount(_lendAmount);
+		uint256 _deltaAmount = _limitAmount.sub(_idealAmount).div(2);
+		if (_borrowAmount < _idealAmount.sub(_deltaAmount)) return _self._increaseLeverageLimited(_idealAmount.sub(_borrowAmount));
+		if (_borrowAmount > _idealAmount.add(_deltaAmount)) return _self._decreaseLeverageLimited(_borrowAmount.sub(_idealAmount));
 		return true;
 	}
 
@@ -112,7 +121,10 @@ library GCLeveragedReserveManager
 
 	function _getAvailableBorrow(Self storage _self) internal view returns (uint256 _availableBorrow)
 	{
-		return _self._calcConversionUnderlyingToBorrowGivenUnderlying(_self._getAvailableUnderlying());
+		uint256 _lendAmount = G.getLendAmount(_self.reserveToken);
+		uint256 _limitAmount = _self._calcIdealAmount(_lendAmount);
+		uint256 _marginAmount = _lendAmount.sub(_limitAmount);
+		return _self._calcConversionUnderlyingToBorrowGivenUnderlying(G.getAvailableAmount(_self.reserveToken, _marginAmount));
 	}
 
 	function _calcIdealAmount(Self storage _self, uint256 _amount) internal view returns (uint256 _idealAmount)
