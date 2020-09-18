@@ -67,6 +67,18 @@ library GCLeveragedReserveManager
 		_self.limitCollateralizationRatio = _limitCollateralizationRatio;
 	}
 
+	function estimateBorrowInUnderlying(Self storage _self, uint256 _borrowAmount) public view returns (uint256 _underlyingAmount)
+	{
+		return _self._calcConversionUnderlyingToBorrowGivenBorrow(_borrowAmount);
+	}
+
+	function ensureLiquidity(Self storage _self, uint256 _requiredAmount) public returns (bool _success)
+	{
+		uint256 _availableAmount = _self._getAvailableUnderlying();
+		if (_requiredAmount <= _availableAmount) return true;
+		return _self._decreaseLeverage(_requiredAmount.sub(_availableAmount));
+	}
+
 	function gulpMiningAssets(Self storage _self) public returns (bool _success)
 	{
 		uint256 _balance = G.getBalance(_self.miningToken);
@@ -87,21 +99,6 @@ library GCLeveragedReserveManager
 		uint256 _idealAmount = _self._calcIdealAmount(_lendingAmount, G.getCollateralRatio(_self.reserveToken));
 		if (_borrowingAmount < _idealAmount) return _self._increaseLeverageLimited(_idealAmount.sub(_borrowingAmount));
 		return true;
-	}
-
-	function decreaseLeverage(Self storage _self, uint256 _amount) public returns (bool _success)
-	{
-		return _self._decreaseLeverage(_amount);
-	}
-
-	function calcConversionUnderlyingToBorrowGivenBorrow(Self storage _self, uint256 _outputAmount) public view returns (uint256 _inputAmount)
-	{
-		return _self._calcConversionUnderlyingToBorrowGivenBorrow(_outputAmount);
-	}
-
-	function getAvailableUnderlying(Self storage _self) public view returns (uint256 _availableUnderlying)
-	{
-		return _self._getAvailableUnderlying();
 	}
 
 	function _calcIdealAmount(Self storage _self, uint256 _amount, uint256 _collateralRatio) internal view returns (uint256 _idealAmount)

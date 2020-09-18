@@ -61,7 +61,7 @@ contract GCTokenBase is GTokenBase, GCToken
 
 	function borrowingReserveUnderlying() public view override returns (uint256 _borrowingReserveUnderlying)
 	{
-		return lrm.calcConversionUnderlyingToBorrowGivenBorrow(G.getBorrowAmount(leverageToken));
+		return lrm.estimateBorrowInUnderlying(G.getBorrowAmount(leverageToken));
 	}
 
 	function depositUnderlying(uint256 _underlyingCost) public override nonReentrant
@@ -138,10 +138,7 @@ contract GCTokenBase is GTokenBase, GCToken
 
 	function _prepareWithdrawal(uint256 _cost) internal override returns (bool _success)
 	{
-		uint256 _requiredAmount = GCFormulae._calcUnderlyingCostFromCost(_cost, G.fetchExchangeRate(reserveToken));
-		uint256 _availableAmount = lrm.getAvailableUnderlying();
-		if (_requiredAmount <= _availableAmount) return true;
-		return lrm.decreaseLeverage(_requiredAmount.sub(_availableAmount));
+		return lrm.ensureLiquidity(GCFormulae._calcUnderlyingCostFromCost(_cost, G.fetchExchangeRate(reserveToken)));
 	}
 
 	function _adjustReserve() internal override returns (bool _success)
@@ -154,7 +151,7 @@ contract GCTokenBase is GTokenBase, GCToken
 		uint256 _newLend = G.fetchLendAmount(reserveToken);
 		uint256 _newBorrow = G.fetchBorrowAmount(leverageToken);
 		if (_newLend != _oldLend || _newBorrow != _oldBorrow) {
-			emit ReserveChange(_newLend, lrm.calcConversionUnderlyingToBorrowGivenBorrow(_newBorrow));
+			emit ReserveChange(_newLend, lrm.estimateBorrowInUnderlying(_newBorrow));
 		}
 		return _success;
 	}

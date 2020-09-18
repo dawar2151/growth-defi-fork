@@ -163,18 +163,23 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 		require(_adjustReserve(), "failure adjusting reserve");
 	}
 
+	uint256 private __unused;
+
 	function _prepareDeposit(uint256 _cost) internal virtual returns (bool _success)
 	{
+		__unused = __unused; _cost; // silences warnings
 		return true;
 	}
 
 	function _prepareWithdrawal(uint256 _cost) internal virtual returns (bool _success)
 	{
+		__unused = __unused; _cost; // silences warnings
 		return true;
 	}
 
 	function _adjustReserve() internal virtual returns (bool _success)
 	{
+		__unused = __unused; // silences warnings
 		return true;
 	}
 
