@@ -6,6 +6,7 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import { GToken } from "./GToken.sol";
+import { GFormulae } from "./GFormulae.sol";
 import { GLiquidityPoolManager } from "./GLiquidityPoolManager.sol";
 import { G } from "./G.sol";
 
@@ -32,22 +33,22 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 
 	function calcDepositSharesFromCost(uint256 _cost, uint256 _totalReserve, uint256 _totalSupply, uint256 _depositFee) public pure override returns (uint256 _netShares, uint256 _feeShares)
 	{
-		return G.calcDepositSharesFromCost(_cost, _totalReserve, _totalSupply, _depositFee);
+		return GFormulae._calcDepositSharesFromCost(_cost, _totalReserve, _totalSupply, _depositFee);
 	}
 
 	function calcDepositCostFromShares(uint256 _netShares, uint256 _totalReserve, uint256 _totalSupply, uint256 _depositFee) public pure override returns (uint256 _cost, uint256 _feeShares)
 	{
-		return G.calcDepositCostFromShares(_netShares, _totalReserve, _totalSupply, _depositFee);
+		return GFormulae._calcDepositCostFromShares(_netShares, _totalReserve, _totalSupply, _depositFee);
 	}
 
 	function calcWithdrawalSharesFromCost(uint256 _cost, uint256 _totalReserve, uint256 _totalSupply, uint256 _withdrawalFee) public pure override returns (uint256 _grossShares, uint256 _feeShares)
 	{
-		return G.calcWithdrawalSharesFromCost(_cost, _totalReserve, _totalSupply, _withdrawalFee);
+		return GFormulae._calcWithdrawalSharesFromCost(_cost, _totalReserve, _totalSupply, _withdrawalFee);
 	}
 
 	function calcWithdrawalCostFromShares(uint256 _grossShares, uint256 _totalReserve, uint256 _totalSupply, uint256 _withdrawalFee) public pure override returns (uint256 _cost, uint256 _feeShares)
 	{
-		return G.calcWithdrawalCostFromShares(_grossShares, _totalReserve, _totalSupply, _withdrawalFee);
+		return GFormulae._calcWithdrawalCostFromShares(_grossShares, _totalReserve, _totalSupply, _withdrawalFee);
 	}
 
 	function totalReserve() public view virtual override returns (uint256 _totalReserve)
@@ -92,7 +93,7 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	{
 		address _from = msg.sender;
 		require(_cost > 0, "deposit cost must be greater than 0");
-		(uint256 _netShares, uint256 _feeShares) = G.calcDepositSharesFromCost(_cost, totalReserve(), totalSupply(), depositFee());
+		(uint256 _netShares, uint256 _feeShares) = GFormulae._calcDepositSharesFromCost(_cost, totalReserve(), totalSupply(), depositFee());
 		require(_netShares > 0, "deposit shares must be greater than 0");
 		_prepareDeposit(_cost);
 		G.pullFunds(reserveToken, _from, _cost);
@@ -106,7 +107,7 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	{
 		address _from = msg.sender;
 		require(_grossShares > 0, "withdrawal shares must be greater than 0");
-		(uint256 _cost, uint256 _feeShares) = G.calcWithdrawalCostFromShares(_grossShares, totalReserve(), totalSupply(), withdrawalFee());
+		(uint256 _cost, uint256 _feeShares) = GFormulae._calcWithdrawalCostFromShares(_grossShares, totalReserve(), totalSupply(), withdrawalFee());
 		require(_cost > 0, "withdrawal cost must be greater than 0");
 		_prepareWithdrawal(_cost);
 		G.pushFunds(reserveToken, _from, _cost);
@@ -159,34 +160,6 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 
 	function adjustReserve() public override onlyOwner nonReentrant
 	{
-		_adjustReserve();
-	}
-
-	function _deposit(uint256 _cost) internal
-	{
-		address _from = msg.sender;
-		require(_cost > 0, "deposit cost must be greater than 0");
-		(uint256 _netShares, uint256 _feeShares) = G.calcDepositSharesFromCost(_cost, totalReserve(), totalSupply(), depositFee());
-		require(_netShares > 0, "deposit shares must be greater than 0");
-		_prepareDeposit(_cost);
-		G.pullFunds(reserveToken, _from, _cost);
-		_mint(_from, _netShares);
-		_mint(address(this), _feeShares.div(2));
-		lpm.gulpPoolAssets();
-		_adjustReserve();
-	}
-
-	function _withdraw(uint256 _grossShares) internal
-	{
-		address _from = msg.sender;
-		require(_grossShares > 0, "withdrawal shares must be greater than 0");
-		(uint256 _cost, uint256 _feeShares) = G.calcWithdrawalCostFromShares(_grossShares, totalReserve(), totalSupply(), withdrawalFee());
-		require(_cost > 0, "withdrawal cost must be greater than 0");
-		_prepareWithdrawal(_cost);
-		G.pushFunds(reserveToken, _from, _cost);
-		_burn(_from, _grossShares);
-		_mint(address(this), _feeShares.div(2));
-		lpm.gulpPoolAssets();
 		_adjustReserve();
 	}
 

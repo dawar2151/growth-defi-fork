@@ -2,62 +2,29 @@
 pragma solidity ^0.6.0;
 
 import { Addresses } from "./Addresses.sol";
-import { Transfers } from "./Transfers.sol";
-import { Swap } from "./interop/Curve.sol";
-import { Router02 } from "./interop/UniswapV2.sol";
+import { CurveExchangeAbstraction } from "./CurveExchangeAbstraction.sol";
+import { UniswapV2ExchangeAbstraction } from "./UniswapV2ExchangeAbstraction.sol";
 
 library Conversions
 {
-	function _calcConversionDAIToUSDCGivenDAI(uint256 _inputAmount) internal view returns (uint256 _outputAmount)
+	function _calcConversionOutputFromInput(address _from, address _to, uint256 _inputAmount) internal view returns (uint256 _outputAmount)
 	{
-		address _swap = Addresses.Curve_COMPOUND;
-		return Swap(_swap).get_dy_underlying(0, 1, _inputAmount);
+		if (_from == Addresses.DAI && _to == Addresses.USDC) return CurveExchangeAbstraction._calcConversionDAIToUSDCGivenDAI(_inputAmount);
+		if (_from == Addresses.USDC && _to == Addresses.DAI) return CurveExchangeAbstraction._calcConversionUSDCToDAIGivenUSDC(_inputAmount);
+		return UniswapV2ExchangeAbstraction._calcConversionOutputFromInput(_from, _to, _inputAmount);
 	}
 
-	function _calcConversionDAIToUSDCGivenUSDC(uint256 _outputAmount) internal view returns (uint256 _inputAmount)
+	function _calcConversionInputFromOutput(address _from, address _to, uint256 _outputAmount) internal view returns (uint256 _inputAmount)
 	{
-		address _swap = Addresses.Curve_COMPOUND;
-		return Swap(_swap).get_dx_underlying(0, 1, _outputAmount);
+		if (_from == Addresses.DAI && _to == Addresses.USDC) return CurveExchangeAbstraction._calcConversionDAIToUSDCGivenUSDC(_outputAmount);
+		if (_from == Addresses.USDC && _to == Addresses.DAI) return CurveExchangeAbstraction._calcConversionUSDCToDAIGivenDAI(_outputAmount);
+		return UniswapV2ExchangeAbstraction._calcConversionInputFromOutput(_from, _to, _outputAmount);
 	}
 
-	function _calcConversionUSDCToDAIGivenUSDC(uint256 _inputAmount) internal view returns (uint256 _outputAmount)
+	function _convertBalance(address _from, address _to, uint256 _inputAmount, uint256 _minOutputAmount) internal returns (uint256 _outputAmount)
 	{
-		address _swap = Addresses.Curve_COMPOUND;
-		return Swap(_swap).get_dy_underlying(1, 0, _inputAmount);
-	}
-
-	function _calcConversionUSDCToDAIGivenDAI(uint256 _outputAmount) internal view returns (uint256 _inputAmount)
-	{
-		address _swap = Addresses.Curve_COMPOUND;
-		return Swap(_swap).get_dx_underlying(1, 0, _outputAmount);
-	}
-
-	function _convertFundsUSDCToDAI(uint256 _amount) internal
-	{
-		address _swap = Addresses.Curve_COMPOUND;
-		address _token = Swap(_swap).underlying_coins(1);
-		Transfers._approveFunds(_token, _swap, _amount);
-		Swap(_swap).exchange_underlying(1, 0, _amount, 0);
-	}
-
-	function _convertFundsDAIToUSDC(uint256 _amount) internal
-	{
-		address _swap = Addresses.Curve_COMPOUND;
-		address _token = Swap(_swap).underlying_coins(0);
-		Transfers._approveFunds(_token, _swap, _amount);
-		Swap(_swap).exchange_underlying(0, 1, _amount, 0);
-	}
-
-	function _convertFundsCOMPToDAI(uint256 _amount) internal
-	{
-		if (_amount == 0) return;
-		address _router = Addresses.UniswapV2_ROUTER02;
-		address _token = Addresses.COMP;
-		address[] memory _path = new address[](3);
-		_path[0] = _token;
-		_path[1] = Router02(_router).WETH();
-		_path[2] = Addresses.DAI;
-		Transfers._approveFunds(_token, _router, _amount);
-		Router02(_router).swapExactTokensForTokens(_amount, 0, _path, address(this), block.timestamp);
+		if (_from == Addresses.DAI && _to == Addresses.USDC) return CurveExchangeAbstraction._convertFundsDAIToUSDC(_inputAmount, _minOutputAmount);
+		if (_from == Addresses.USDC && _to == Addresses.DAI) return CurveExchangeAbstraction._convertFundsUSDCToDAI(_inputAmount, _minOutputAmount);
+		return UniswapV2ExchangeAbstraction._convertBalance(_from, _to, _inputAmount, _minOutputAmount);
 	}
 }

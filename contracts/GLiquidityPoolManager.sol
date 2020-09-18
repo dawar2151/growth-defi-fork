@@ -7,9 +7,9 @@ library GLiquidityPoolManager
 {
 	using GLiquidityPoolManager for GLiquidityPoolManager.Self;
 
-	uint256 constant DEFAULT_BURNING_RATE = 5e15; // 0.5%
 	uint256 constant BURNING_INTERVAL = 7 days;
 	uint256 constant MIGRATION_INTERVAL = 7 days;
+	uint256 constant DEFAULT_BURNING_RATE = 5e15; // 0.5%
 
 	enum State { Created, Allocated, Migrating, Migrated }
 
