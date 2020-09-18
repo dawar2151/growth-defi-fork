@@ -5,7 +5,8 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
 import { Addresses } from "./Addresses.sol";
 import { Transfers } from "./Transfers.sol";
-import { Swap } from "./interop/Curve.sol";
+
+import { Swap } from "../interop/Curve.sol";
 
 library CurveExchangeAbstraction
 {

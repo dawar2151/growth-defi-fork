@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.0;
 
-import { Math } from "./Math.sol";
-import { Transfers } from "./Transfers.sol";
-import { Conversions } from "./Conversions.sol";
-import { BalancerLiquidityPoolAbstraction } from "./BalancerLiquidityPoolAbstraction.sol";
-import { CompoundLendingMarketAbstraction } from "./CompoundLendingMarketAbstraction.sol";
+import { Math } from "./modules/Math.sol";
+import { Transfers } from "./modules/Transfers.sol";
+import { Conversions } from "./modules/Conversions.sol";
+import { BalancerLiquidityPoolAbstraction } from "./modules/BalancerLiquidityPoolAbstraction.sol";
+import { CompoundLendingMarketAbstraction } from "./modules/CompoundLendingMarketAbstraction.sol";
 
 library G
 {

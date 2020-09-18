@@ -3,7 +3,8 @@ pragma solidity ^0.6.0;
 
 import { Addresses } from "./Addresses.sol";
 import { Transfers } from "./Transfers.sol";
-import { Router02 } from "./interop/UniswapV2.sol";
+
+import { Router02 } from "../interop/UniswapV2.sol";
 
 library UniswapV2ExchangeAbstraction
 {

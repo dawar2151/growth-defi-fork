@@ -6,7 +6,8 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Addresses } from "./Addresses.sol";
 import { Math } from "./Math.sol";
 import { Transfers } from "./Transfers.sol";
-import { BFactory, BPool } from "./interop/Balancer.sol";
+
+import { BFactory, BPool } from "../interop/Balancer.sol";
 
 library BalancerLiquidityPoolAbstraction
 {

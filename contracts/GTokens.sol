@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.0;
 
-import { Addresses } from "./Addresses.sol";
 import { GCTokenBase } from "./GCTokenBase.sol";
+
+import { Addresses } from "./modules/Addresses.sol";
 
 contract gcDAI is GCTokenBase
 {
