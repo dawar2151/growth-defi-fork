@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.0;
 
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+
 import { Addresses } from "./Addresses.sol";
-import { Math } from "./Math.sol";
-import { Transfers } from "./Transfers.sol";
+import { G } from "./G.sol";
 import { BFactory, BPool } from "./interop/Balancer.sol";
 
-contract BalancerLiquidityPoolAbstraction is Addresses, Math, Transfers
+library BalancerLiquidityPoolAbstraction
 {
+	using SafeMath for uint256;
+
 	uint256 constant MIN_AMOUNT = 1e6;
 	uint256 constant TOKEN0_WEIGHT = 25e18; // 25/50 = 50%
 	uint256 constant TOKEN1_WEIGHT = 25e18; // 25/50 = 50%
@@ -16,9 +19,9 @@ contract BalancerLiquidityPoolAbstraction is Addresses, Math, Transfers
 	function _createPool(address _token0, uint256 _amount0, address _token1, uint256 _amount1) internal returns (address _pool)
 	{
 		require(_amount0 >= MIN_AMOUNT && _amount1 >= MIN_AMOUNT, "amount below the minimum");
-		_pool = BFactory(Balancer_FACTORY).newBPool();
-		_approveFunds(_token0, _pool, _amount0);
-		_approveFunds(_token1, _pool, _amount1);
+		_pool = BFactory(Addresses.Balancer_FACTORY).newBPool();
+		G.approveFunds(_token0, _pool, _amount0);
+		G.approveFunds(_token1, _pool, _amount1);
 		BPool(_pool).bind(_token0, _amount0, TOKEN0_WEIGHT);
 		BPool(_pool).bind(_token1, _amount1, TOKEN1_WEIGHT);
 		BPool(_pool).setSwapFee(SWAP_FEE);
@@ -31,8 +34,8 @@ contract BalancerLiquidityPoolAbstraction is Addresses, Math, Transfers
 		uint256 _balanceAmount = BPool(_pool).getBalance(_token);
 		if (_balanceAmount == 0) return 0;
 		uint256 _limitAmount = _balanceAmount.div(2);
-		_amount = _min(_maxAmount, _limitAmount);
-		_approveFunds(_token, _pool, _amount);
+		_amount = G.min(_maxAmount, _limitAmount);
+		G.approveFunds(_token, _pool, _amount);
 		BPool(_pool).joinswapExternAmountIn(_token, _amount, 0);
 		return _amount;
 	}
@@ -41,16 +44,16 @@ contract BalancerLiquidityPoolAbstraction is Addresses, Math, Transfers
 	{
 		if (_percent == 0) return (0, 0);
 		address[] memory _tokens = BPool(_pool).getFinalTokens();
-		_amount0 = _getBalance(_tokens[0]);
-		_amount1 = _getBalance(_tokens[1]);
-		uint256 _poolAmount = _getBalance(_pool);
+		_amount0 = G.getBalance(_tokens[0]);
+		_amount1 = G.getBalance(_tokens[1]);
+		uint256 _poolAmount = G.getBalance(_pool);
 		uint256 _poolExitAmount = _poolAmount.mul(_percent).div(1e18);
 		uint256[] memory _minAmountsOut = new uint256[](2);
 		_minAmountsOut[0] = 0;
 		_minAmountsOut[1] = 0;
 		BPool(_pool).exitPool(_poolExitAmount, _minAmountsOut);
-		_amount0 = _getBalance(_tokens[0]).sub(_amount0);
-		_amount1 = _getBalance(_tokens[1]).sub(_amount1);
+		_amount0 = G.getBalance(_tokens[0]).sub(_amount0);
+		_amount1 = G.getBalance(_tokens[1]).sub(_amount1);
 		return (_amount0, _amount1);
 	}
 }

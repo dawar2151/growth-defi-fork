@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.0;
 
-import { BalancerLiquidityPoolAbstraction } from "./BalancerLiquidityPoolAbstraction.sol";
+import { G } from "./G.sol";
 
-contract GLiquidityPoolManager is BalancerLiquidityPoolAbstraction
+contract GLiquidityPoolManager
 {
 	enum State { Created, Allocated, Migrating, Migrated }
 
@@ -37,8 +37,8 @@ contract GLiquidityPoolManager is BalancerLiquidityPoolAbstraction
 	function _gulpPoolAssets() internal
 	{
 		if (!_hasPool()) return;
-		_joinPool(liquidityPool, stakesToken, _getBalance(stakesToken));
-		_joinPool(liquidityPool, sharesToken, _getBalance(sharesToken));
+		G.joinPool(liquidityPool, stakesToken, G.getBalance(stakesToken));
+		G.joinPool(liquidityPool, sharesToken, G.getBalance(sharesToken));
 	}
 
 	function _getLiquidityPool() internal view returns (address _liquidityPool)
@@ -77,14 +77,14 @@ contract GLiquidityPoolManager is BalancerLiquidityPoolAbstraction
 		require(_hasPool(), "pool not available");
 		require(now > lastBurningTime + BURNING_INTERVAL, "must wait lock interval");
 		lastBurningTime = now;
-		return _exitPool(liquidityPool, burningRate);
+		return G.exitPool(liquidityPool, burningRate);
 	}
 
 	function _allocatePool(uint256 _stakesAmount, uint256 _sharesAmount) internal
 	{
 		require(state == State.Created, "pool cannot be allocated");
 		state = State.Allocated;
-		liquidityPool = _createPool(stakesToken, _stakesAmount, sharesToken, _sharesAmount);
+		liquidityPool = G.createPool(stakesToken, _stakesAmount, sharesToken, _sharesAmount);
 	}
 
 	function _initiatePoolMigration(address _migrationRecipient) internal
@@ -110,7 +110,7 @@ contract GLiquidityPoolManager is BalancerLiquidityPoolAbstraction
 		require(state == State.Migrating, "migration not initiated");
 		require(now >= migrationUnlockTime, "must wait lock interval");
 		state = State.Migrated;
-		(_stakesAmount, _sharesAmount) = _exitPool(liquidityPool, 1e18);
+		(_stakesAmount, _sharesAmount) = G.exitPool(liquidityPool, 1e18);
 		return (migrationRecipient, _stakesAmount, _sharesAmount);
 	}
 }

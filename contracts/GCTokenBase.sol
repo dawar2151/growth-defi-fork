@@ -4,10 +4,10 @@ pragma solidity ^0.6.0;
 import { GToken } from "./GToken.sol";
 import { GTokenBase } from "./GTokenBase.sol";
 import { GCToken } from "./GCToken.sol";
-import { GCFormulae } from "./GCFormulae.sol";
 import { GCLeveragedReserveManager } from "./GCLeveragedReserveManager.sol";
+import { G } from "./G.sol";
 
-contract GCTokenBase is GTokenBase, GCToken, GCFormulae, GCLeveragedReserveManager
+contract GCTokenBase is GTokenBase, GCToken, GCLeveragedReserveManager
 {
 	address public immutable override leverageToken;
 	address public immutable override underlyingToken;
@@ -17,27 +17,27 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, GCLeveragedReserveManag
 		GCLeveragedReserveManager(_miningToken, _reserveToken, _leverageToken, _leverageAdjustmentAmount) public
 	{
 		leverageToken = _leverageToken;
-		underlyingToken = _getUnderlyingToken(_reserveToken);
+		underlyingToken = G.getUnderlyingToken(_reserveToken);
 	}
 
 	function calcCostFromUnderlyingCost(uint256 _underlyingCost, uint256 _exchangeRate) public pure override returns (uint256 _cost)
 	{
-		return _calcCostFromUnderlyingCost(_underlyingCost, _exchangeRate);
+		return G.calcCostFromUnderlyingCost(_underlyingCost, _exchangeRate);
 	}
 
 	function calcUnderlyingCostFromCost(uint256 _cost, uint256 _exchangeRate) public pure override returns (uint256 _underlyingCost)
 	{
-		return _calcUnderlyingCostFromCost(_cost, _exchangeRate);
+		return G.calcUnderlyingCostFromCost(_cost, _exchangeRate);
 	}
 
 	function exchangeRate() public view override returns (uint256 _exchangeRate)
 	{
-		return _getExchangeRate(reserveToken);
+		return G.getExchangeRate(reserveToken);
 	}
 
 	function totalReserve() public view override(GToken, GTokenBase) returns (uint256 _totalReserve)
 	{
-		return _calcCostFromUnderlyingCost(totalReserveUnderlying(), _getExchangeRate(reserveToken));
+		return G.calcCostFromUnderlyingCost(totalReserveUnderlying(), G.getExchangeRate(reserveToken));
 	}
 
 	function totalReserveUnderlying() public view override returns (uint256 _totalReserveUnderlying)
@@ -50,24 +50,24 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, GCLeveragedReserveManag
 
 	function lendingReserveUnderlying() public view override returns (uint256 _lendingReserveUnderlying)
 	{
-		return _getLendAmount(reserveToken);
+		return G.getLendAmount(reserveToken);
 	}
 
 	function borrowingReserveUnderlying() public view override returns (uint256 _borrowingReserveUnderlying)
 	{
-		return _calcConversionUnderlyingToBorrowGivenBorrow(_getBorrowAmount(leverageToken));
+		return _calcConversionUnderlyingToBorrowGivenBorrow(G.getBorrowAmount(leverageToken));
 	}
 
 	function depositUnderlying(uint256 _underlyingCost) external override nonReentrant
 	{
 		address _from = msg.sender;
 		require(_underlyingCost > 0, "deposit underlying cost must be greater than 0");
-		uint256 _cost = _calcCostFromUnderlyingCost(_underlyingCost, _getExchangeRate(reserveToken));
-		(uint256 _netShares, uint256 _feeShares) = _calcDepositSharesFromCost(_cost, totalReserve(), totalSupply(), depositFee());
+		uint256 _cost = G.calcCostFromUnderlyingCost(_underlyingCost, G.getExchangeRate(reserveToken));
+		(uint256 _netShares, uint256 _feeShares) = G.calcDepositSharesFromCost(_cost, totalReserve(), totalSupply(), depositFee());
 		require(_netShares > 0, "deposit shares must be greater than 0");
 		_prepareDeposit(_cost);
-		_pullFunds(underlyingToken, _from, _underlyingCost);
-		_safeLend(reserveToken, _underlyingCost);
+		G.pullFunds(underlyingToken, _from, _underlyingCost);
+		G.safeLend(reserveToken, _underlyingCost);
 		_mint(_from, _netShares);
 		_mint(address(this), _feeShares.div(2));
 		_gulpPoolAssets();
@@ -78,12 +78,12 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, GCLeveragedReserveManag
 	{
 		address _from = msg.sender;
 		require(_grossShares > 0, "withdrawal shares must be greater than 0");
-		(uint256 _cost, uint256 _feeShares) = _calcWithdrawalCostFromShares(_grossShares, totalReserve(), totalSupply(), withdrawalFee());
-		uint256 _underlyingCost = _calcUnderlyingCostFromCost(_cost, _getExchangeRate(reserveToken));
+		(uint256 _cost, uint256 _feeShares) = G.calcWithdrawalCostFromShares(_grossShares, totalReserve(), totalSupply(), withdrawalFee());
+		uint256 _underlyingCost = G.calcUnderlyingCostFromCost(_cost, G.getExchangeRate(reserveToken));
 		require(_underlyingCost > 0, "withdrawal underlying cost must be greater than 0");
 		_prepareWithdrawal(_cost);
-		_safeRedeem(reserveToken, _underlyingCost);
-		_pushFunds(underlyingToken, _from, _underlyingCost);
+		G.safeRedeem(reserveToken, _underlyingCost);
+		G.pushFunds(underlyingToken, _from, _underlyingCost);
 		_burn(_from, _grossShares);
 		_mint(address(this), _feeShares.div(2));
 		_gulpPoolAssets();
@@ -131,7 +131,7 @@ contract GCTokenBase is GTokenBase, GCToken, GCFormulae, GCLeveragedReserveManag
 	}
 
 	function _prepareWithdrawal(uint256 _cost) internal override {
-		uint256 _requiredAmount = _calcUnderlyingCostFromCost(_cost, _fetchExchangeRate(reserveToken));
+		uint256 _requiredAmount = G.calcUnderlyingCostFromCost(_cost, G.fetchExchangeRate(reserveToken));
 		uint256 _availableAmount = _getAvailableUnderlying();
 		if (_requiredAmount <= _availableAmount) return;
 		require(_decreaseLeverage(_requiredAmount.sub(_availableAmount)), "unliquid market, try again later");
