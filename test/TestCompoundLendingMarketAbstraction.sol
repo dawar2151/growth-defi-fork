@@ -4,8 +4,10 @@ pragma solidity ^0.6.0;
 import { Assert, AssertAddress } from "truffle/Assert.sol";
 
 import { Env } from "./Env.sol";
-import { CompoundLendingMarketAbstraction } from "../contracts/CompoundLendingMarketAbstraction.sol";
+
 import { GCFormulae } from "../contracts/GCFormulae.sol";
+
+import { CompoundLendingMarketAbstraction } from "../contracts/modules/CompoundLendingMarketAbstraction.sol";
 
 contract TestCompoundLendingMarketAbstraction is Env
 {

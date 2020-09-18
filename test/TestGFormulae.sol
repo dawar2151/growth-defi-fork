@@ -4,6 +4,7 @@ pragma solidity ^0.6.0;
 import { Assert } from "truffle/Assert.sol";
 
 import { Env } from "./Env.sol";
+
 import { GFormulae } from "../contracts/GFormulae.sol";
 
 contract TestGFormulae is Env

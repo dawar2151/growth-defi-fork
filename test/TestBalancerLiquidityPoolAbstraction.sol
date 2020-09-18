@@ -4,7 +4,8 @@ pragma solidity ^0.6.0;
 import { Assert } from "truffle/Assert.sol";
 
 import { Env } from "./Env.sol";
-import { BalancerLiquidityPoolAbstraction } from "../contracts/BalancerLiquidityPoolAbstraction.sol";
+
+import { BalancerLiquidityPoolAbstraction } from "../contracts/modules/BalancerLiquidityPoolAbstraction.sol";
 
 contract TestBalancerLiquidityPoolAbstraction is Env
 {

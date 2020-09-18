@@ -3,8 +3,9 @@ pragma solidity ^0.6.0;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-import { _Addresses } from "../contracts/Addresses.sol";
-import { Transfers } from "../contracts/Transfers.sol";
+import { _Addresses } from "../contracts/modules/Addresses.sol";
+import { Transfers } from "../contracts/modules/Transfers.sol";
+
 import { Router02 } from "../contracts/interop/UniswapV2.sol";
 
 contract Env is _Addresses
