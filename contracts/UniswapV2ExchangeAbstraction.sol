@@ -27,8 +27,9 @@ library UniswapV2ExchangeAbstraction
 		return Router02(_router).getAmountsIn(_outputAmount, _path)[0];
 	}
 
-	function _convertBalance(address _from, address _to, uint256 _inputAmount, uint256 _minOutputAmount) internal returns (uint256 _outputAmount)
+	function _convertFunds(address _from, address _to, uint256 _inputAmount, uint256 _minOutputAmount) internal returns (uint256 _outputAmount)
 	{
+		if (_inputAmount == 0) return 0;
 		address _router = Addresses.UniswapV2_ROUTER02;
 		address[] memory _path = new address[](3);
 		_path[0] = _from;

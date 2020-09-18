@@ -21,10 +21,10 @@ library Conversions
 		return UniswapV2ExchangeAbstraction._calcConversionInputFromOutput(_from, _to, _outputAmount);
 	}
 
-	function _convertBalance(address _from, address _to, uint256 _inputAmount, uint256 _minOutputAmount) internal returns (uint256 _outputAmount)
+	function _convertFunds(address _from, address _to, uint256 _inputAmount, uint256 _minOutputAmount) internal returns (uint256 _outputAmount)
 	{
 		if (_from == Addresses.DAI && _to == Addresses.USDC) return CurveExchangeAbstraction._convertFundsDAIToUSDC(_inputAmount, _minOutputAmount);
 		if (_from == Addresses.USDC && _to == Addresses.DAI) return CurveExchangeAbstraction._convertFundsUSDCToDAI(_inputAmount, _minOutputAmount);
-		return UniswapV2ExchangeAbstraction._convertBalance(_from, _to, _inputAmount, _minOutputAmount);
+		return UniswapV2ExchangeAbstraction._convertFunds(_from, _to, _inputAmount, _minOutputAmount);
 	}
 }

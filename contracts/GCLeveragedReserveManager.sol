@@ -170,16 +170,16 @@ library GCLeveragedReserveManager
 
 	function _convertMiningToUnderlying(Self storage _self, uint256 _inputAmount) internal
 	{
-		G.convertBalance(_self.miningToken, _self.underlyingToken, _inputAmount, 0);
+		G.convertFunds(_self.miningToken, _self.underlyingToken, _inputAmount, 0);
 	}
 
 	function _convertBorrowToUnderlying(Self storage _self, uint256 _inputAmount) internal
 	{
-		G.convertBalance(_self.borrowToken, _self.underlyingToken, _inputAmount, 0);
+		G.convertFunds(_self.borrowToken, _self.underlyingToken, _inputAmount, 0);
 	}
 
 	function _convertUnderlyingToBorrow(Self storage _self, uint256 _inputAmount) internal
 	{
-		G.convertBalance(_self.underlyingToken, _self.borrowToken, _inputAmount, 0);
+		G.convertFunds(_self.underlyingToken, _self.borrowToken, _inputAmount, 0);
 	}
 }

@@ -13,6 +13,11 @@ library Transfers
 		return IERC20(_token).balanceOf(address(this));
 	}
 
+	function _approveFunds(address _token, address _to, uint256 _amount) internal
+	{
+		IERC20(_token).safeApprove(_to, _amount);
+	}
+
 	function _pullFunds(address _token, address _from, uint256 _amount) internal
 	{
 		IERC20(_token).safeTransferFrom(_from, address(this), _amount);
@@ -21,10 +26,5 @@ library Transfers
 	function _pushFunds(address _token, address _to, uint256 _amount) internal
 	{
 		IERC20(_token).safeTransfer(_to, _amount);
-	}
-
-	function _approveFunds(address _token, address _to, uint256 _amount) internal
-	{
-		IERC20(_token).safeApprove(_to, _amount);
 	}
 }
