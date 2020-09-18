@@ -14,6 +14,7 @@ library GCLeveragedReserveManager
 	uint256 constant MINIMUM_RATIO_GRANULARITY = 4e16; // 4%
 	uint256 constant DEFAULT_IDEAL_COLLATERALIZATION_RATIO = 88e16; // 88% of 75% = 66%
 	uint256 constant DEFAULT_LIMIT_COLLATERALIZATION_RATIO = 92e16; // 92% of 75% = 69%
+	uint256 constant DEFAULT_COLLATERALIZATION_DEVIATION_RATIO = 1e16; // 1%
 
 	struct Self {
 		address miningToken;
@@ -26,6 +27,7 @@ library GCLeveragedReserveManager
 		uint256 leverageAdjustmentAmount;
 		uint256 idealCollateralizationRatio;
 		uint256 limitCollateralizationRatio;
+		uint256 collateralizationDeviationRatio;
 	}
 
 	function init(Self storage _self, address _miningToken, address _reserveToken, address _leverageToken, uint256 _leverageAdjustmentAmount) public
@@ -40,6 +42,7 @@ library GCLeveragedReserveManager
 		_self.leverageAdjustmentAmount = _leverageAdjustmentAmount;
 		_self.idealCollateralizationRatio = DEFAULT_IDEAL_COLLATERALIZATION_RATIO;
 		_self.limitCollateralizationRatio = DEFAULT_LIMIT_COLLATERALIZATION_RATIO;
+		_self.collateralizationDeviationRatio = DEFAULT_COLLATERALIZATION_DEVIATION_RATIO;
 
 		G.safeEnter(_reserveToken);
 	}
@@ -67,6 +70,12 @@ library GCLeveragedReserveManager
 		require(_limitCollateralizationRatio + MINIMUM_RATIO_GRANULARITY <= 1e18, "invalid ratio");
 		require(_self.idealCollateralizationRatio + MINIMUM_RATIO_GRANULARITY <= _limitCollateralizationRatio, "invalid ratio gap");
 		_self.limitCollateralizationRatio = _limitCollateralizationRatio;
+	}
+
+	function setCollateralizationDeviationRatio(Self storage _self, uint256 _collateralizationDeviationRatio) public
+	{
+		require(_collateralizationDeviationRatio <= MINIMUM_RATIO_GRANULARITY, "invalid ratio");
+		_self.collateralizationDeviationRatio = _collateralizationDeviationRatio;
 	}
 
 	function estimateBorrowInUnderlying(Self storage _self, uint256 _borrowAmount) public view returns (uint256 _underlyingAmount)
@@ -104,10 +113,9 @@ library GCLeveragedReserveManager
 		if (!_self.leverageEnabled) return _self._decreaseLeverageLimited(_borrowAmount);
 		uint256 _lendAmount = G.fetchLendAmount(_self.reserveToken);
 		uint256 _idealAmount = _self._calcIdealAmount(_lendAmount);
-		uint256 _limitAmount = _self._calcLimitAmount(_lendAmount);
-		uint256 _deltaAmount = _limitAmount.sub(_idealAmount).div(2);
-		if (_borrowAmount < _idealAmount.sub(_deltaAmount)) return _self._increaseLeverageLimited(_idealAmount.sub(_borrowAmount));
-		if (_borrowAmount > _idealAmount.add(_deltaAmount)) return _self._decreaseLeverageLimited(_borrowAmount.sub(_idealAmount));
+		uint256 _deviationAmount = _self._calcDeviationAmount(_lendAmount);
+		if (_borrowAmount < _idealAmount.sub(_deviationAmount)) return _self._increaseLeverageLimited(_idealAmount.sub(_borrowAmount));
+		if (_borrowAmount > _idealAmount.add(_deviationAmount)) return _self._decreaseLeverageLimited(_borrowAmount.sub(_idealAmount));
 		return true;
 	}
 
@@ -135,6 +143,11 @@ library GCLeveragedReserveManager
 	function _calcLimitAmount(Self storage _self, uint256 _amount) internal view returns (uint256 _limitAmount)
 	{
 		return _amount.mul(G.getCollateralRatio(_self.reserveToken)).mul(_self.limitCollateralizationRatio).div(1e36);
+	}
+
+	function _calcDeviationAmount(Self storage _self, uint256 _amount) internal view returns (uint256 _limitAmount)
+	{
+		return _amount.mul(G.getCollateralRatio(_self.reserveToken)).mul(_self.collateralizationDeviationRatio).div(1e36);
 	}
 
 	function _increaseLeverageLimited(Self storage _self, uint256 _amount) internal returns (bool _success)

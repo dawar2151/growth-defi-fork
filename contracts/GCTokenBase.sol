@@ -116,6 +116,11 @@ contract GCTokenBase is GTokenBase, GCToken
 		return lrm.limitCollateralizationRatio;
 	}
 
+	function collateralizationDeviationRatio() public view override returns (uint256 _collateralizationDeviationRatio)
+	{
+		return lrm.collateralizationDeviationRatio;
+	}
+
 	function setLeverageEnabled(bool _leverageEnabled) public override onlyOwner nonReentrant
 	{
 		lrm.setLeverageEnabled(_leverageEnabled);
@@ -134,6 +139,11 @@ contract GCTokenBase is GTokenBase, GCToken
 	function setLimitCollateralizationRatio(uint256 _limitCollateralizationRatio) public override onlyOwner nonReentrant
 	{
 		lrm.setLimitCollateralizationRatio(_limitCollateralizationRatio);
+	}
+
+	function setCollateralizationDeviationRatio(uint256 _collateralizationDeviationRatio) public override onlyOwner nonReentrant
+	{
+		return lrm.setCollateralizationDeviationRatio(_collateralizationDeviationRatio);
 	}
 
 	function _prepareWithdrawal(uint256 _cost) internal override returns (bool _success)

@@ -18,6 +18,7 @@ interface GCToken is GToken
 	function leverageAdjustmentAmount() external view returns (uint256 _leverageAdjustmentAmount);
 	function idealCollateralizationRatio() external view returns (uint256 _idealCollateralizationRatio);
 	function limitCollateralizationRatio() external view returns (uint256 _limitCollateralizationRatio);
+	function collateralizationDeviationRatio() external view returns (uint256 _collateralizationDeviationRatio);
 
 	function depositUnderlying(uint256 _underlyingCost) external;
 	function withdrawUnderlying(uint256 _grossShares) external;
@@ -26,4 +27,5 @@ interface GCToken is GToken
 	function setLeverageAdjustmentAmount(uint256 _leverageAdjustmentAmount) external;
 	function setIdealCollateralizationRatio(uint256 _idealCollateralizationRatio) external;
 	function setLimitCollateralizationRatio(uint256 _limitCollateralizationRatio) external;
+	function setCollateralizationDeviationRatio(uint256 _collateralizationDeviationRatio) external;
 }
