@@ -28,14 +28,6 @@ library G
 	function pushFunds(address _token, address _to, uint256 _amount) public { Transfers._pushFunds(_token, _to, _amount); }
 	function approveFunds(address _token, address _to, uint256 _amount) public { Transfers._approveFunds(_token, _to, _amount); }
 
-	function calcConversionDAIToUSDCGivenDAI(uint256 _inputAmount) public view returns (uint256 _outputAmount) { return Conversions._calcConversionDAIToUSDCGivenDAI(_inputAmount); }
-	function calcConversionDAIToUSDCGivenUSDC(uint256 _outputAmount) public view returns (uint256 _inputAmount) { return Conversions._calcConversionDAIToUSDCGivenUSDC(_outputAmount); }
-	function calcConversionUSDCToDAIGivenUSDC(uint256 _inputAmount) public view returns (uint256 _outputAmount) { return Conversions._calcConversionUSDCToDAIGivenUSDC(_inputAmount); }
-	function calcConversionUSDCToDAIGivenDAI(uint256 _outputAmount) public view returns (uint256 _inputAmount) { return Conversions._calcConversionUSDCToDAIGivenDAI(_outputAmount); }
-	function convertFundsUSDCToDAI(uint256 _amount) public { Conversions._convertFundsUSDCToDAI(_amount); }
-	function convertFundsDAIToUSDC(uint256 _amount) public { Conversions._convertFundsDAIToUSDC(_amount); }
-	function convertFundsCOMPToDAI(uint256 _amount) public { Conversions._convertFundsCOMPToDAI(_amount); }
-
 	function createPool(address _token0, uint256 _amount0, address _token1, uint256 _amount1) public returns (address _pool) { return BalancerLiquidityPoolAbstraction._createPool(_token0, _amount0, _token1, _amount1); }
 	function joinPool(address _pool, address _token, uint256 _maxAmount) public returns (uint256 _amount) { return BalancerLiquidityPoolAbstraction._joinPool(_pool, _token, _maxAmount); }
 	function exitPool(address _pool, uint256 _percent) public returns (uint256 _amount0, uint256 _amount1) { return BalancerLiquidityPoolAbstraction._exitPool(_pool, _percent); }
@@ -65,4 +57,12 @@ library G
 	function calcConversionOutputFromInput(address _from, address _to, uint256 _inputAmount) public view returns (uint256 _outputAmount) { return UniswapV2ExchangeAbstraction._calcConversionOutputFromInput(_from, _to, _inputAmount); }
 	function calcConversionInputFromOutput(address _from, address _to, uint256 _outputAmount) public view returns (uint256 _inputAmount) { return UniswapV2ExchangeAbstraction._calcConversionInputFromOutput(_from, _to, _outputAmount); }
 	function convertBalance(address _from, address _to, uint256 _inputAmount, uint256 _minOutputAmount) public returns (uint256 _outputAmount) { return UniswapV2ExchangeAbstraction._convertBalance(_from, _to, _inputAmount, _minOutputAmount); }
+
+//	function calcConversionDAIToUSDCGivenDAI(uint256 _inputAmount) public view returns (uint256 _outputAmount) { return Conversions._calcConversionDAIToUSDCGivenDAI(_inputAmount); }
+//	function calcConversionDAIToUSDCGivenUSDC(uint256 _outputAmount) public view returns (uint256 _inputAmount) { return Conversions._calcConversionDAIToUSDCGivenUSDC(_outputAmount); }
+//	function calcConversionUSDCToDAIGivenUSDC(uint256 _inputAmount) public view returns (uint256 _outputAmount) { return Conversions._calcConversionUSDCToDAIGivenUSDC(_inputAmount); }
+//	function calcConversionUSDCToDAIGivenDAI(uint256 _outputAmount) public view returns (uint256 _inputAmount) { return Conversions._calcConversionUSDCToDAIGivenDAI(_outputAmount); }
+//	function convertFundsUSDCToDAI(uint256 _amount) public { Conversions._convertFundsUSDCToDAI(_amount); }
+//	function convertFundsDAIToUSDC(uint256 _amount) public { Conversions._convertFundsDAIToUSDC(_amount); }
+//	function convertFundsCOMPToDAI(uint256 _amount) public { Conversions._convertFundsCOMPToDAI(_amount); }
 }

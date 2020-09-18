@@ -2,7 +2,7 @@
 pragma solidity ^0.6.0;
 
 import { Addresses } from "./Addresses.sol";
-import { G } from "./G.sol";
+import { Transfers } from "./Transfers.sol";
 import { Router02 } from "./interop/UniswapV2.sol";
 
 library UniswapV2ExchangeAbstraction
@@ -34,7 +34,7 @@ library UniswapV2ExchangeAbstraction
 		_path[0] = _from;
 		_path[1] = Router02(_router).WETH();
 		_path[2] = _to;
-		G.approveFunds(_from, _router, _inputAmount);
+		Transfers._approveFunds(_from, _router, _inputAmount);
 		return Router02(_router).swapExactTokensForTokens(_inputAmount, _minOutputAmount, _path, address(this), uint256(-1))[2];
 	}
 }

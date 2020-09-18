@@ -2,7 +2,7 @@
 pragma solidity ^0.6.0;
 
 import { Addresses } from "./Addresses.sol";
-import { G } from "./G.sol";
+import { Transfers } from "./Transfers.sol";
 import { Swap } from "./interop/Curve.sol";
 import { Router02 } from "./interop/UniswapV2.sol";
 
@@ -36,7 +36,7 @@ library Conversions
 	{
 		address _swap = Addresses.Curve_COMPOUND;
 		address _token = Swap(_swap).underlying_coins(1);
-		G.approveFunds(_token, _swap, _amount);
+		Transfers._approveFunds(_token, _swap, _amount);
 		Swap(_swap).exchange_underlying(1, 0, _amount, 0);
 	}
 
@@ -44,7 +44,7 @@ library Conversions
 	{
 		address _swap = Addresses.Curve_COMPOUND;
 		address _token = Swap(_swap).underlying_coins(0);
-		G.approveFunds(_token, _swap, _amount);
+		Transfers._approveFunds(_token, _swap, _amount);
 		Swap(_swap).exchange_underlying(0, 1, _amount, 0);
 	}
 
@@ -57,7 +57,7 @@ library Conversions
 		_path[0] = _token;
 		_path[1] = Router02(_router).WETH();
 		_path[2] = Addresses.DAI;
-		G.approveFunds(_token, _router, _amount);
+		Transfers._approveFunds(_token, _router, _amount);
 		Router02(_router).swapExactTokensForTokens(_amount, 0, _path, address(this), block.timestamp);
 	}
 }

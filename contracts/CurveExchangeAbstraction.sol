@@ -2,7 +2,7 @@
 pragma solidity ^0.6.0;
 
 import { Addresses } from "./Addresses.sol";
-import { G } from "./G.sol";
+import { Transfers } from "./Transfers.sol";
 import { Swap } from "./interop/Curve.sol";
 
 library CurveExchangeAbstraction
@@ -37,10 +37,10 @@ library CurveExchangeAbstraction
 		require(Swap(_swap).underlying_coins(_i) == _from);
 		require(Swap(_swap).underlying_coins(_j) == _to);
 		if (_inputAmount == 0) return 0;
-		uint256 _balanceBefore = G.getBalance(_to);
-		G.approveFunds(_from, _swap, _inputAmount);
+		uint256 _balanceBefore = Transfers._getBalance(_to);
+		Transfers._approveFunds(_from, _swap, _inputAmount);
 		Swap(_swap).exchange_underlying(_i, _j, _inputAmount, _minOutputAmount);
-		uint256 _balanceAfter = G.getBalance(_to);
+		uint256 _balanceAfter = Transfers._getBalance(_to);
 		return _balanceAfter - _balanceBefore;
 	}
 }

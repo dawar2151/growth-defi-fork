@@ -42,11 +42,6 @@ library GLiquidityPoolManager
 		_self.migrationUnlockTime = uint256(-1);
 	}
 
-	function _hasPool(Self storage _self) internal view returns (bool _poolAvailable)
-	{
-		return _self.state == State.Allocated || _self.state == State.Migrating;
-	}
-
 	function hasPool(Self storage _self) public view returns (bool _poolAvailable)
 	{
 		return _self._hasPool();
@@ -105,5 +100,10 @@ library GLiquidityPoolManager
 		_self.state = State.Migrated;
 		(_stakesAmount, _sharesAmount) = G.exitPool(_self.liquidityPool, 1e18);
 		return (_self.migrationRecipient, _stakesAmount, _sharesAmount);
+	}
+
+	function _hasPool(Self storage _self) internal view returns (bool _poolAvailable)
+	{
+		return _self.state == State.Allocated || _self.state == State.Migrating;
 	}
 }

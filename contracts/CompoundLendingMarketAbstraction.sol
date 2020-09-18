@@ -4,7 +4,8 @@ pragma solidity ^0.6.0;
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
 import { Addresses } from "./Addresses.sol";
-import { G } from "./G.sol";
+import { Math } from "./Math.sol";
+import { Transfers } from "./Transfers.sol";
 import { Comptroller, PriceOracle, CToken } from "./interop/Compound.sol";
 
 library CompoundLendingMarketAbstraction
@@ -43,7 +44,7 @@ library CompoundLendingMarketAbstraction
 	{
 		uint256 _liquidityAmount = _getLiquidityAmount(_ctoken);
 		if (_liquidityAmount <= _marginAmount) return 0;
-		return G.min(_liquidityAmount.sub(_marginAmount), _getMarketAmount(_ctoken));
+		return Math._min(_liquidityAmount.sub(_marginAmount), _getMarketAmount(_ctoken));
 	}
 
 	function _getExchangeRate(address _ctoken) internal view returns (uint256 _exchangeRate)
@@ -87,7 +88,7 @@ library CompoundLendingMarketAbstraction
 	function _lend(address _ctoken, uint256 _amount) internal returns (bool _success)
 	{
 		address _token = _getUnderlyingToken(_ctoken);
-		G.approveFunds(_token, _ctoken, _amount);
+		Transfers._approveFunds(_token, _ctoken, _amount);
 		return CToken(_ctoken).mint(_amount) == 0;
 	}
 
@@ -104,7 +105,7 @@ library CompoundLendingMarketAbstraction
 	function _repay(address _ctoken, uint256 _amount) internal returns (bool _success)
 	{
 		address _token = _getUnderlyingToken(_ctoken);
-		G.approveFunds(_token, _ctoken, _amount);
+		Transfers._approveFunds(_token, _ctoken, _amount);
 		return CToken(_ctoken).repayBorrow(_amount) == 0;
 	}
 
