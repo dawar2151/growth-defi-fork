@@ -143,17 +143,16 @@ contract GCTokenBase is GTokenBase, GCToken
 
 	function _adjustReserve() internal override returns (bool _success)
 	{
-		_success = true;
 		uint256 _oldLend = G.fetchLendAmount(reserveToken);
 		uint256 _oldBorrow = G.fetchBorrowAmount(leverageToken);
-		_success = _success && lrm.gulpMiningAssets();
-		_success = _success && lrm.adjustLeverage();
+		bool _success1 = lrm.gulpMiningAssets();
+		bool _success2 = lrm.adjustLeverage();
 		uint256 _newLend = G.fetchLendAmount(reserveToken);
 		uint256 _newBorrow = G.fetchBorrowAmount(leverageToken);
 		if (_newLend != _oldLend || _newBorrow != _oldBorrow) {
 			emit ReserveChange(_newLend, lrm.estimateBorrowInUnderlying(_newBorrow));
 		}
-		return _success;
+		return _success1 && _success2;
 	}
 
 	event ReserveChange(uint256 _lendingReserveUnderlying, uint256 _borrowingReserveUnderlying);
