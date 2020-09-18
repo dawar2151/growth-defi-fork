@@ -69,7 +69,11 @@ library GCLeveragedReserveManager
 
 	function gulpMiningAssets(Self storage _self) public returns (bool _success)
 	{
-		_self._convertMiningToUnderlying(G.getBalance(_self.miningToken));
+		uint256 _balance = G.getBalance(_self.miningToken);
+		uint256 _convAmount = _self._calcConversionUnderlyingToMiningGivenMining(_balance);
+		uint256 _maxAmount = G.min(_convAmount, _self.leverageAdjustmentAmount);
+		uint256 _amount = _convAmount > 0 ? G.getBalance(_self.miningToken).mul(_maxAmount).div(_convAmount) : 0;
+		_self._convertMiningToUnderlying(_amount);
 		return G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
 	}
 
@@ -151,6 +155,11 @@ library GCLeveragedReserveManager
 		_self._convertBorrowToUnderlying(G.getBalance(_self.borrowToken));
 		G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
 		return _success;
+	}
+
+	function _calcConversionUnderlyingToMiningGivenMining(Self storage _self, uint256 _outputAmount) internal view returns (uint256 _inputAmount)
+	{
+		return G.calcConversionInputFromOutput(_self.underlyingToken, _self.miningToken, _outputAmount);
 	}
 
 	function _calcConversionUnderlyingToBorrowGivenUnderlying(Self storage _self, uint256 _inputAmount) internal view returns (uint256 _outputAmount)
