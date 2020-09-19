@@ -3,14 +3,22 @@ pragma solidity ^0.6.0;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-import { _Addresses } from "../contracts/modules/Addresses.sol";
 import { Transfers } from "../contracts/modules/Transfers.sol";
 
 import { Router02 } from "../contracts/interop/UniswapV2.sol";
 
-contract Env is _Addresses
+import { $ } from "../contracts/network/$.sol";
+
+contract Env
 {
 	using SafeMath for uint256;
+
+	address public GRO = $.GRO;
+	address public COMP = $.COMP;
+	address public DAI = $.DAI;
+	address public USDC = $.USDC;
+	address public cDAI = $.cDAI;
+	address public cUSDC = $.cUSDC;
 
 	uint256 public initialBalance = 5 ether;
 
@@ -21,18 +29,23 @@ contract Env is _Addresses
 		return Transfers._getBalance(_token);
 	}
 
-	function _mintTokenBalance(address _token, uint256 _amount) internal
+	function _mint(address _token, uint256 _amount) internal
 	{
-		address _router = UniswapV2_ROUTER02;
+		address _router = $.UniswapV2_ROUTER02;
 		address[] memory _path = new address[](2);
 		_path[0] = Router02(_router).WETH();
 		_path[1] = _token;
 		Router02(_router).swapETHForExactTokens{value: address(this).balance}(_amount, _path, address(this), block.timestamp);
 	}
 
-	function _returnFullTokenBalance(address _token) internal
+	function _burn(address _token, uint256 _amount) internal
 	{
 		address _from = msg.sender;
-		Transfers._pushFunds(_token, _from, Transfers._getBalance(_token));
+		Transfers._pushFunds(_token, _from, _amount);
+	}
+
+	function _burnAll(address _token) internal
+	{
+		_burn(_token, _getBalance(_token));
 	}
 }

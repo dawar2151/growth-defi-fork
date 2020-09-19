@@ -3,11 +3,12 @@ pragma solidity ^0.6.0;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-import { Addresses } from "./Addresses.sol";
 import { Math } from "./Math.sol";
 import { Transfers } from "./Transfers.sol";
 
 import { BFactory, BPool } from "../interop/Balancer.sol";
+
+import { $ } from "../network/$.sol";
 
 library BalancerLiquidityPoolAbstraction
 {
@@ -21,7 +22,7 @@ library BalancerLiquidityPoolAbstraction
 	function _createPool(address _token0, uint256 _amount0, address _token1, uint256 _amount1) internal returns (address _pool)
 	{
 		require(_amount0 >= MIN_AMOUNT && _amount1 >= MIN_AMOUNT, "amount below the minimum");
-		_pool = BFactory(Addresses.Balancer_FACTORY).newBPool();
+		_pool = BFactory($.Balancer_FACTORY).newBPool();
 		Transfers._approveFunds(_token0, _pool, _amount0);
 		Transfers._approveFunds(_token1, _pool, _amount1);
 		BPool(_pool).bind(_token0, _amount0, TOKEN0_WEIGHT);

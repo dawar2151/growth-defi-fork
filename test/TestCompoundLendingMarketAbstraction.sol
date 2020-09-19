@@ -22,9 +22,9 @@ contract TestCompoundLendingMarketAbstraction is Env
 
 	function test02() public
 	{
-		_returnFullTokenBalance(DAI);
-		_returnFullTokenBalance(cDAI);
-		_mintTokenBalance(DAI, 100e18);
+		_burnAll(DAI);
+		_burnAll(cDAI);
+		_mint(DAI, 100e18);
 		Assert.equal(_getBalance(DAI), 100e18, "DAI balance must be 100e18");
 		Assert.equal(_getBalance(cDAI), 0e8, "cDAI balance must be 0e8");
 
@@ -39,9 +39,9 @@ contract TestCompoundLendingMarketAbstraction is Env
 
 	function test03() public
 	{
-		_returnFullTokenBalance(DAI);
-		_returnFullTokenBalance(cDAI);
-		_mintTokenBalance(cDAI, 5000e8);
+		_burnAll(DAI);
+		_burnAll(cDAI);
+		_mint(cDAI, 5000e8);
 		Assert.equal(_getBalance(DAI), 0e18, "DAI balance must be 0e18");
 		Assert.equal(_getBalance(cDAI), 5000e8, "cDAI balance must be 5000e8");
 
@@ -56,11 +56,11 @@ contract TestCompoundLendingMarketAbstraction is Env
 
 	function test04() public
 	{
-		_returnFullTokenBalance(DAI);
-		_returnFullTokenBalance(cDAI);
-		_returnFullTokenBalance(USDC);
-		_returnFullTokenBalance(cUSDC);
-		_mintTokenBalance(DAI, 100e18);
+		_burnAll(DAI);
+		_burnAll(cDAI);
+		_burnAll(USDC);
+		_burnAll(cUSDC);
+		_mint(DAI, 100e18);
 		Assert.equal(_getBalance(DAI), 100e18, "DAI balance must be 100e18");
 		Assert.equal(_getBalance(cDAI), 0e8, "cDAI balance must be 0e8");
 		Assert.equal(_getBalance(USDC), 0e6, "USDC balance must be 0e6");

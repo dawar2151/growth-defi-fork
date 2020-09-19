@@ -11,10 +11,10 @@ contract TestBalancerLiquidityPoolAbstraction is Env
 {
 	function test01() public
 	{
-		_returnFullTokenBalance(GRO);
-		_returnFullTokenBalance(DAI);
-		_mintTokenBalance(GRO, 10e18);
-		_mintTokenBalance(DAI, 100e18);
+		_burnAll(GRO);
+		_burnAll(DAI);
+		_mint(GRO, 10e18);
+		_mint(DAI, 100e18);
 		Assert.equal(_getBalance(GRO), 10e18, "GRO balance must be 10e18");
 		Assert.equal(_getBalance(DAI), 100e18, "DAI balance must be 100e18");
 
@@ -23,14 +23,14 @@ contract TestBalancerLiquidityPoolAbstraction is Env
 		Assert.equal(_getBalance(GRO), 0e18, "GRO balance must be 0e18");
 		Assert.equal(_getBalance(DAI), 0e18, "DAI balance must be 0e18");
 
-		_returnFullTokenBalance(_pool);
+		_burnAll(_pool);
 
 		BalancerLiquidityPoolAbstraction._joinPool(_pool, DAI, 0e18);
 
 		Assert.equal(_getBalance(GRO), 0e18, "GRO balance must be 0e18");
 		Assert.equal(_getBalance(DAI), 0e18, "DAI balance must be 0e18");
 
-		_mintTokenBalance(DAI, 20e18);
+		_mint(DAI, 20e18);
 		Assert.equal(_getBalance(GRO), 0e18, "GRO balance must be 0e18");
 		Assert.equal(_getBalance(DAI), 20e18, "DAI balance must be 20e18");
 
@@ -52,10 +52,10 @@ contract TestBalancerLiquidityPoolAbstraction is Env
 
 	function test02() public
 	{
-		_returnFullTokenBalance(GRO);
-		_returnFullTokenBalance(DAI);
-		_mintTokenBalance(GRO, 10e18);
-		_mintTokenBalance(DAI, 100e18);
+		_burnAll(GRO);
+		_burnAll(DAI);
+		_mint(GRO, 10e18);
+		_mint(DAI, 100e18);
 		Assert.equal(_getBalance(GRO), 10e18, "GRO balance must be 10e18");
 		Assert.equal(_getBalance(DAI), 100e18, "DAI balance must be 100e18");
 
@@ -64,9 +64,9 @@ contract TestBalancerLiquidityPoolAbstraction is Env
 		Assert.equal(_getBalance(GRO), 0e18, "GRO balance must be 0e18");
 		Assert.equal(_getBalance(DAI), 0e18, "DAI balance must be 0e18");
 
-		_returnFullTokenBalance(_pool);
+		_burnAll(_pool);
 
-		_mintTokenBalance(DAI, 51e18);
+		_mint(DAI, 51e18);
 		Assert.equal(_getBalance(GRO), 0e18, "GRO balance must be 0e18");
 		Assert.equal(_getBalance(DAI), 51e18, "DAI balance must be 51e18");
 
@@ -78,10 +78,10 @@ contract TestBalancerLiquidityPoolAbstraction is Env
 
 	function test03() public
 	{
-		_returnFullTokenBalance(GRO);
-		_returnFullTokenBalance(DAI);
-		_mintTokenBalance(GRO, 10e18);
-		_mintTokenBalance(DAI, 100e18);
+		_burnAll(GRO);
+		_burnAll(DAI);
+		_mint(GRO, 10e18);
+		_mint(DAI, 100e18);
 		Assert.equal(_getBalance(GRO), 10e18, "GRO balance must be 10e18");
 		Assert.equal(_getBalance(DAI), 100e18, "DAI balance must be 100e18");
 
@@ -98,10 +98,10 @@ contract TestBalancerLiquidityPoolAbstraction is Env
 
 	function test04() public
 	{
-		_returnFullTokenBalance(GRO);
-		_returnFullTokenBalance(DAI);
-		_mintTokenBalance(GRO, 1e6);
-		_mintTokenBalance(DAI, 1e6);
+		_burnAll(GRO);
+		_burnAll(DAI);
+		_mint(GRO, 1e6);
+		_mint(DAI, 1e6);
 		Assert.equal(_getBalance(GRO), 1e6, "GRO balance must be 1e6");
 		Assert.equal(_getBalance(DAI), 1e6, "DAI balance must be 1e6");
 
