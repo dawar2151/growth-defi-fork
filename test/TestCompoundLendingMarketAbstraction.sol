@@ -18,6 +18,7 @@ contract TestCompoundLendingMarketAbstraction is Env
 	function test01() public
 	{
 		AssertAddress.equal(CompoundLendingMarketAbstraction._getUnderlyingToken(cDAI), DAI, "DAI must be the underlying of cDAI");
+		AssertAddress.equal(CompoundLendingMarketAbstraction._getUnderlyingToken(cUSDC), USDC, "USDC must be the underlying of cUSDC");
 	}
 
 	function test02() public
@@ -28,7 +29,8 @@ contract TestCompoundLendingMarketAbstraction is Env
 		Assert.equal(_getBalance(DAI), 100e18, "DAI balance must be 100e18");
 		Assert.equal(_getBalance(cDAI), 0e8, "cDAI balance must be 0e8");
 
-		uint256 _amountcDAI = GCFormulae._calcCostFromUnderlyingCost(100e18, CompoundLendingMarketAbstraction._fetchExchangeRate(cDAI));
+		uint256 _exchangeRate = CompoundLendingMarketAbstraction._fetchExchangeRate(cDAI);
+		uint256 _amountcDAI = GCFormulae._calcCostFromUnderlyingCost(100e18, _exchangeRate);
 
 		CompoundLendingMarketAbstraction._safeLend(cDAI, 100e18);
 
@@ -45,12 +47,13 @@ contract TestCompoundLendingMarketAbstraction is Env
 		Assert.equal(_getBalance(DAI), 0e18, "DAI balance must be 0e18");
 		Assert.equal(_getBalance(cDAI), 5000e8, "cDAI balance must be 5000e8");
 
-		uint256 _amountDAI = GCFormulae._calcUnderlyingCostFromCost(5000e8, CompoundLendingMarketAbstraction._fetchExchangeRate(cDAI));
-		uint256 _amountcDAI = GCFormulae._calcCostFromUnderlyingCost(_amountDAI, CompoundLendingMarketAbstraction._fetchExchangeRate(cDAI));
+		uint256 _exchangeRate = CompoundLendingMarketAbstraction._fetchExchangeRate(cDAI);
+		uint256 _amountDAI = GCFormulae._calcUnderlyingCostFromCost(5000e8, _exchangeRate);
+		uint256 _amountcDAI = GCFormulae._calcCostFromUnderlyingCost(_amountDAI, _exchangeRate);
 
 		CompoundLendingMarketAbstraction._safeRedeem(cDAI, _amountDAI);
 
-		Assert.equal(_getBalance(cDAI), uint256(5000e8).sub(_amountcDAI), "cDAI balance must be 0e8");
+		Assert.equal(_getBalance(cDAI), uint256(5000e8).sub(_amountcDAI), "cDAI balance must be consistent");
 		Assert.equal(_getBalance(DAI), _amountDAI, "DAI balance must match");
 	}
 
@@ -66,7 +69,8 @@ contract TestCompoundLendingMarketAbstraction is Env
 		Assert.equal(_getBalance(USDC), 0e6, "USDC balance must be 0e6");
 		Assert.equal(_getBalance(cUSDC), 0e8, "cUSDC balance must be 0e8");
 
-		uint256 _amountcDAI = GCFormulae._calcCostFromUnderlyingCost(100e18, CompoundLendingMarketAbstraction._fetchExchangeRate(cDAI));
+		uint256 _exchangeRate = CompoundLendingMarketAbstraction._fetchExchangeRate(cDAI);
+		uint256 _amountcDAI = GCFormulae._calcCostFromUnderlyingCost(100e18, _exchangeRate);
 
 		CompoundLendingMarketAbstraction._safeLend(cDAI, 100e18);
 
@@ -105,11 +109,11 @@ contract TestCompoundLendingMarketAbstraction is Env
 
 	function test07() public
 	{
-		CompoundLendingMarketAbstraction._safeBorrow(cUSDC, 0e6);
+		CompoundLendingMarketAbstraction._safeBorrow(cUSDC, 0e8);
 	}
 
 	function test08() public
 	{
-		CompoundLendingMarketAbstraction._safeRepay(cUSDC, 0e6);
+		CompoundLendingMarketAbstraction._safeRepay(cUSDC, 0e8);
 	}
 }
