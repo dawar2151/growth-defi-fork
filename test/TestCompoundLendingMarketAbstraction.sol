@@ -11,7 +11,8 @@ import { CompoundLendingMarketAbstraction } from "../contracts/modules/CompoundL
 
 contract TestCompoundLendingMarketAbstraction is Env
 {
-	constructor () public {
+	constructor () public
+	{
 		CompoundLendingMarketAbstraction._safeEnter(cDAI);
 	}
 

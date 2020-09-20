@@ -93,4 +93,55 @@ contract TestConversions is Env
 		Assert.equal(_getBalance(COMP), 0e18, "COMP balance must be 0e18");
 		Assert.isAbove(_getBalance(DAI), 0e18, "DAI balance must be above 0e18");
 	}
+
+	function test07() public
+	{
+		uint256 _sellCost = Conversions._calcConversionOutputFromInput(COMP, DAI, 3e18);
+		uint256 _sellAmount = Conversions._calcConversionInputFromOutput(COMP, DAI, _sellCost);
+		uint256 _buyAmount = Conversions._calcConversionOutputFromInput(DAI, COMP, _sellCost);
+		uint256 _buyCost = Conversions._calcConversionInputFromOutput(DAI, COMP, _buyAmount);
+
+		Assert.isAtLeast(_sellAmount, 299e16, "COMP sell amount must be at least 299e16");
+		Assert.isAbove(_sellAmount, _buyAmount, "COMP sell amount must be greater than buy amount");
+		Assert.isBelow(_sellCost > _buyCost ? _sellCost - _buyCost : _buyCost - _sellCost, 1e16, "DAI sell cost must roughly match");
+	}
+
+	function test08() public
+	{
+		uint256 _sellCost = Conversions._calcConversionOutputFromInput(COMP, DAI, 0e18);
+		uint256 _sellAmount = Conversions._calcConversionInputFromOutput(COMP, DAI, _sellCost);
+		uint256 _buyAmount = Conversions._calcConversionOutputFromInput(DAI, COMP, _sellCost);
+		uint256 _buyCost = Conversions._calcConversionInputFromOutput(DAI, COMP, _buyAmount);
+
+		Assert.equal(_sellAmount, 0e18, "COMP sell amount must be 0e18");
+		Assert.equal(_buyAmount, 0e18, "COMP buy amount must be 0e18");
+		Assert.equal(_sellCost, 0e18, "DAI sell cost must match be 0e18");
+		Assert.equal(_buyCost, 0e18, "DAI buy cost must be 0e18");
+	}
+
+
+	function test09() public
+	{
+		uint256 _sellCost = Conversions._calcConversionOutputFromInput(USDC, DAI, 300e6);
+		uint256 _sellAmount = Conversions._calcConversionInputFromOutput(USDC, DAI, _sellCost);
+		uint256 _buyAmount = Conversions._calcConversionOutputFromInput(DAI, USDC, _sellCost);
+		uint256 _buyCost = Conversions._calcConversionInputFromOutput(DAI, USDC, _buyAmount);
+
+		Assert.isAtLeast(_sellAmount, 29999e4, "USDC sell amount must be at least 29999e4");
+		Assert.isAbove(_sellAmount, _buyAmount, "USDC sell amount must be greater than buy amount");
+		Assert.isBelow(_sellCost > _buyCost ? _sellCost - _buyCost : _buyCost - _sellCost, 1e16, "DAI sell cost must roughly match");
+	}
+
+	function test10() public
+	{
+		uint256 _sellCost = Conversions._calcConversionOutputFromInput(USDC, DAI, 0e18);
+		uint256 _sellAmount = Conversions._calcConversionInputFromOutput(USDC, DAI, _sellCost);
+		uint256 _buyAmount = Conversions._calcConversionOutputFromInput(DAI, USDC, _sellCost);
+		uint256 _buyCost = Conversions._calcConversionInputFromOutput(DAI, USDC, _buyAmount);
+
+		Assert.equal(_sellAmount, 0e18, "USDC sell amount must be 0e18");
+		Assert.equal(_buyAmount, 0e18, "USDC buy amount must be 0e18");
+		Assert.equal(_sellCost, 0e18, "DAI sell cost must match be 0e18");
+		Assert.equal(_buyCost, 0e18, "DAI buy cost must be 0e18");
+	}
 }
