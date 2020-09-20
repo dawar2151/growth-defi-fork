@@ -117,4 +117,42 @@ contract TestCompoundLendingMarketAbstraction is Env
 	{
 		CompoundLendingMarketAbstraction._safeRepay(cUSDC, 0e8);
 	}
+
+	function test09() public
+	{
+		_burnAll(DAI);
+		_burnAll(cDAI);
+		_mint(DAI, 100e18);
+
+		Assert.equal(_getBalance(DAI), 100e18, "DAI balance must be 100e18");
+		Assert.equal(_getBalance(cDAI), 0e8, "cDAI balance must be 0e8");
+
+		CompoundLendingMarketAbstraction._safeLend(cDAI, 100e18);
+
+		Assert.equal(_getBalance(DAI), 0e18, "DAI balance must be 0e18");
+
+		CompoundLendingMarketAbstraction._safeBorrow(cDAI, 70e18);
+
+		Assert.equal(_getBalance(DAI), 70e18, "DAI balance must be 70e18");
+
+		CompoundLendingMarketAbstraction._safeLend(cDAI, 70e18);
+
+		Assert.equal(_getBalance(DAI), 0e18, "DAI balance must be 0e18");
+
+		CompoundLendingMarketAbstraction._safeBorrow(cDAI, 40e18);
+
+		Assert.equal(_getBalance(DAI), 40e18, "DAI balance must be 40e18");
+
+		_mint(DAI, 70e18);
+
+		Assert.equal(_getBalance(DAI), 110e18, "DAI balance must be 110e18");
+
+		CompoundLendingMarketAbstraction._safeRepay(cDAI, 110e18);
+
+		Assert.equal(_getBalance(DAI), 0e18, "DAI balance must be 0e18");
+
+		CompoundLendingMarketAbstraction._safeRedeem(cDAI, 170e18);
+
+		Assert.equal(_getBalance(DAI), 170e18, "DAI balance must be 170e18");
+	}
 }
