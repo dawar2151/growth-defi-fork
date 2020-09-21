@@ -10,7 +10,7 @@ contract gcDAI is GCTokenBase
 	uint256 constant DEFAULT_LEVERAGE_ADJUSTMENT_AMOUNT = 1000e18; // 1000 DAI
 
 	constructor ()
-		GCTokenBase("growth cDAI", "gcDAI", 18, $.GRO, $.COMP, $.cDAI, $.cUSDC, DEFAULT_LEVERAGE_ADJUSTMENT_AMOUNT) public
+		GCTokenBase("growth cDAI", "gcDAI", 8, $.GRO, $.COMP, $.cDAI, $.cUSDC, DEFAULT_LEVERAGE_ADJUSTMENT_AMOUNT) public
 	{
 	}
 }
