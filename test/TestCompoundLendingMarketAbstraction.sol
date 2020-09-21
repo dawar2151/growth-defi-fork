@@ -151,8 +151,11 @@ contract TestCompoundLendingMarketAbstraction is Env
 
 		Assert.equal(_getBalance(DAI), 0e18, "DAI balance must be 0e18");
 
-		CompoundLendingMarketAbstraction._safeRedeem(cDAI, 170e18);
+		uint256 _lendAmount = CompoundLendingMarketAbstraction._getLendAmount(cDAI);
+		Assert.isAtLeast(_lendAmount, 16999e16, "DAI balance must be at lest 16999e16");
 
-		Assert.equal(_getBalance(DAI), 170e18, "DAI balance must be 170e18");
+		CompoundLendingMarketAbstraction._safeRedeem(cDAI, _lendAmount);
+
+		Assert.equal(_getBalance(DAI), _lendAmount, "DAI balance must match lend amount");
 	}
 }
