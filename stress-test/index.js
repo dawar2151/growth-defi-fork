@@ -54,20 +54,20 @@ const WEBSOCKET_PROVIDER_URL = {
   'goerli': 'wss://goerli.infura.io/ws/v3/' + infuraProjectId,
 };
 
-const web3auth = new Web3(new HDWalletProvider(privateKey, HTTP_PROVIDER_URL[network]));
-const web3 = new Web3(new Web3.providers.HttpProvider(HTTP_PROVIDER_URL[network]));
+const web3 = new Web3(new HDWalletProvider(privateKey, HTTP_PROVIDER_URL[network]));
+const web3ws = new Web3(new Web3.providers.HttpProvider(HTTP_PROVIDER_URL[network]));
 
 function connect() {
   const provider = new Web3.providers.WebsocketProvider(WEBSOCKET_PROVIDER_URL[network]);
   provider.on('error', () => abort(new Error('Connection error')));
   provider.on('end', connect);
-  web3.setProvider(provider);
+  web3ws.setProvider(provider);
 }
 
 connect();
 
 function blockSubscribe(f) {
-  const subscription = web3.eth.subscribe('newBlockHeaders', (e, block) => {
+  const subscription = web3ws.eth.subscribe('newBlockHeaders', (e, block) => {
     if (e) return abort(e);
     try {
       const { number } = block;
@@ -92,7 +92,7 @@ function logSubscribe(events, f) {
   });
   const map = {};
   for (const i in topics) map[topics[i]] = [events[i], params[i]];
-  const subscription = web3.eth.subscribe('logs', { topics: [topics] }, (e, log) => {
+  const subscription = web3ws.eth.subscribe('logs', { topics: [topics] }, (e, log) => {
     if (e) return abort(e);
     try {
       const { address, topics: [topic, ...values], data } = log;
@@ -141,17 +141,22 @@ const GTOKEN_ADDRESS = {
   'goerli': '',
 };
 
+const [account] = web3.currentProvider.getAddresses();
+
+const ABI_ERC20 = require('../build/contracts/ERC20.json').abi;
+const ABI_CTOKEN = require('../build/contracts/CToken.json').abi;
 const ABI_GTOKEN = require('../build/contracts/GTokenBase.json').abi;
 
-async function newGToken(address) {
-  const contract = new web3.eth.Contract(ABI_GTOKEN, address);
+async function newERC20(address) {
+  let self;
+  const contract = new web3.eth.Contract(ABI_ERC20, address);
   const [name, symbol, _decimals] = await Promise.all([
     contract.methods.name().call(),
     contract.methods.symbol().call(),
     contract.methods.decimals().call(),
   ]);
   const decimals = Number(_decimals);
-  return {
+  return (self = {
     address,
     name,
     symbol,
@@ -168,13 +173,44 @@ async function newGToken(address) {
       const amount = await contract.methods.allowance(owner, spender).call();
       return coins(amount, decimals);
     },
-  };
+    approve: async (spender, amount) => {
+      const _amount = units(amount, self.decimals);
+      return (await contract.methods.approve(spender, _amount).send({ from: account })).status;
+    }
+  });
+}
+
+async function newCToken(address) {
+  let self;
+  const fields = await newERC20(address);
+  const contract = new web3.eth.Contract(ABI_CTOKEN, address);
+  return (self = {
+    ...fields,
+  });
+}
+
+async function newGToken(address) {
+  let self;
+  const fields = await newERC20(address);
+  const contract = new web3.eth.Contract(ABI_GTOKEN, address);
+  const reserveToken = await newCToken(await contract.methods.reserveToken().call());
+  return (self = {
+    ...fields,
+    reserveToken,
+    deposit: async (cost) => {
+      const _cost = units(cost, self.reserveToken.decimals);
+      await contract.methods.deposit(_cost).send({ from: account });
+    },
+    withdraw: async (grossShares) => {
+      const _grossShares = units(grossShares, self.decimals);
+      await contract.methods.withdraw(_grossShares).send({ from: account });
+    },
+  });
 }
 
 async function main(args) {
-  const [account] = await web3auth.currentProvider.getAddresses();
-
   const gtoken = await newGToken(GTOKEN_ADDRESS[network]);
+  const ctoken = gtoken.reserveToken;
 
   blockSubscribe((number) => {
     console.log('block ' + number);
@@ -189,9 +225,24 @@ async function main(args) {
     }
   });
 
-  console.log(network, gtoken.name, gtoken.symbol, gtoken.decimals);
+  console.log(network);
+  console.log(gtoken.name, gtoken.symbol, gtoken.decimals);
+  console.log(ctoken.name, ctoken.symbol, ctoken.decimals);
   console.log('total supply', await gtoken.totalSupply());
-  console.log('our balance', await gtoken.balanceOf(account));
+  console.log('gtoken balance', await gtoken.balanceOf(account));
+  console.log('ctoken balance', await ctoken.balanceOf(account));
+
+  const success = await ctoken.approve(gtoken.address, await ctoken.balanceOf(account));
+  console.log('approve', success);
+  console.log('ctoken allowance', await ctoken.allowance(account, gtoken.address));
+
+//  await gtoken.deposit('0.1');
+//  console.log('gtoken balance', await gtoken.balanceOf(account));
+//  console.log('ctoken balance', await ctoken.balanceOf(account));
+
+//  await gtoken.withdraw('0.1');
+//  console.log('gtoken balance', await gtoken.balanceOf(account));
+//  console.log('ctoken balance', await ctoken.balanceOf(account));
 
   await idle();
 }
