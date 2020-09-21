@@ -1,13 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.0;
 
-import { Addresses } from "./Addresses.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+
 import { Math } from "./Math.sol";
 import { Transfers } from "./Transfers.sol";
-import { Comptroller, PriceOracle, CToken } from "./interop/Compound.sol";
 
-contract CompoundLendingMarketAbstraction is Addresses, Math, Transfers
+import { Comptroller, PriceOracle, CToken } from "../interop/Compound.sol";
+
+import { $ } from "../network/$.sol";
+
+library CompoundLendingMarketAbstraction
 {
+	using SafeMath for uint256;
+
 	function _getUnderlyingToken(address _ctoken) internal view returns (address _token)
 	{
 		return CToken(_ctoken).underlying();
@@ -15,7 +21,7 @@ contract CompoundLendingMarketAbstraction is Addresses, Math, Transfers
 
 	function _getCollateralRatio(address _ctoken) internal view returns (uint256 _collateralFactor)
 	{
-		address _comptroller = Compound_COMPTROLLER;
+		address _comptroller = $.Compound_COMPTROLLER;
 		(, _collateralFactor) = Comptroller(_comptroller).markets(_ctoken);
 		return _collateralFactor;
 	}
@@ -27,7 +33,7 @@ contract CompoundLendingMarketAbstraction is Addresses, Math, Transfers
 
 	function _getLiquidityAmount(address _ctoken) internal view returns (uint256 _liquidityAmount)
 	{
-		address _comptroller = Compound_COMPTROLLER;
+		address _comptroller = $.Compound_COMPTROLLER;
 		(uint256 _result, uint256 _liquidity, uint256 _shortfall) = Comptroller(_comptroller).getAccountLiquidity(address(this));
 		if (_result != 0) return 0;
 		if (_shortfall > 0) return 0;
@@ -40,7 +46,7 @@ contract CompoundLendingMarketAbstraction is Addresses, Math, Transfers
 	{
 		uint256 _liquidityAmount = _getLiquidityAmount(_ctoken);
 		if (_liquidityAmount <= _marginAmount) return 0;
-		return _min(_liquidityAmount.sub(_marginAmount), _getMarketAmount(_ctoken));
+		return Math._min(_liquidityAmount.sub(_marginAmount), _getMarketAmount(_ctoken));
 	}
 
 	function _getExchangeRate(address _ctoken) internal view returns (uint256 _exchangeRate)
@@ -75,7 +81,7 @@ contract CompoundLendingMarketAbstraction is Addresses, Math, Transfers
 
 	function _enter(address _ctoken) internal returns (bool _success)
 	{
-		address _comptroller = Compound_COMPTROLLER;
+		address _comptroller = $.Compound_COMPTROLLER;
 		address[] memory _ctokens = new address[](1);
 		_ctokens[0] = _ctoken;
 		return Comptroller(_comptroller).enterMarkets(_ctokens)[0] == 0;
@@ -84,7 +90,7 @@ contract CompoundLendingMarketAbstraction is Addresses, Math, Transfers
 	function _lend(address _ctoken, uint256 _amount) internal returns (bool _success)
 	{
 		address _token = _getUnderlyingToken(_ctoken);
-		_approveFunds(_token, _ctoken, _amount);
+		Transfers._approveFunds(_token, _ctoken, _amount);
 		return CToken(_ctoken).mint(_amount) == 0;
 	}
 
@@ -101,7 +107,7 @@ contract CompoundLendingMarketAbstraction is Addresses, Math, Transfers
 	function _repay(address _ctoken, uint256 _amount) internal returns (bool _success)
 	{
 		address _token = _getUnderlyingToken(_ctoken);
-		_approveFunds(_token, _ctoken, _amount);
+		Transfers._approveFunds(_token, _ctoken, _amount);
 		return CToken(_ctoken).repayBorrow(_amount) == 0;
 	}
 

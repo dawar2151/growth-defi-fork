@@ -1,116 +1,110 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.0;
 
-import { BalancerLiquidityPoolAbstraction } from "./BalancerLiquidityPoolAbstraction.sol";
+import { G } from "./G.sol";
 
-contract GLiquidityPoolManager is BalancerLiquidityPoolAbstraction
+library GLiquidityPoolManager
 {
-	enum State { Created, Allocated, Migrating, Migrated }
+	using GLiquidityPoolManager for GLiquidityPoolManager.Self;
 
 	uint256 constant DEFAULT_BURNING_RATE = 5e15; // 0.5%
 	uint256 constant BURNING_INTERVAL = 7 days;
 	uint256 constant MIGRATION_INTERVAL = 7 days;
 
-	address private immutable stakesToken;
-	address private immutable sharesToken;
+	enum State { Created, Allocated, Migrating, Migrated }
 
-	State private state = State.Created;
-	address private liquidityPool = address(0);
+	struct Self {
+		address stakesToken;
+		address sharesToken;
 
-	uint256 private burningRate = DEFAULT_BURNING_RATE;
-	uint256 private lastBurningTime = 0;
+		State state;
+		address liquidityPool;
 
-	address private migrationRecipient = address(0);
-	uint256 private migrationUnlockTime = uint256(-1);
+		uint256 burningRate;
+		uint256 lastBurningTime;
 
-	constructor (address _stakesToken, address _sharesToken) internal
-	{
-		stakesToken = _stakesToken;
-		sharesToken = _sharesToken;
+		address migrationRecipient;
+		uint256 migrationUnlockTime;
 	}
 
-	function _hasPool() internal view returns (bool _hasMigrated)
+	function init(Self storage _self, address _stakesToken, address _sharesToken) public
 	{
-		return state == State.Allocated || state == State.Migrating;
+		_self.stakesToken = _stakesToken;
+		_self.sharesToken = _sharesToken;
+
+		_self.state = State.Created;
+		_self.liquidityPool = address(0);
+
+		_self.burningRate = DEFAULT_BURNING_RATE;
+		_self.lastBurningTime = 0;
+
+		_self.migrationRecipient = address(0);
+		_self.migrationUnlockTime = uint256(-1);
 	}
 
-	function _gulpPoolAssets() internal
+	function hasPool(Self storage _self) public view returns (bool _poolAvailable)
 	{
-		if (!_hasPool()) return;
-		_joinPool(liquidityPool, stakesToken, _getBalance(stakesToken));
-		_joinPool(liquidityPool, sharesToken, _getBalance(sharesToken));
+		return _self._hasPool();
 	}
 
-	function _getLiquidityPool() internal view returns (address _liquidityPool)
+	function gulpPoolAssets(Self storage _self) public
 	{
-		return liquidityPool;
+		if (!_self._hasPool()) return;
+		G.joinPool(_self.liquidityPool, _self.stakesToken, G.getBalance(_self.stakesToken));
+		G.joinPool(_self.liquidityPool, _self.sharesToken, G.getBalance(_self.sharesToken));
 	}
 
-	function _getBurningRate() internal view returns (uint256 _burningRate)
-	{
-		return burningRate;
-	}
-
-	function _getLastBurningTime() internal view returns (uint256 _lastBurningTime)
-	{
-		return lastBurningTime;
-	}
-
-	function _getMigrationRecipient() internal view returns (address _migrationRecipient)
-	{
-		return migrationRecipient;
-	}
-
-	function _getMigrationUnlockTime() internal view returns (uint256 _migrationUnlockTime)
-	{
-		return migrationUnlockTime;
-	}
-
-	function _setBurningRate(uint256 _burningRate) internal
+	function setBurningRate(Self storage _self, uint256 _burningRate) public
 	{
 		require(_burningRate <= 1e18, "invalid rate");
-		burningRate = _burningRate;
+		_self.burningRate = _burningRate;
 	}
 
-	function _burnPoolPortion() internal returns (uint256 _stakesAmount, uint256 _sharesAmount)
+	function burnPoolPortion(Self storage _self) public returns (uint256 _stakesAmount, uint256 _sharesAmount)
 	{
-		require(_hasPool(), "pool not available");
-		require(now > lastBurningTime + BURNING_INTERVAL, "must wait lock interval");
-		lastBurningTime = now;
-		return _exitPool(liquidityPool, burningRate);
+		require(_self._hasPool(), "pool not available");
+		require(now > _self.lastBurningTime + BURNING_INTERVAL, "must wait lock interval");
+		_self.lastBurningTime = now;
+		return G.exitPool(_self.liquidityPool, _self.burningRate);
 	}
 
-	function _allocatePool(uint256 _stakesAmount, uint256 _sharesAmount) internal
+	function allocatePool(Self storage _self, uint256 _stakesAmount, uint256 _sharesAmount) public
 	{
-		require(state == State.Created, "pool cannot be allocated");
-		state = State.Allocated;
-		liquidityPool = _createPool(stakesToken, _stakesAmount, sharesToken, _sharesAmount);
+		require(_self.state == State.Created, "pool cannot be allocated");
+		_self.state = State.Allocated;
+		_self.liquidityPool = G.createPool(_self.stakesToken, _stakesAmount, _self.sharesToken, _sharesAmount);
 	}
 
-	function _initiatePoolMigration(address _migrationRecipient) internal
+	function initiatePoolMigration(Self storage _self, address _migrationRecipient) public
 	{
-		require(state == State.Allocated, "pool not allocated");
-		state = State.Migrating;
-		migrationRecipient = _migrationRecipient;
-		migrationUnlockTime = now + MIGRATION_INTERVAL;
+		require(_self.state == State.Allocated, "pool not allocated");
+		_self.state = State.Migrating;
+		_self.migrationRecipient = _migrationRecipient;
+		_self.migrationUnlockTime = now + MIGRATION_INTERVAL;
 	}
 
-	function _cancelPoolMigration() internal returns (address _migrationRecipient)
+	function cancelPoolMigration(Self storage _self) public returns (address _migrationRecipient)
 	{
-		require(state == State.Migrating, "migration not initiated");
-		_migrationRecipient = migrationRecipient;
-		state = State.Allocated;
-		migrationRecipient = address(0);
-		migrationUnlockTime = uint256(-1);
+		require(_self.state == State.Migrating, "migration not initiated");
+		_migrationRecipient = _self.migrationRecipient;
+		_self.state = State.Allocated;
+		_self.migrationRecipient = address(0);
+		_self.migrationUnlockTime = uint256(-1);
 		return _migrationRecipient;
 	}
 
-	function _completePoolMigration() internal returns (address _migrationRecipient, uint256 _stakesAmount, uint256 _sharesAmount)
+	function completePoolMigration(Self storage _self) public returns (address _migrationRecipient, uint256 _stakesAmount, uint256 _sharesAmount)
 	{
-		require(state == State.Migrating, "migration not initiated");
-		require(now >= migrationUnlockTime, "must wait lock interval");
-		state = State.Migrated;
-		(_stakesAmount, _sharesAmount) = _exitPool(liquidityPool, 1e18);
-		return (migrationRecipient, _stakesAmount, _sharesAmount);
+		require(_self.state == State.Migrating, "migration not initiated");
+		require(now >= _self.migrationUnlockTime, "must wait lock interval");
+		_self.state = State.Migrated;
+		_migrationRecipient = _self.migrationRecipient;
+		(_stakesAmount, _sharesAmount) = G.exitPool(_self.liquidityPool, 1e18);
+		return (_migrationRecipient, _stakesAmount, _sharesAmount);
+	}
+
+	function _hasPool(Self storage _self) internal view returns (bool _poolAvailable)
+	{
+		return _self.state == State.Allocated || _self.state == State.Migrating;
 	}
 }

@@ -1,179 +1,231 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.0;
 
-import { CompoundLendingMarketAbstraction } from "./CompoundLendingMarketAbstraction.sol";
-import { UniswapV2ExchangeAbstraction } from "./UniswapV2ExchangeAbstraction.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-contract GCLeveragedReserveManager is CompoundLendingMarketAbstraction, UniswapV2ExchangeAbstraction
+import { G } from "./G.sol";
+
+library GCLeveragedReserveManager
 {
+	using SafeMath for uint256;
+	using GCLeveragedReserveManager for GCLeveragedReserveManager.Self;
+
+	uint256 constant DELEVERAGING_UNROLL_LIMIT = 10;
+	uint256 constant MINIMUM_RATIO_GRANULARITY = 4e16; // 4%
 	uint256 constant DEFAULT_IDEAL_COLLATERALIZATION_RATIO = 88e16; // 88% of 75% = 66%
 	uint256 constant DEFAULT_LIMIT_COLLATERALIZATION_RATIO = 92e16; // 92% of 75% = 69%
+	uint256 constant DEFAULT_COLLATERALIZATION_DEVIATION_RATIO = 1e16; // 1%
 
-	address private immutable miningToken;
-	address private immutable reserveToken;
-	address private immutable underlyingToken;
-	address private immutable leverageToken;
-	address private immutable borrowToken;
+	struct Self {
+		address miningToken;
+		address reserveToken;
+		address leverageToken;
+		address underlyingToken;
+		address borrowToken;
 
-	bool private leverageEnabled = false;
-	uint256 private leverageAdjustmentAmount;
-	uint256 private idealCollateralizationRatio = DEFAULT_IDEAL_COLLATERALIZATION_RATIO;
-	uint256 private limitCollateralizationRatio = DEFAULT_LIMIT_COLLATERALIZATION_RATIO;
-
-	constructor (address _miningToken, address _reserveToken, address _leverageToken, uint256 _leverageAdjustmentAmount) internal
-	{
-		miningToken = _miningToken;
-		reserveToken = _reserveToken;
-		underlyingToken = _getUnderlyingToken(_reserveToken);
-		leverageToken = _leverageToken;
-		borrowToken = _getUnderlyingToken(_leverageToken);
-		leverageAdjustmentAmount = _leverageAdjustmentAmount;
-		_safeEnter(_reserveToken);
+		bool leverageEnabled;
+		uint256 leverageAdjustmentAmount;
+		uint256 idealCollateralizationRatio;
+		uint256 limitCollateralizationRatio;
+		uint256 collateralizationDeviationRatio;
 	}
 
-	function _getLeverageEnabled() internal view returns (bool _leverageEnabled)
+	function init(Self storage _self, address _miningToken, address _reserveToken, address _leverageToken, uint256 _leverageAdjustmentAmount) public
 	{
-		return leverageEnabled;
+		_self.miningToken = _miningToken;
+		_self.reserveToken = _reserveToken;
+		_self.leverageToken = _leverageToken;
+		_self.underlyingToken = G.getUnderlyingToken(_reserveToken);
+		_self.borrowToken = G.getUnderlyingToken(_leverageToken);
+
+		_self.leverageEnabled = false;
+		_self.leverageAdjustmentAmount = _leverageAdjustmentAmount;
+		_self.idealCollateralizationRatio = DEFAULT_IDEAL_COLLATERALIZATION_RATIO;
+		_self.limitCollateralizationRatio = DEFAULT_LIMIT_COLLATERALIZATION_RATIO;
+		_self.collateralizationDeviationRatio = DEFAULT_COLLATERALIZATION_DEVIATION_RATIO;
+
+		G.safeEnter(_reserveToken);
 	}
 
-	function _getLeverageAdjustmentAmount() internal view returns (uint256 _leverageAdjustmentAmount)
+	function setLeverageEnabled(Self storage _self, bool _leverageEnabled) public
 	{
-		return leverageAdjustmentAmount;
+		_self.leverageEnabled = _leverageEnabled;
 	}
 
-	function _getIdealCollateralizationRatio() internal view returns (uint256 _idealCollateralizationRatio)
-	{
-		return idealCollateralizationRatio;
-	}
-
-	function _getLimitCollateralizationRatio() internal view returns (uint256 _limitCollateralizationRatio)
-	{
-		return limitCollateralizationRatio;
-	}
-
-	function _setLeverageEnabled(bool _leverageEnabled) internal
-	{
-		leverageEnabled = _leverageEnabled;
-	}
-
-	function _setLeverageAdjustmentAmount(uint256 _leverageAdjustmentAmount) internal
+	function setLeverageAdjustmentAmount(Self storage _self, uint256 _leverageAdjustmentAmount) public
 	{
 		require(_leverageAdjustmentAmount > 0, "invalid amount");
-		leverageAdjustmentAmount = _leverageAdjustmentAmount;
+		_self.leverageAdjustmentAmount = _leverageAdjustmentAmount;
 	}
 
-	function _setIdealCollateralizationRatio(uint256 _idealCollateralizationRatio) internal
+	function setIdealCollateralizationRatio(Self storage _self, uint256 _idealCollateralizationRatio) public
 	{
-		require(_idealCollateralizationRatio >= 5e16, "invalid ratio");
-		require(_idealCollateralizationRatio + 5e16 <= limitCollateralizationRatio, "invalid ratio gap");
-		idealCollateralizationRatio = _idealCollateralizationRatio;
+		require(_idealCollateralizationRatio >= MINIMUM_RATIO_GRANULARITY, "invalid ratio");
+		require(_idealCollateralizationRatio + MINIMUM_RATIO_GRANULARITY <= _self.limitCollateralizationRatio, "invalid ratio gap");
+		_self.idealCollateralizationRatio = _idealCollateralizationRatio;
 	}
 
-	function _setLimitCollateralizationRatio(uint256 _limitCollateralizationRatio) internal
+	function setLimitCollateralizationRatio(Self storage _self, uint256 _limitCollateralizationRatio) public
 	{
-		require(_limitCollateralizationRatio <= 95e16, "invalid ratio");
-		require(idealCollateralizationRatio + 5e16 <= _limitCollateralizationRatio, "invalid ratio gap");
-		limitCollateralizationRatio = _limitCollateralizationRatio;
+		require(_limitCollateralizationRatio + MINIMUM_RATIO_GRANULARITY <= 1e18, "invalid ratio");
+		require(_self.idealCollateralizationRatio + MINIMUM_RATIO_GRANULARITY <= _limitCollateralizationRatio, "invalid ratio gap");
+		_self.limitCollateralizationRatio = _limitCollateralizationRatio;
 	}
 
-	function _gulpMiningAssets() internal returns (bool _success)
+	function setCollateralizationDeviationRatio(Self storage _self, uint256 _collateralizationDeviationRatio) public
 	{
-		_convertMiningToUnderlying(_getBalance(miningToken));
-		return _lend(reserveToken, _getBalance(underlyingToken));
+		require(_collateralizationDeviationRatio <= MINIMUM_RATIO_GRANULARITY, "invalid ratio");
+		_self.collateralizationDeviationRatio = _collateralizationDeviationRatio;
 	}
 
-	function _adjustLeverage() internal returns (bool _success)
+	function estimateBorrowInUnderlying(Self storage _self, uint256 _borrowAmount) public view returns (uint256 _underlyingAmount)
 	{
-		uint256 _borrowingAmount = _calcConversionUnderlyingToBorrowGivenBorrow(_fetchBorrowAmount(leverageToken));
-		if (!leverageEnabled) return _decreaseLeverageLimited(_borrowingAmount);
-		uint256 _lendingAmount = _fetchLendAmount(reserveToken);
-		uint256 _limitAmount = _calcLimitAmount(_lendingAmount, _getCollateralRatio(reserveToken));
-		if (_borrowingAmount > _limitAmount) return _decreaseLeverageLimited(_borrowingAmount.sub(_limitAmount));
-		uint256 _idealAmount = _calcIdealAmount(_lendingAmount, _getCollateralRatio(reserveToken));
-		if (_borrowingAmount < _idealAmount) return _increaseLeverageLimited(_idealAmount.sub(_borrowingAmount));
+		return _self._calcConversionUnderlyingToBorrowGivenBorrow(_borrowAmount);
+	}
+
+	function ensureLiquidity(Self storage _self, uint256 _requiredAmount) public returns (bool _success)
+	{
+		uint256 _availableAmount = _self._getAvailableUnderlying();
+		for (uint256 _i; _i < DELEVERAGING_UNROLL_LIMIT; _i++) {
+			if (_requiredAmount <= _availableAmount) return true;
+			_success = _self._decreaseLeverage(_requiredAmount.sub(_availableAmount));
+			if (!_success) return false;
+			uint256 _newAvailableAmount = _self._getAvailableUnderlying();
+			if (_newAvailableAmount <= _availableAmount) return false;
+			_availableAmount = _newAvailableAmount;
+		}
+		return false;
+	}
+
+	function gulpMiningAssets(Self storage _self) public returns (bool _success)
+	{
+		uint256 _availableAmount = G.getBalance(_self.miningToken);
+		uint256 _estimateAmount = _self._calcConversionUnderlyingToMiningGivenMining(_availableAmount);
+		uint256 _limitAmount = G.min(_estimateAmount, _self.leverageAdjustmentAmount);
+		uint256 _conversionAmount = _estimateAmount > 0 ? _availableAmount.mul(_limitAmount).div(_estimateAmount) : 0;
+		_self._convertMiningToUnderlying(_conversionAmount);
+		return G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
+	}
+
+	function adjustLeverage(Self storage _self) public returns (bool _success)
+	{
+		uint256 _borrowAmount = _self._calcConversionUnderlyingToBorrowGivenBorrow(G.fetchBorrowAmount(_self.leverageToken));
+		if (!_self.leverageEnabled) return _self._decreaseLeverageLimited(_borrowAmount);
+		uint256 _lendAmount = G.fetchLendAmount(_self.reserveToken);
+		uint256 _idealAmount = _self._calcIdealAmount(_lendAmount);
+		uint256 _deviationAmount = _self._calcDeviationAmount(_lendAmount);
+		if (_borrowAmount < _idealAmount.sub(_deviationAmount)) return _self._increaseLeverageLimited(_idealAmount.sub(_borrowAmount));
+		if (_borrowAmount > _idealAmount.add(_deviationAmount)) return _self._decreaseLeverageLimited(_borrowAmount.sub(_idealAmount));
 		return true;
 	}
 
-	function _calcIdealAmount(uint256 _amount, uint256 _collateralRatio) internal view returns (uint256 _idealAmount)
+	function _getAvailableUnderlying(Self storage _self) internal view returns (uint256 _availableUnderlying)
 	{
-		return _amount.mul(_collateralRatio).div(1e18).mul(idealCollateralizationRatio).div(1e18);
+		uint256 _lendAmount = G.getLendAmount(_self.reserveToken);
+		uint256 _deathAmount = _self._calcDeathAmount(_lendAmount);
+		uint256 _limitAmount = _self._calcLimitAmount(_lendAmount);
+		uint256 _marginAmount = _deathAmount.sub(_limitAmount);
+		return G.getAvailableAmount(_self.reserveToken, _marginAmount);
 	}
 
-	function _calcLimitAmount(uint256 _amount, uint256 _collateralRatio) internal view returns (uint256 _limitAmount)
+	function _getAvailableBorrow(Self storage _self) internal view returns (uint256 _availableBorrow)
 	{
-		return _amount.mul(_collateralRatio).div(1e18).mul(limitCollateralizationRatio).div(1e18);
+		uint256 _lendAmount = G.getLendAmount(_self.reserveToken);
+		uint256 _deathAmount = _self._calcDeathAmount(_lendAmount);
+		uint256 _idealAmount = _self._calcIdealAmount(_lendAmount);
+		uint256 _marginAmount = _deathAmount.sub(_idealAmount);
+		return _self._calcConversionUnderlyingToBorrowGivenUnderlying(G.getAvailableAmount(_self.reserveToken, _marginAmount));
 	}
 
-	function _getAvailableUnderlying() internal view returns (uint256 _availableUnderlying)
+	function _calcIdealAmount(Self storage _self, uint256 _amount) internal view returns (uint256 _idealAmount)
 	{
-		uint256 _lendingAmount = _getLendAmount(reserveToken);
-		uint256 _limitAmount = _calcLimitAmount(_lendingAmount, _getCollateralRatio(reserveToken));
-		return _getAvailableAmount(reserveToken, _limitAmount);
+		return _amount.mul(G.getCollateralRatio(_self.reserveToken)).mul(_self.idealCollateralizationRatio).div(1e36);
 	}
 
-	function _getAvailableBorrow() internal view returns (uint256 _availableBorrow)
+	function _calcLimitAmount(Self storage _self, uint256 _amount) internal view returns (uint256 _limitAmount)
 	{
-		return _calcConversionUnderlyingToBorrowGivenUnderlying(_getAvailableUnderlying());
+		return _amount.mul(G.getCollateralRatio(_self.reserveToken)).mul(_self.limitCollateralizationRatio).div(1e36);
 	}
 
-	function _increaseLeverageLimited(uint256 _amount) internal returns (bool _success)
+	function _calcDeathAmount(Self storage _self, uint256 _amount) internal view returns (uint256 _limitAmount)
 	{
-		return _increaseLeverage(_min(_amount, leverageAdjustmentAmount));
+		return _amount.mul(G.getCollateralRatio(_self.reserveToken)).div(1e18);
 	}
 
-	function _decreaseLeverageLimited(uint256 _amount) internal returns (bool _success)
+	function _calcDeviationAmount(Self storage _self, uint256 _amount) internal view returns (uint256 _deviationAmount)
 	{
-		return _decreaseLeverage(_min(_amount, leverageAdjustmentAmount));
+		return _amount.mul(G.getCollateralRatio(_self.reserveToken)).mul(_self.collateralizationDeviationRatio).div(1e36);
 	}
 
-	function _increaseLeverage(uint256 _amount) internal returns (bool _success)
+	function _increaseLeverageLimited(Self storage _self, uint256 _amount) internal returns (bool _success)
 	{
-		_success = _borrow(leverageToken, _min(_calcConversionUnderlyingToBorrowGivenUnderlying(_amount), _getAvailableBorrow()));
-		if (!_success) return false;
-		_convertBorrowToUnderlying(_getBalance(borrowToken));
-		_repay(leverageToken, _min(_getBalance(borrowToken), _getBorrowAmount(leverageToken)));
-		_convertBorrowToUnderlying(_getBalance(borrowToken));
-		return _lend(reserveToken, _getBalance(underlyingToken));
+		return _self._increaseLeverage(G.min(_amount, _self.leverageAdjustmentAmount));
 	}
 
-	function _decreaseLeverage(uint256 _amount) internal returns (bool _success)
+	function _decreaseLeverageLimited(Self storage _self, uint256 _amount) internal returns (bool _success)
 	{
-		_success = _redeem(reserveToken, _min(_calcConversionUnderlyingToBorrowGivenBorrow(_calcConversionBorrowToUnderlyingGivenUnderlying(_amount)), _getAvailableUnderlying()));
-		if (!_success) return false;
-		_convertUnderlyingToBorrow(_getBalance(underlyingToken));
-		_success = _repay(leverageToken, _min(_getBalance(borrowToken), _getBorrowAmount(leverageToken)));
-		_convertBorrowToUnderlying(_getBalance(borrowToken));
-		_lend(reserveToken, _getBalance(underlyingToken));
-		return _success;
+		return _self._decreaseLeverage(G.min(_amount, _self.leverageAdjustmentAmount));
 	}
 
-	function _calcConversionUnderlyingToBorrowGivenUnderlying(uint256 _inputAmount) internal view virtual returns (uint256 _outputAmount)
+	function _increaseLeverage(Self storage _self, uint256 _amount) internal returns (bool _success)
 	{
-		return _calcConversionOutputFromInput(underlyingToken, borrowToken, _inputAmount);
+		bool _success1 = G.borrow(_self.leverageToken, G.min(_self._calcConversionUnderlyingToBorrowGivenUnderlying(_amount), _self._getAvailableBorrow()));
+		_self._convertBorrowToUnderlying(G.getBalance(_self.borrowToken));
+		bool _success2 = G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
+		_self._convertUnderlyingToBorrow(G.getBalance(_self.underlyingToken));
+		G.repay(_self.leverageToken, G.min(G.getBalance(_self.borrowToken), G.getBorrowAmount(_self.leverageToken)));
+		return _success1 && _success2;
 	}
 
-	function _calcConversionUnderlyingToBorrowGivenBorrow(uint256 _outputAmount) internal view virtual returns (uint256 _inputAmount)
+	function _decreaseLeverage(Self storage _self, uint256 _amount) internal returns (bool _success)
 	{
-		return _calcConversionInputFromOutput(underlyingToken, borrowToken, _outputAmount);
+		bool _success1 = G.redeem(_self.reserveToken, G.min(_self._calcConversionUnderlyingToBorrowGivenBorrow(_self._calcConversionBorrowToUnderlyingGivenUnderlying(_amount)), _self._getAvailableUnderlying()));
+		_self._convertUnderlyingToBorrow(G.getBalance(_self.underlyingToken));
+		bool _success2 = G.repay(_self.leverageToken, G.min(G.getBalance(_self.borrowToken), G.getBorrowAmount(_self.leverageToken)));
+		_self._convertBorrowToUnderlying(G.getBalance(_self.borrowToken));
+		G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
+		return _success1 && _success2;
 	}
 
-	function _calcConversionBorrowToUnderlyingGivenUnderlying(uint256 _outputAmount) internal view virtual returns (uint256 _inputAmount)
+	function _calcConversionUnderlyingToMiningGivenMining(Self storage _self, uint256 _outputAmount) internal view returns (uint256 _inputAmount)
 	{
-		return _calcConversionInputFromOutput(borrowToken, underlyingToken, _outputAmount);
+		if (_self.miningToken == _self.underlyingToken) return _outputAmount;
+		return G.calcConversionInputFromOutput(_self.underlyingToken, _self.miningToken, _outputAmount);
 	}
 
-	function _convertMiningToUnderlying(uint256 _inputAmount) internal virtual
+	function _calcConversionUnderlyingToBorrowGivenUnderlying(Self storage _self, uint256 _inputAmount) internal view returns (uint256 _outputAmount)
 	{
-		_convertBalance(miningToken, underlyingToken, _inputAmount, 0);
+		if (_self.borrowToken == _self.underlyingToken) return _inputAmount;
+		return G.calcConversionOutputFromInput(_self.underlyingToken, _self.borrowToken, _inputAmount);
 	}
 
-	function _convertBorrowToUnderlying(uint256 _inputAmount) internal virtual
+	function _calcConversionUnderlyingToBorrowGivenBorrow(Self storage _self, uint256 _outputAmount) internal view returns (uint256 _inputAmount)
 	{
-		_convertBalance(borrowToken, underlyingToken, _inputAmount, 0);
+		if (_self.borrowToken == _self.underlyingToken) return _outputAmount;
+		return G.calcConversionInputFromOutput(_self.underlyingToken, _self.borrowToken, _outputAmount);
 	}
 
-	function _convertUnderlyingToBorrow(uint256 _inputAmount) internal virtual
+	function _calcConversionBorrowToUnderlyingGivenUnderlying(Self storage _self, uint256 _outputAmount) internal view returns (uint256 _inputAmount)
 	{
-		_convertBalance(underlyingToken, borrowToken, _inputAmount, 0);
+		if (_self.borrowToken == _self.underlyingToken) return _outputAmount;
+		return G.calcConversionInputFromOutput(_self.borrowToken, _self.underlyingToken, _outputAmount);
+	}
+
+	function _convertMiningToUnderlying(Self storage _self, uint256 _inputAmount) internal
+	{
+		if (_self.miningToken == _self.underlyingToken) return;
+		G.convertFunds(_self.miningToken, _self.underlyingToken, _inputAmount, 0);
+	}
+
+	function _convertBorrowToUnderlying(Self storage _self, uint256 _inputAmount) internal
+	{
+		if (_self.borrowToken == _self.underlyingToken) return;
+		G.convertFunds(_self.borrowToken, _self.underlyingToken, _inputAmount, 0);
+	}
+
+	function _convertUnderlyingToBorrow(Self storage _self, uint256 _inputAmount) internal
+	{
+		if (_self.borrowToken == _self.underlyingToken) return;
+		G.convertFunds(_self.underlyingToken, _self.borrowToken, _inputAmount, 0);
 	}
 }

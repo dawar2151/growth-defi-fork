@@ -1,5 +1,5 @@
-const gcDAI = artifacts.require('gcDAI');
+const G = artifacts.require('G');
 
 module.exports = (deployer) => {
-  deployer.deploy(gcDAI);
+  deployer.deploy(G);
 };
