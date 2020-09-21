@@ -122,16 +122,18 @@ library GCLeveragedReserveManager
 	function _getAvailableUnderlying(Self storage _self) internal view returns (uint256 _availableUnderlying)
 	{
 		uint256 _lendAmount = G.getLendAmount(_self.reserveToken);
+		uint256 _deathAmount = _self._calcDeathAmount(_lendAmount);
 		uint256 _limitAmount = _self._calcLimitAmount(_lendAmount);
-		uint256 _marginAmount = _lendAmount.sub(_limitAmount);
+		uint256 _marginAmount = _deathAmount.sub(_limitAmount);
 		return G.getAvailableAmount(_self.reserveToken, _marginAmount);
 	}
 
 	function _getAvailableBorrow(Self storage _self) internal view returns (uint256 _availableBorrow)
 	{
 		uint256 _lendAmount = G.getLendAmount(_self.reserveToken);
-		uint256 _limitAmount = _self._calcIdealAmount(_lendAmount);
-		uint256 _marginAmount = _lendAmount.sub(_limitAmount);
+		uint256 _deathAmount = _self._calcDeathAmount(_lendAmount);
+		uint256 _idealAmount = _self._calcIdealAmount(_lendAmount);
+		uint256 _marginAmount = _deathAmount.sub(_idealAmount);
 		return _self._calcConversionUnderlyingToBorrowGivenUnderlying(G.getAvailableAmount(_self.reserveToken, _marginAmount));
 	}
 
@@ -143,6 +145,11 @@ library GCLeveragedReserveManager
 	function _calcLimitAmount(Self storage _self, uint256 _amount) internal view returns (uint256 _limitAmount)
 	{
 		return _amount.mul(G.getCollateralRatio(_self.reserveToken)).mul(_self.limitCollateralizationRatio).div(1e36);
+	}
+
+	function _calcDeathAmount(Self storage _self, uint256 _amount) internal view returns (uint256 _limitAmount)
+	{
+		return _amount.mul(G.getCollateralRatio(_self.reserveToken)).div(1e18);
 	}
 
 	function _calcDeviationAmount(Self storage _self, uint256 _amount) internal view returns (uint256 _deviationAmount)
@@ -182,36 +189,43 @@ library GCLeveragedReserveManager
 
 	function _calcConversionUnderlyingToMiningGivenMining(Self storage _self, uint256 _outputAmount) internal view returns (uint256 _inputAmount)
 	{
+		if (_self.miningToken == _self.underlyingToken) return _outputAmount;
 		return G.calcConversionInputFromOutput(_self.underlyingToken, _self.miningToken, _outputAmount);
 	}
 
 	function _calcConversionUnderlyingToBorrowGivenUnderlying(Self storage _self, uint256 _inputAmount) internal view returns (uint256 _outputAmount)
 	{
+		if (_self.borrowToken == _self.underlyingToken) return _inputAmount;
 		return G.calcConversionOutputFromInput(_self.underlyingToken, _self.borrowToken, _inputAmount);
 	}
 
 	function _calcConversionUnderlyingToBorrowGivenBorrow(Self storage _self, uint256 _outputAmount) internal view returns (uint256 _inputAmount)
 	{
+		if (_self.borrowToken == _self.underlyingToken) return _outputAmount;
 		return G.calcConversionInputFromOutput(_self.underlyingToken, _self.borrowToken, _outputAmount);
 	}
 
 	function _calcConversionBorrowToUnderlyingGivenUnderlying(Self storage _self, uint256 _outputAmount) internal view returns (uint256 _inputAmount)
 	{
+		if (_self.borrowToken == _self.underlyingToken) return _outputAmount;
 		return G.calcConversionInputFromOutput(_self.borrowToken, _self.underlyingToken, _outputAmount);
 	}
 
 	function _convertMiningToUnderlying(Self storage _self, uint256 _inputAmount) internal
 	{
+		if (_self.miningToken == _self.underlyingToken) return;
 		G.convertFunds(_self.miningToken, _self.underlyingToken, _inputAmount, 0);
 	}
 
 	function _convertBorrowToUnderlying(Self storage _self, uint256 _inputAmount) internal
 	{
+		if (_self.borrowToken == _self.underlyingToken) return;
 		G.convertFunds(_self.borrowToken, _self.underlyingToken, _inputAmount, 0);
 	}
 
 	function _convertUnderlyingToBorrow(Self storage _self, uint256 _inputAmount) internal
 	{
+		if (_self.borrowToken == _self.underlyingToken) return;
 		G.convertFunds(_self.underlyingToken, _self.borrowToken, _inputAmount, 0);
 	}
 }

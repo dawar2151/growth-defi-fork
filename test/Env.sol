@@ -20,7 +20,7 @@ contract Env
 	address public cDAI = $.cDAI;
 	address public cUSDC = $.cUSDC;
 
-	uint256 public initialBalance = 5 ether;
+	uint256 public initialBalance = 8 ether;
 
 	receive() external payable {}
 
