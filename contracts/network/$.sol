@@ -7,6 +7,23 @@ library $
 
 	Network constant NETWORK = Network.Mainnet;
 
+	bool constant DEBUG = NETWORK != Network.Mainnet;
+
+	function debug(string memory _message) internal
+	{
+		address _from = msg.sender;
+		if (DEBUG) emit Debug(_from, _message);
+	}
+
+	function debug(string memory _message, uint256 _value) internal
+	{
+		address _from = msg.sender;
+		if (DEBUG) emit Debug(_from, _message, _value);
+	}
+
+	event Debug(address indexed _from, string _message);
+	event Debug(address indexed _from, string _message, uint256 _value);
+
 	address constant GRO =
 		NETWORK == Network.Mainnet ? 0x09e64c2B61a5f1690Ee6fbeD9baf5D6990F8dFd0 :
 		NETWORK == Network.Ropsten ? 0x5BaF82B5Eddd5d64E03509F0a7dBa4Cbf88CF455 :
