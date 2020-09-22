@@ -44,6 +44,7 @@ const HTTP_PROVIDER_URL = {
   'rinkeby': 'https://rinkeby.infura.io/v3/' + infuraProjectId,
   'kovan': 'https://kovan.infura.io/v3/' + infuraProjectId,
   'goerli': 'https://goerli.infura.io/v3/' + infuraProjectId,
+  'development': 'http://localhost:8545/',
 };
 
 const WEBSOCKET_PROVIDER_URL = {
@@ -52,6 +53,7 @@ const WEBSOCKET_PROVIDER_URL = {
   'rinkeby': 'wss://rinkeby.infura.io/ws/v3/' + infuraProjectId,
   'kovan': 'wss://kovan.infura.io/ws/v3/' + infuraProjectId,
   'goerli': 'wss://goerli.infura.io/ws/v3/' + infuraProjectId,
+  'development': 'http://localhost:8545/',
 };
 
 const web3 = new Web3(new HDWalletProvider(privateKey, HTTP_PROVIDER_URL[network]));
@@ -139,6 +141,7 @@ const GTOKEN_ADDRESS = {
   'rinkeby': '',
   'kovan': '0xf2B75B09431E3E9b9Fb92fa593d260462A600470',
   'goerli': '',
+  'development': '0x62703f7475F673F378304ecFe00afD6331De7930',
 };
 
 const [account] = web3.currentProvider.getAddresses();
