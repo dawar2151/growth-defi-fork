@@ -143,7 +143,8 @@ contract TestGCLeveragedReserveManager is Env
 
 		Assert.isAtMost(_availableUSDC, G.calcConversionOutputFromInput(DAI, USDC, 66e18), "USDC available must be at most the equivalent of 66e18 DAI");
 
-		G.safeBorrow(cUSDC, 30e6);
+		bool _success1 = G.borrow(cUSDC, 30e6);
+		Assert.isTrue(_success1, "failure borrowing USDC");
 
 		_availableDAI = lrm._getAvailableUnderlying();
 
@@ -153,7 +154,8 @@ contract TestGCLeveragedReserveManager is Env
 
 		Assert.isAtMost(_availableUSDC, G.calcConversionOutputFromInput(DAI, USDC, 66e18) - 29e6, "USDC available must be at most the equivalent of 66e18 DAI minus 30e6 USDC");
 
-		G.safeRepay(cUSDC, 30e6);
+		bool _success2 = G.repay(cUSDC, 30e6);
+		Assert.isTrue(_success2, "failure repaying USDC");
 
 		G.safeRedeem(cDAI, 100e18);
 	}
