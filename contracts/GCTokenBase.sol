@@ -13,17 +13,15 @@ contract GCTokenBase is GTokenBase, GCToken
 {
 	using GCLeveragedReserveManager for GCLeveragedReserveManager.Self;
 
-	address public immutable override leverageToken;
 	address public immutable override underlyingToken;
 
 	GCLeveragedReserveManager.Self lrm;
 
-	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakeToken, address _miningToken, address _reserveToken, address _leverageToken, uint256 _leverageAdjustmentAmount)
+	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakeToken, address _miningToken, address _reserveToken)
 		GTokenBase(_name, _symbol, _decimals, _stakeToken, _reserveToken) public
 	{
-		leverageToken = _leverageToken;
 		underlyingToken = G.getUnderlyingToken(_reserveToken);
-		lrm.init(_miningToken, _reserveToken, _leverageToken, _leverageAdjustmentAmount);
+		lrm.init(_miningToken, _reserveToken);
 	}
 
 	function calcCostFromUnderlyingCost(uint256 _underlyingCost, uint256 _exchangeRate) public pure override returns (uint256 _cost)
@@ -48,10 +46,7 @@ contract GCTokenBase is GTokenBase, GCToken
 
 	function totalReserveUnderlying() public view override returns (uint256 _totalReserveUnderlying)
 	{
-		uint256 _lendingReserveUnderlying = lendingReserveUnderlying();
-		uint256 _borrowingReserveUnderlying = borrowingReserveUnderlying();
-		if (_lendingReserveUnderlying <= _borrowingReserveUnderlying) return 0;
-		return _lendingReserveUnderlying.sub(_borrowingReserveUnderlying);
+		return lendingReserveUnderlying().sub(borrowingReserveUnderlying());
 	}
 
 	function lendingReserveUnderlying() public view override returns (uint256 _lendingReserveUnderlying)
@@ -61,7 +56,7 @@ contract GCTokenBase is GTokenBase, GCToken
 
 	function borrowingReserveUnderlying() public view override returns (uint256 _borrowingReserveUnderlying)
 	{
-		return lrm.estimateBorrowInUnderlying(G.getBorrowAmount(leverageToken));
+		return G.getBorrowAmount(reserveToken);
 	}
 
 	function depositUnderlying(uint256 _underlyingCost) public override nonReentrant
@@ -101,11 +96,6 @@ contract GCTokenBase is GTokenBase, GCToken
 		return lrm.leverageEnabled;
 	}
 
-	function leverageAdjustmentAmount() public view override returns (uint256 _leverageAdjustmentAmount)
-	{
-		return lrm.leverageAdjustmentAmount;
-	}
-
 	function idealCollateralizationRatio() public view override returns (uint256 _idealCollateralizationRatio)
 	{
 		return lrm.idealCollateralizationRatio;
@@ -124,11 +114,6 @@ contract GCTokenBase is GTokenBase, GCToken
 	function setLeverageEnabled(bool _leverageEnabled) public override onlyOwner nonReentrant
 	{
 		lrm.setLeverageEnabled(_leverageEnabled);
-	}
-
-	function setLeverageAdjustmentAmount(uint256 _leverageAdjustmentAmount) public override onlyOwner nonReentrant
-	{
-		lrm.setLeverageAdjustmentAmount(_leverageAdjustmentAmount);
 	}
 
 	function setIdealCollateralizationRatio(uint256 _idealCollateralizationRatio) public override onlyOwner nonReentrant
@@ -154,13 +139,13 @@ contract GCTokenBase is GTokenBase, GCToken
 	function _adjustReserve() internal override returns (bool _success)
 	{
 		uint256 _oldLend = G.fetchLendAmount(reserveToken);
-		uint256 _oldBorrow = G.fetchBorrowAmount(leverageToken);
+		uint256 _oldBorrow = G.fetchBorrowAmount(reserveToken);
 		bool _success1 = lrm.gulpMiningAssets();
 		bool _success2 = lrm.adjustLeverage();
 		uint256 _newLend = G.fetchLendAmount(reserveToken);
-		uint256 _newBorrow = G.fetchBorrowAmount(leverageToken);
+		uint256 _newBorrow = G.fetchBorrowAmount(reserveToken);
 		if (_newLend != _oldLend || _newBorrow != _oldBorrow) {
-			emit ReserveChange(_newLend, lrm.estimateBorrowInUnderlying(_newBorrow));
+			emit ReserveChange(_newLend, _newBorrow);
 		}
 		return _success1 && _success2;
 	}
