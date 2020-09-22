@@ -137,7 +137,7 @@ const GTOKEN_ADDRESS = {
   'mainnet': '',
   'ropsten': '',
   'rinkeby': '',
-  'kovan': '0x92032c6dfE5Dd26870AC7e34bb883E6a996Ce799',
+  'kovan': '0x4632dFE3B3E90B13057A3558F300b0042bc98E55',
   'goerli': '',
 };
 
@@ -197,15 +197,27 @@ async function newGToken(address) {
   return (self = {
     ...fields,
     reserveToken,
+    totalReserve: async () => {
+      const amount = await contract.methods.totalReserve().call();
+      return coins(amount, self.reserveToken.decimals);
+    },
     deposit: async (cost) => {
       const _cost = units(cost, self.reserveToken.decimals);
+      await contract.methods.deposit(_cost).estimateGas({ from: account });
       await contract.methods.deposit(_cost).send({ from: account });
     },
     withdraw: async (grossShares) => {
       const _grossShares = units(grossShares, self.decimals);
+      await contract.methods.withdraw(_grossShares).estimateGas({ from: account });
       await contract.methods.withdraw(_grossShares).send({ from: account });
     },
   });
+}
+
+function randomAmount(token, balance) {
+  const _balance = units(balance, token.decimals);
+  const _amount = Math.floor(Math.random() * (Number(_balance) + 1));
+  return coins(String(_amount), token.decimals);
 }
 
 async function main(args) {
@@ -217,11 +229,14 @@ async function main(args) {
   });
 
   const events = [
+    'Debug(address,string)',
+    'Debug(address,string,uint256)',
+    'Debug(address,string,address)',
     'ReserveChange(uint256,uint256)',
   ];
   logSubscribe(events, (address, event, values) => {
-    if (event == events[0]) {
-      console.log(event, address, values);
+    if (address == gtoken.address) {
+      console.log('>>', values.join(' '));
     }
   });
 
@@ -229,22 +244,30 @@ async function main(args) {
   console.log(gtoken.name, gtoken.symbol, gtoken.decimals);
   console.log(ctoken.name, ctoken.symbol, ctoken.decimals);
   console.log('total supply', await gtoken.totalSupply());
+  console.log('total reserve', await gtoken.totalReserve());
   console.log('gtoken balance', await gtoken.balanceOf(account));
   console.log('ctoken balance', await ctoken.balanceOf(account));
 
-  const success = await ctoken.approve(gtoken.address, await ctoken.balanceOf(account));
+  const success = await ctoken.approve(gtoken.address, '1000000000');
   console.log('approve', success);
   console.log('ctoken allowance', await ctoken.allowance(account, gtoken.address));
 
-//  await gtoken.deposit('0.1');
-//  console.log('gtoken balance', await gtoken.balanceOf(account));
-//  console.log('ctoken balance', await ctoken.balanceOf(account));
-
-//  await gtoken.withdraw('0.1');
-//  console.log('gtoken balance', await gtoken.balanceOf(account));
-//  console.log('ctoken balance', await ctoken.balanceOf(account));
-
-  await idle();
+  for (let i = 0; i < 4; i++) {
+    if (i % 2 == 0) {
+      const balance = await ctoken.balanceOf(account);
+      const amount = i == 0 ? balance : randomAmount(ctoken, balance);
+      console.log('DEPOSIT', amount);
+      if (Number(amount) > 0) await gtoken.deposit(amount);
+    } else {
+      const balance = await gtoken.balanceOf(account);
+      const amount = i == 3 ? balance : randomAmount(gtoken, balance);
+      console.log('WITHDRAW', amount);
+      if (Number(amount) > 0) await gtoken.withdraw(amount);
+    }
+    console.log('gtoken balance', await gtoken.balanceOf(account));
+    console.log('ctoken balance', await ctoken.balanceOf(account));
+    await sleep(5 * 1000);
+  }
 }
 
 entrypoint(main);
