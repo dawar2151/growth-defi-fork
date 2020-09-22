@@ -100,7 +100,7 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 		_mint(_from, _netShares);
 		_mint(address(this), _feeShares.div(2));
 		lpm.gulpPoolAssets();
-		_adjustReserve();
+		_adjustReserve(false);
 	}
 
 	function withdraw(uint256 _grossShares) public override nonReentrant
@@ -114,7 +114,7 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 		_burn(_from, _grossShares);
 		_mint(address(this), _feeShares.div(2));
 		lpm.gulpPoolAssets();
-		_adjustReserve();
+		_adjustReserve(false);
 	}
 
 	function allocateLiquidityPool(uint256 _stakesAmount, uint256 _sharesAmount) public override onlyOwner nonReentrant
@@ -160,7 +160,7 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 
 	function adjustReserve() public override onlyOwner nonReentrant
 	{
-		require(_adjustReserve(), "failure adjusting reserve");
+		require(_adjustReserve(true), "failure adjusting reserve");
 	}
 
 	uint256 private __unused;
@@ -177,9 +177,9 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 		return true;
 	}
 
-	function _adjustReserve() internal virtual returns (bool _success)
+	function _adjustReserve(bool _explicit) internal virtual returns (bool _success)
 	{
-		__unused = __unused; // silences warnings
+		__unused = __unused; _explicit; // silences warnings
 		return true;
 	}
 

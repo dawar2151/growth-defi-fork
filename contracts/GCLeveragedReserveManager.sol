@@ -21,17 +21,23 @@ library GCLeveragedReserveManager
 		address reserveToken;
 		address underlyingToken;
 
+		uint256 miningMinGulpAmount;
+		uint256 miningMaxGulpAmount;
+
 		bool leverageEnabled;
 		uint256 idealCollateralizationRatio;
 		uint256 limitCollateralizationRatio;
 		uint256 collateralizationDeviationRatio;
 	}
 
-	function init(Self storage _self, address _miningToken, address _reserveToken) public
+	function init(Self storage _self, address _miningToken, address _reserveToken, uint256 _miningGulpAmount) public
 	{
 		_self.miningToken = _miningToken;
 		_self.reserveToken = _reserveToken;
 		_self.underlyingToken = G.getUnderlyingToken(_reserveToken);
+
+		_self.miningMinGulpAmount = _miningGulpAmount;
+		_self.miningMaxGulpAmount = _miningGulpAmount;
 
 		_self.leverageEnabled = false;
 		_self.idealCollateralizationRatio = DEFAULT_IDEAL_COLLATERALIZATION_RATIO;
@@ -39,6 +45,13 @@ library GCLeveragedReserveManager
 		_self.collateralizationDeviationRatio = DEFAULT_COLLATERALIZATION_DEVIATION_RATIO;
 
 		G.safeEnter(_reserveToken);
+	}
+
+	function setMiningGulpRange(Self storage _self, uint256 _miningMinGulpAmount, uint256 _miningMaxGulpAmount) public
+	{
+		require(_miningMinGulpAmount <= _miningMaxGulpAmount, "invalid range");
+		_self.miningMinGulpAmount = _miningMinGulpAmount;
+		_self.miningMaxGulpAmount = _miningMaxGulpAmount;
 	}
 
 	function setLeverageEnabled(Self storage _self, bool _leverageEnabled) public
@@ -82,7 +95,9 @@ library GCLeveragedReserveManager
 
 	function gulpMiningAssets(Self storage _self) public returns (bool _success)
 	{
-		_self._convertMiningToUnderlying(G.getBalance(_self.miningToken));
+		uint256 _miningAmount = G.getBalance(_self.miningToken);
+		if (_miningAmount < _self.miningMinGulpAmount) return true;
+		_self._convertMiningToUnderlying(G.min(_miningAmount, _self.miningMaxGulpAmount));
 		return G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
 	}
 

@@ -17,11 +17,11 @@ contract GCTokenBase is GTokenBase, GCToken
 
 	GCLeveragedReserveManager.Self lrm;
 
-	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakeToken, address _miningToken, address _reserveToken)
+	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakeToken, address _miningToken, address _reserveToken, uint256 _miningGulpAmount)
 		GTokenBase(_name, _symbol, _decimals, _stakeToken, _reserveToken) public
 	{
 		underlyingToken = G.getUnderlyingToken(_reserveToken);
-		lrm.init(_miningToken, _reserveToken);
+		lrm.init(_miningToken, _reserveToken, _miningGulpAmount);
 	}
 
 	function calcCostFromUnderlyingCost(uint256 _underlyingCost, uint256 _exchangeRate) public pure override returns (uint256 _cost)
@@ -72,7 +72,7 @@ contract GCTokenBase is GTokenBase, GCToken
 		_mint(_from, _netShares);
 		_mint(address(this), _feeShares.div(2));
 		lpm.gulpPoolAssets();
-		_adjustReserve();
+		_adjustReserve(false);
 	}
 
 	function withdrawUnderlying(uint256 _grossShares) public override nonReentrant
@@ -88,7 +88,12 @@ contract GCTokenBase is GTokenBase, GCToken
 		_burn(_from, _grossShares);
 		_mint(address(this), _feeShares.div(2));
 		lpm.gulpPoolAssets();
-		_adjustReserve();
+		_adjustReserve(false);
+	}
+
+	function miningGulpRange() public view override returns (uint256 _miningMinGulpAmount, uint256 _miningMaxGulpAmount)
+	{
+		return (lrm.miningMinGulpAmount, lrm.miningMaxGulpAmount);
 	}
 
 	function leverageEnabled() public view override returns (bool _leverageEnabled)
@@ -109,6 +114,11 @@ contract GCTokenBase is GTokenBase, GCToken
 	function collateralizationDeviationRatio() public view override returns (uint256 _collateralizationDeviationRatio)
 	{
 		return lrm.collateralizationDeviationRatio;
+	}
+
+	function setMiningGulpRange(uint256 _miningMinGulpAmount, uint256 _miningMaxGulpAmount) public override onlyOwner nonReentrant
+	{
+		lrm.setMiningGulpRange(_miningMinGulpAmount, _miningMaxGulpAmount);
 	}
 
 	function setLeverageEnabled(bool _leverageEnabled) public override onlyOwner nonReentrant
@@ -136,8 +146,9 @@ contract GCTokenBase is GTokenBase, GCToken
 		return lrm.ensureLiquidity(GCFormulae._calcUnderlyingCostFromCost(_cost, G.fetchExchangeRate(reserveToken)));
 	}
 
-	function _adjustReserve() internal override returns (bool _success)
+	function _adjustReserve(bool _explicit) internal override returns (bool _success)
 	{
+		_explicit; // silences warnings
 		uint256 _oldLend = G.fetchLendAmount(reserveToken);
 		uint256 _oldBorrow = G.fetchBorrowAmount(reserveToken);
 		bool _success1 = lrm.gulpMiningAssets();
