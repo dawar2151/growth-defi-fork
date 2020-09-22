@@ -147,6 +147,11 @@ const ABI_ERC20 = require('../build/contracts/ERC20.json').abi;
 const ABI_CTOKEN = require('../build/contracts/CToken.json').abi;
 const ABI_GTOKEN = require('../build/contracts/GTokenBase.json').abi;
 
+async function getEthBalance(address) {
+  const amount = await web3.eth.getBalance(address);
+  return coins(amount, 18);
+}
+
 async function newERC20(address) {
   let self;
   const contract = new web3.eth.Contract(ABI_ERC20, address);
@@ -245,6 +250,7 @@ async function main(args) {
   console.log('total reserve', await gtoken.totalReserve());
   console.log('gtoken balance', await gtoken.balanceOf(account));
   console.log('ctoken balance', await ctoken.balanceOf(account));
+  console.log('eth balance', await getEthBalance(account));
 
   const success = await ctoken.approve(gtoken.address, '1000000000');
   console.log('approve', success);
@@ -255,15 +261,24 @@ async function main(args) {
       const balance = await ctoken.balanceOf(account);
       const amount = i == 0 ? balance : randomAmount(ctoken, balance);
       console.log('DEPOSIT', amount);
-      if (Number(amount) > 0) await gtoken.deposit(amount);
+      try {
+        if (Number(amount) > 0) await gtoken.deposit(amount);
+      } catch (e) {
+        console.log('!!', e.message);
+      }
     } else {
       const balance = await gtoken.balanceOf(account);
       const amount = i == 3 ? balance : randomAmount(gtoken, balance);
       console.log('WITHDRAW', amount);
-      if (Number(amount) > 0) await gtoken.withdraw(amount);
+      try {
+        if (Number(amount) > 0) await gtoken.withdraw(amount);
+      } catch (e) {
+        console.log('!!', e.message);
+      }
     }
     console.log('gtoken balance', await gtoken.balanceOf(account));
     console.log('ctoken balance', await ctoken.balanceOf(account));
+    console.log('eth balance', await getEthBalance(account));
     await sleep(5 * 1000);
   }
 }
