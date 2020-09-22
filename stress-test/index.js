@@ -137,7 +137,7 @@ const GTOKEN_ADDRESS = {
   'mainnet': '',
   'ropsten': '',
   'rinkeby': '',
-  'kovan': '0x4632dFE3B3E90B13057A3558F300b0042bc98E55',
+  'kovan': '0xf2B75B09431E3E9b9Fb92fa593d260462A600470',
   'goerli': '',
 };
 
@@ -203,12 +203,10 @@ async function newGToken(address) {
     },
     deposit: async (cost) => {
       const _cost = units(cost, self.reserveToken.decimals);
-      await contract.methods.deposit(_cost).estimateGas({ from: account });
       await contract.methods.deposit(_cost).send({ from: account });
     },
     withdraw: async (grossShares) => {
       const _grossShares = units(grossShares, self.decimals);
-      await contract.methods.withdraw(_grossShares).estimateGas({ from: account });
       await contract.methods.withdraw(_grossShares).send({ from: account });
     },
   });
@@ -236,7 +234,7 @@ async function main(args) {
   ];
   logSubscribe(events, (address, event, values) => {
     if (address == gtoken.address) {
-      console.log('>>', values.join(' '));
+      console.log('>>', values.slice(1).join(' '));
     }
   });
 
