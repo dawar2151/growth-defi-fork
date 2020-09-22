@@ -84,31 +84,51 @@ library CompoundLendingMarketAbstraction
 		address _comptroller = $.Compound_COMPTROLLER;
 		address[] memory _ctokens = new address[](1);
 		_ctokens[0] = _ctoken;
-		return Comptroller(_comptroller).enterMarkets(_ctokens)[0] == 0;
+		try Comptroller(_comptroller).enterMarkets(_ctokens) returns (uint256[] memory _errorCodes) {
+			return _errorCodes[0] == 0;
+		} catch (bytes memory /* _data */) {
+			return false;
+		}
 	}
 
 	function _lend(address _ctoken, uint256 _amount) internal returns (bool _success)
 	{
 		address _token = _getUnderlyingToken(_ctoken);
 		Transfers._approveFunds(_token, _ctoken, _amount);
-		return CToken(_ctoken).mint(_amount) == 0;
+		try CToken(_ctoken).mint(_amount) returns (uint256 _errorCode) {
+			return _errorCode == 0;
+		} catch (bytes memory /* _data */) {
+			return false;
+		}
 	}
 
 	function _redeem(address _ctoken, uint256 _amount) internal returns (bool _success)
 	{
-		return CToken(_ctoken).redeemUnderlying(_amount) == 0;
+		try CToken(_ctoken).redeemUnderlying(_amount) returns (uint256 _errorCode) {
+			return _errorCode == 0;
+		} catch (bytes memory /* _data */) {
+			return false;
+		}
 	}
 
 	function _borrow(address _ctoken, uint256 _amount) internal returns (bool _success)
 	{
-		return CToken(_ctoken).borrow(_amount) == 0;
+		try CToken(_ctoken).borrow(_amount) returns (uint256 _errorCode) {
+			return _errorCode == 0;
+		} catch (bytes memory /* _data */) {
+			return false;
+		}
 	}
 
 	function _repay(address _ctoken, uint256 _amount) internal returns (bool _success)
 	{
 		address _token = _getUnderlyingToken(_ctoken);
 		Transfers._approveFunds(_token, _ctoken, _amount);
-		return CToken(_ctoken).repayBorrow(_amount) == 0;
+		try CToken(_ctoken).repayBorrow(_amount) returns (uint256 _errorCode) {
+			return _errorCode == 0;
+		} catch (bytes memory /* _data */) {
+			return false;
+		}
 	}
 
 	function _safeEnter(address _ctoken) internal
