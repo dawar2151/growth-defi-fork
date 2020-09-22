@@ -3,6 +3,7 @@ pragma solidity ^0.6.0;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
+import { GExchange } from "./GExchange.sol";
 import { G } from "./G.sol";
 
 library GCLeveragedReserveManager
@@ -17,10 +18,11 @@ library GCLeveragedReserveManager
 	uint256 constant DEFAULT_COLLATERALIZATION_DEVIATION_RATIO = 1e16; // 1%
 
 	struct Self {
-		address miningToken;
 		address reserveToken;
 		address underlyingToken;
 
+		address miningToken;
+		address miningExchange;
 		uint256 miningMinGulpAmount;
 		uint256 miningMaxGulpAmount;
 
@@ -30,14 +32,15 @@ library GCLeveragedReserveManager
 		uint256 collateralizationDeviationRatio;
 	}
 
-	function init(Self storage _self, address _miningToken, address _reserveToken, uint256 _miningGulpAmount) public
+	function init(Self storage _self, address _reserveToken, address _underlyingToken, address _miningToken) public
 	{
-		_self.miningToken = _miningToken;
 		_self.reserveToken = _reserveToken;
-		_self.underlyingToken = G.getUnderlyingToken(_reserveToken);
+		_self.underlyingToken = _underlyingToken;
 
-		_self.miningMinGulpAmount = _miningGulpAmount;
-		_self.miningMaxGulpAmount = _miningGulpAmount;
+		_self.miningToken = _miningToken;
+		_self.miningExchange = address(0);
+		_self.miningMinGulpAmount = 0;
+		_self.miningMaxGulpAmount = 0;
 
 		_self.leverageEnabled = false;
 		_self.idealCollateralizationRatio = DEFAULT_IDEAL_COLLATERALIZATION_RATIO;
@@ -45,6 +48,11 @@ library GCLeveragedReserveManager
 		_self.collateralizationDeviationRatio = DEFAULT_COLLATERALIZATION_DEVIATION_RATIO;
 
 		G.safeEnter(_reserveToken);
+	}
+
+	function setMiningExchange(Self storage _self, address _miningExchange) public
+	{
+		_self.miningExchange = _miningExchange;
 	}
 
 	function setMiningGulpRange(Self storage _self, uint256 _miningMinGulpAmount, uint256 _miningMaxGulpAmount) public
@@ -96,7 +104,9 @@ library GCLeveragedReserveManager
 	function gulpMiningAssets(Self storage _self) public returns (bool _success)
 	{
 		uint256 _miningAmount = G.getBalance(_self.miningToken);
+		if (_miningAmount == 0) return true;
 		if (_miningAmount < _self.miningMinGulpAmount) return true;
+		if (_self.miningExchange == address(0)) return false;
 		_self._convertMiningToUnderlying(G.min(_miningAmount, _self.miningMaxGulpAmount));
 		return G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
 	}
@@ -167,15 +177,8 @@ library GCLeveragedReserveManager
 		return _success1 && _success2;
 	}
 
-	function _calcConversionUnderlyingToMiningGivenMining(Self storage _self, uint256 _outputAmount) internal view returns (uint256 _inputAmount)
-	{
-		if (_self.miningToken == _self.underlyingToken) return _outputAmount;
-		return G.calcConversionInputFromOutput(_self.underlyingToken, _self.miningToken, _outputAmount);
-	}
-
 	function _convertMiningToUnderlying(Self storage _self, uint256 _inputAmount) internal
 	{
-		if (_self.miningToken == _self.underlyingToken) return;
-		G.convertFunds(_self.miningToken, _self.underlyingToken, _inputAmount, 0);
+		GExchange(_self.miningExchange).convertFunds(_self.miningToken, _self.underlyingToken, _inputAmount, 0);
 	}
 }

@@ -13,6 +13,7 @@ interface GCToken is GToken
 	function totalReserveUnderlying() external view returns (uint256 _totalReserveUnderlying);
 	function lendingReserveUnderlying() external view returns (uint256 _lendingReserveUnderlying);
 	function borrowingReserveUnderlying() external view returns (uint256 _borrowingReserveUnderlying);
+	function miningExchange() external view returns (address _miningExchange);
 	function miningGulpRange() external view returns (uint256 _miningMinGulpAmount, uint256 _miningMaxGulpAmount);
 	function leverageEnabled() external view returns (bool _leverageEnabled);
 	function idealCollateralizationRatio() external view returns (uint256 _idealCollateralizationRatio);
@@ -22,6 +23,7 @@ interface GCToken is GToken
 	function depositUnderlying(uint256 _underlyingCost) external;
 	function withdrawUnderlying(uint256 _grossShares) external;
 
+	function setMiningExchange(address _miningExchange) external;
 	function setMiningGulpRange(uint256 _miningMinGulpAmount, uint256 _miningMaxGulpAmount) external;
 	function setLeverageEnabled(bool _leverageEnabled) external;
 	function setIdealCollateralizationRatio(uint256 _idealCollateralizationRatio) external;

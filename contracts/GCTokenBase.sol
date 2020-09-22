@@ -17,11 +17,12 @@ contract GCTokenBase is GTokenBase, GCToken
 
 	GCLeveragedReserveManager.Self lrm;
 
-	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakeToken, address _miningToken, address _reserveToken, uint256 _miningGulpAmount)
+	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakeToken, address _reserveToken, address _miningToken)
 		GTokenBase(_name, _symbol, _decimals, _stakeToken, _reserveToken) public
 	{
-		underlyingToken = G.getUnderlyingToken(_reserveToken);
-		lrm.init(_miningToken, _reserveToken, _miningGulpAmount);
+		address _underlyingToken = G.getUnderlyingToken(_reserveToken);
+		underlyingToken = _underlyingToken;
+		lrm.init(_reserveToken, _underlyingToken, _miningToken);
 	}
 
 	function calcCostFromUnderlyingCost(uint256 _underlyingCost, uint256 _exchangeRate) public pure override returns (uint256 _cost)
@@ -91,6 +92,11 @@ contract GCTokenBase is GTokenBase, GCToken
 		_adjustReserve(false);
 	}
 
+	function miningExchange() public view override returns (address _miningExchange)
+	{
+		return lrm.miningExchange;
+	}
+
 	function miningGulpRange() public view override returns (uint256 _miningMinGulpAmount, uint256 _miningMaxGulpAmount)
 	{
 		return (lrm.miningMinGulpAmount, lrm.miningMaxGulpAmount);
@@ -114,6 +120,11 @@ contract GCTokenBase is GTokenBase, GCToken
 	function collateralizationDeviationRatio() public view override returns (uint256 _collateralizationDeviationRatio)
 	{
 		return lrm.collateralizationDeviationRatio;
+	}
+
+	function setMiningExchange(address _miningExchange) public override onlyOwner nonReentrant
+	{
+		lrm.setMiningExchange(_miningExchange);
 	}
 
 	function setMiningGulpRange(uint256 _miningMinGulpAmount, uint256 _miningMaxGulpAmount) public override onlyOwner nonReentrant
