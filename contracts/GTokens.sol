@@ -12,3 +12,19 @@ contract gcDAI is GCTokenBase
 	{
 	}
 }
+
+contract gcUSDC is GCTokenBase
+{
+	constructor ()
+		GCTokenBase("growth cUSDC", "gcUSDC", 8, $.GRO, $.cUSDC, $.COMP) public
+	{
+	}
+}
+
+contract gcUSDT is GCTokenBase
+{
+	constructor ()
+		GCTokenBase("growth cUSDT", "gcUSDT", 8, $.GRO, $.cUSDT, $.COMP) public
+	{
+	}
+}
