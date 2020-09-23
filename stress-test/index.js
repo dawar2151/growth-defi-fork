@@ -29,11 +29,9 @@ function entrypoint(main) {
 
 // web3
 
-const network = process.env['NETWORK'];
-if (!network) throw new Error('Unknown network');
+const network = process.env['NETWORK'] || 'development';
 
-const infuraProjectId = process.env['INFURA_PROJECT_ID'];
-if (!infuraProjectId) throw new Error('Unknown infura project id');
+const infuraProjectId = process.env['INFURA_PROJECT_ID'] || '';
 
 const privateKey = process.env['PRIVATE_KEY'];
 if (!privateKey) throw new Error('Unknown private key');
