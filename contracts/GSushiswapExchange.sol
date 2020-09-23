@@ -5,7 +5,7 @@ import { GExchange } from "./GExchange.sol";
 
 import { SushiswapExchangeAbstraction } from "./modules/SushiswapExchangeAbstraction.sol";
 
-contract GUniswapV2Exchange is GExchange
+contract GSushiswapExchange is GExchange
 {
 	function calcConversionOutputFromInput(address _from, address _to, uint256 _inputAmount) public view override returns (uint256 _outputAmount)
 	{
