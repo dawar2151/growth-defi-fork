@@ -2,6 +2,7 @@
 pragma solidity ^0.6.0;
 
 import { Assert } from "truffle/Assert.sol";
+import { DeployedAddresses } from "truffle/DeployedAddresses.sol";
 
 import { Env } from "./Env.sol";
 
@@ -17,11 +18,11 @@ contract TestGCLeveragedReserveManager is Env
 	constructor () public
 	{
 		lrm.init(cDAI, DAI, COMP);
-/*
-		lrm.setMinitingExchange(/ * fill me up * /);
-*/
+
+		address exchange = DeployedAddresses.GSushiswapExchange();
+		lrm.setMiningExchange(exchange);
 	}
-/*
+
 	function test01() public
 	{
 		_burnAll(COMP);
@@ -36,7 +37,7 @@ contract TestGCLeveragedReserveManager is Env
 		Assert.equal(_getBalance(COMP), 1e18, "COMP balance must be 1e18");
 		Assert.isAbove(_getBalance(DAI), 0e18, "DAI balance must be above 0e18");
 	}
-*/
+
 	function test02() public
 	{
 		uint256 _deathAmount = lrm._calcDeathAmount(1000000000e18);
@@ -152,20 +153,19 @@ contract TestGCLeveragedReserveManager is Env
 		Assert.equal(_getBalance(DAI), 0e18, "DAI balance must be 0e18");
 		Assert.equal(_getBalance(cDAI), 0e8, "cDAI balance must be 0e8");
 	}
-/*
+
 	function test09() public
 	{
 		_burnAll(COMP);
 		_burnAll(DAI);
 		_burnAll(cDAI);
-		_mint(DAI, 50e18);
+		_mint(COMP, 5e18);
 
-		uint256 _amountCOMP = G.convertFunds(DAI, COMP, 40e18, 0);
-
-		Assert.equal(_getBalance(COMP), _amountCOMP, "COMP balance must match");
-		Assert.equal(_getBalance(DAI), 10e18, "DAI balance must be 10e18");
+		Assert.equal(_getBalance(COMP), 5e18, "COMP balance must be 5e18");
+		Assert.equal(_getBalance(DAI), 0e18, "DAI balance must be 0e18");
 		Assert.equal(_getBalance(cDAI), 0e8, "cDAI balance must be 0e8");
 
+		lrm.setMiningGulpRange(0e18, 100e18);
 		lrm.gulpMiningAssets();
 
 		Assert.equal(_getBalance(COMP), 0e18, "COMP balance must be 0e18");
@@ -178,13 +178,13 @@ contract TestGCLeveragedReserveManager is Env
 		_burnAll(COMP);
 		_burnAll(DAI);
 		_burnAll(cDAI);
-		_mint(DAI, 200e18);
+		_mint(COMP, 5e18);
 
-		uint256 _amountCOMP = G.convertFunds(DAI, COMP, 200e18, 0);
-
-		Assert.equal(_getBalance(COMP), _amountCOMP, "COMP balance must match");
+		Assert.equal(_getBalance(COMP), 5e18, "COMP balance must be 5e18");
 		Assert.equal(_getBalance(DAI), 0e18, "DAI balance must be 0e18");
 		Assert.equal(_getBalance(cDAI), 0e8, "cDAI balance must be 0e8");
+
+		lrm.setMiningGulpRange(0e18, 1e18);
 
 		uint256 _rounds = 0;
 		while (_getBalance(COMP) > 0) {
@@ -195,7 +195,6 @@ contract TestGCLeveragedReserveManager is Env
 		Assert.equal(_getBalance(COMP), 0e18, "COMP balance must be 0e18");
 		Assert.equal(_getBalance(DAI), 0e18, "DAI balance must be 0e18");
 		Assert.isAbove(_getBalance(cDAI), 0e8, "cDAI balance must be above 0e8");
-		Assert.isAtLeast(_rounds, 1, "rounds be at least 1");
+		Assert.equal(_rounds, 5, "rounds be 5");
 	}
-*/
 }
