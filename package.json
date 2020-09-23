@@ -26,7 +26,7 @@
     "deploy:goerli": "truffle migrate --network goerli",
     "source": "truffle-flattener contracts/*.sol > growthdefi.sol",
     "test": "truffle test",
-    "stress-test": "node stress-test/index.js"
+    "stress-test": "npm run deploy && node stress-test/index.js"
   },
   "repository": {
     "type": "git",
