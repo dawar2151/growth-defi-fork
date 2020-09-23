@@ -36,6 +36,17 @@ const infuraProjectId = process.env['INFURA_PROJECT_ID'] || '';
 const privateKey = process.env['PRIVATE_KEY'];
 if (!privateKey) throw new Error('Unknown private key');
 
+const NETWORK_ID = {
+  'mainnet': '1',
+  'ropsten': '3',
+  'rinkeby': '4',
+  'kovan': '42',
+  'goerli': '5',
+  'development': '1',
+};
+
+const networkId = NETWORK_ID[network];
+
 const HTTP_PROVIDER_URL = {
   'mainnet': 'https://mainnet.infura.io/v3/' + infuraProjectId,
   'ropsten': 'https://ropsten.infura.io/v3/' + infuraProjectId,
@@ -133,24 +144,24 @@ function units(coins, decimals) {
 
 // main
 
-const GTOKEN_ADDRESS = {
-  'mainnet': '',
-  'ropsten': '',
-  'rinkeby': '',
-  'kovan': '0xf2B75B09431E3E9b9Fb92fa593d260462A600470',
-  'goerli': '',
-  'development': '0x0D3aaBd23b827Dd63FE59888D792EE27C00B53A8',
-};
-
 const [account] = web3.currentProvider.getAddresses();
 
 const ABI_ERC20 = require('../build/contracts/ERC20.json').abi;
 const ABI_CTOKEN = require('../build/contracts/CToken.json').abi;
-const ABI_GTOKEN = require('../build/contracts/gcDAI.json').abi;
+const ABI_GTOKEN = require('../build/contracts/GToken.json').abi;
+const ABI_GEXCHANGE = require('../build/contracts/GSushiswapExchange.json').abi;
 
 async function getEthBalance(address) {
   const amount = await web3.eth.getBalance(address);
   return coins(amount, 18);
+}
+
+async function mint(token, amount, maxCost) {
+  const GEXCHANGE_ADDRESS = require('../build/contracts/GSushiswapExchange.json').networks[networkId].address;
+  const contract = new web3.eth.Contract(ABI_GEXCHANGE, GEXCHANGE_ADDRESS);
+  const _amount = units(amount, token.decimals);
+  const value = units(maxCost, 18);
+  await contract.methods.faucet(token.address, _amount).send({ from: account, value });
 }
 
 async function newERC20(address) {
@@ -215,11 +226,6 @@ async function newGToken(address) {
       const _grossShares = units(grossShares, self.decimals);
       await contract.methods.withdraw(_grossShares).send({ from: account });
     },
-    mint: async (amount, maxCost) => {
-      const _amount = units(amount, self.decimals);
-      const value = units(maxCost, 18);
-      await contract.methods.faucet(_amount).send({ from: account, value });
-    },
   });
 }
 
@@ -230,7 +236,8 @@ function randomAmount(token, balance) {
 }
 
 async function main(args) {
-  const gtoken = await newGToken(GTOKEN_ADDRESS[network]);
+  const GTOKEN_ADDRESS = require('../build/contracts/gcDAI.json').networks[networkId].address;
+  const gtoken = await newGToken(GTOKEN_ADDRESS);
   const ctoken = gtoken.reserveToken;
 
   blockSubscribe((number) => {
@@ -253,7 +260,7 @@ async function main(args) {
     }
   });
 
-  await gtoken.mint('1', '1');
+  await mint(ctoken, '1', '1');
 
   console.log(network);
   console.log(gtoken.name, gtoken.symbol, gtoken.decimals);
@@ -267,7 +274,7 @@ async function main(args) {
   const success = await ctoken.approve(gtoken.address, '1000000000');
   console.log('approve', success);
   console.log('ctoken allowance', await ctoken.allowance(account, gtoken.address));
-
+/*
   for (let i = 0; i < 40; i++) {
     if (i < 20) {
       const balance = await ctoken.balanceOf(account);
@@ -295,6 +302,7 @@ async function main(args) {
     console.log('eth balance', await getEthBalance(account));
     await sleep(5 * 1000);
   }
+*/
 }
 
 entrypoint(main);
