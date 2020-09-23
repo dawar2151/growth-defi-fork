@@ -1,7 +1,7 @@
 const G = artifacts.require('G');
 const GCLeveragedReserveManager = artifacts.require('GCLeveragedReserveManager');
 
-module.exports = (deployer) => {
+module.exports = async (deployer) => {
   deployer.link(G, GCLeveragedReserveManager);
-  deployer.deploy(GCLeveragedReserveManager);
+  await deployer.deploy(GCLeveragedReserveManager);
 };

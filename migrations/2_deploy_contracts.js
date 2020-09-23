@@ -1,5 +1,5 @@
 const G = artifacts.require('G');
 
-module.exports = (deployer) => {
-  deployer.deploy(G);
+module.exports = async (deployer) => {
+  await deployer.deploy(G);
 };
