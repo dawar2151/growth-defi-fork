@@ -11,10 +11,10 @@ library GCLeveragedReserveManager
 	using SafeMath for uint256;
 	using GCLeveragedReserveManager for GCLeveragedReserveManager.Self;
 
-	uint256 constant DELEVERAGING_UNROLL_LIMIT = 10;
+	uint256 constant DELEVERAGING_UNROLL_LIMIT = 25;
 	uint256 constant MINIMUM_RATIO_GRANULARITY = 4e16; // 4%
 	uint256 constant DEFAULT_IDEAL_COLLATERALIZATION_RATIO = 88e16; // 88% of 75% = 66%
-	uint256 constant DEFAULT_LIMIT_COLLATERALIZATION_RATIO = 92e16; // 92% of 75% = 69%
+	uint256 constant DEFAULT_LIMIT_COLLATERALIZATION_RATIO = 96e16; // 96% of 75% = 72%
 	uint256 constant DEFAULT_COLLATERALIZATION_DEVIATION_RATIO = 1e16; // 1%
 
 	struct Self {
@@ -134,6 +134,8 @@ library GCLeveragedReserveManager
 
 	function _getAvailableDecrease(Self storage _self) internal view returns (uint256 _availableUnderlying)
 	{
+		uint256 _borrowAmount = G.getBorrowAmount(_self.reserveToken);
+		if (_borrowAmount == 0) return G.getAvailableAmount(_self.reserveToken, 0);
 		uint256 _lendAmount = G.getLendAmount(_self.reserveToken);
 		uint256 _deathAmount = _self._calcDeathAmount(_lendAmount);
 		uint256 _limitAmount = _self._calcLimitAmount(_lendAmount);

@@ -84,6 +84,7 @@ contract GCTokenBase is GTokenBase, GCToken
 		uint256 _underlyingCost = GCFormulae._calcUnderlyingCostFromCost(_cost, exchangeRate());
 		require(_underlyingCost > 0, "underlying cost must be greater than 0");
 		require(_prepareWithdrawal(_cost), "operation not available at the moment");
+//		_underlyingCost = G.min(_underlyingCost, G.getLendAmount(reserveToken));
 		G.safeRedeem(reserveToken, _underlyingCost);
 		G.pushFunds(underlyingToken, _from, _underlyingCost);
 		_burn(_from, _grossShares);

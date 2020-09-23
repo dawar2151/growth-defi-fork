@@ -12,5 +12,5 @@ module.exports = async (deployer, network) => {
   } else {
     exchange = await GUniswapV2Exchange.deployed();
   }
-  await token.setMiningExchange(exchange.address);
+//  await token.setMiningExchange(exchange.address);
 };

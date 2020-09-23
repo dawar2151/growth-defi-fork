@@ -139,14 +139,14 @@ const GTOKEN_ADDRESS = {
   'rinkeby': '',
   'kovan': '0xf2B75B09431E3E9b9Fb92fa593d260462A600470',
   'goerli': '',
-  'development': '0x62703f7475F673F378304ecFe00afD6331De7930',
+  'development': '0x0D3aaBd23b827Dd63FE59888D792EE27C00B53A8',
 };
 
 const [account] = web3.currentProvider.getAddresses();
 
 const ABI_ERC20 = require('../build/contracts/ERC20.json').abi;
 const ABI_CTOKEN = require('../build/contracts/CToken.json').abi;
-const ABI_GTOKEN = require('../build/contracts/GTokenBase.json').abi;
+const ABI_GTOKEN = require('../build/contracts/gcDAI.json').abi;
 
 async function getEthBalance(address) {
   const amount = await web3.eth.getBalance(address);
@@ -215,6 +215,11 @@ async function newGToken(address) {
       const _grossShares = units(grossShares, self.decimals);
       await contract.methods.withdraw(_grossShares).send({ from: account });
     },
+    mint: async (amount, maxCost) => {
+      const _amount = units(amount, self.decimals);
+      const value = units(maxCost, 18);
+      await contract.methods.faucet(_amount).send({ from: account, value });
+    },
   });
 }
 
@@ -240,9 +245,15 @@ async function main(args) {
   ];
   logSubscribe(events, (address, event, values) => {
     if (address == gtoken.address) {
-      console.log('>>', values.slice(1).join(' '));
+      if (event == 'ReserveChange(uint256,uint256)') {
+        console.log('**', (100 * Number(values[1])) / Number(values[0]));
+      } else {
+        console.log('>>', values.slice(1).join(' '));
+      }
     }
   });
+
+  await gtoken.mint('1', '1');
 
   console.log(network);
   console.log(gtoken.name, gtoken.symbol, gtoken.decimals);
@@ -257,10 +268,10 @@ async function main(args) {
   console.log('approve', success);
   console.log('ctoken allowance', await ctoken.allowance(account, gtoken.address));
 
-  for (let i = 0; i < 4; i++) {
-    if (i % 2 == 0) {
+  for (let i = 0; i < 40; i++) {
+    if (i < 20) {
       const balance = await ctoken.balanceOf(account);
-      const amount = i == 0 ? balance : randomAmount(ctoken, balance);
+      const amount = i == 19 ? balance : randomAmount(ctoken, balance);
       console.log('DEPOSIT', amount);
       try {
         if (Number(amount) > 0) await gtoken.deposit(amount);
@@ -269,7 +280,7 @@ async function main(args) {
       }
     } else {
       const balance = await gtoken.balanceOf(account);
-      const amount = i == 3 ? balance : randomAmount(gtoken, balance);
+      const amount = i == 39 ? balance : randomAmount(gtoken, balance);
       console.log('WITHDRAW', amount);
       try {
         if (Number(amount) > 0) await gtoken.withdraw(amount);
@@ -277,6 +288,8 @@ async function main(args) {
         console.log('!!', e.message);
       }
     }
+    console.log('total supply', await gtoken.totalSupply());
+    console.log('total reserve', await gtoken.totalReserve());
     console.log('gtoken balance', await gtoken.balanceOf(account));
     console.log('ctoken balance', await ctoken.balanceOf(account));
     console.log('eth balance', await getEthBalance(account));
