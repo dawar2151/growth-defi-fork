@@ -89,12 +89,12 @@ library GCLeveragedReserveManager
 
 	function ensureLiquidity(Self storage _self, uint256 _requiredAmount) public returns (bool _success)
 	{
-		uint256 _availableAmount = _self._getAvailableUnderlying();
+		uint256 _availableAmount = _self._getAvailableDecrease();
 		for (uint256 _i; _i < DELEVERAGING_UNROLL_LIMIT; _i++) {
 			if (_requiredAmount <= _availableAmount) return true;
 			_success = _self._decreaseLeverage(_requiredAmount.sub(_availableAmount));
 			if (!_success) return false;
-			uint256 _newAvailableAmount = _self._getAvailableUnderlying();
+			uint256 _newAvailableAmount = _self._getAvailableDecrease();
 			if (_newAvailableAmount <= _availableAmount) return false;
 			_availableAmount = _newAvailableAmount;
 		}
@@ -123,21 +123,21 @@ library GCLeveragedReserveManager
 		return true;
 	}
 
-	function _getAvailableUnderlying(Self storage _self) internal view returns (uint256 _availableUnderlying)
-	{
-		uint256 _lendAmount = G.getLendAmount(_self.reserveToken);
-		uint256 _deathAmount = _self._calcDeathAmount(_lendAmount);
-		uint256 _limitAmount = _self._calcLimitAmount(_lendAmount);
-		uint256 _marginAmount = _deathAmount.sub(_limitAmount);
-		return G.getAvailableAmount(_self.reserveToken, _marginAmount);
-	}
-
-	function _getAvailableBorrow(Self storage _self) internal view returns (uint256 _availableBorrow)
+	function _getAvailableIncrease(Self storage _self) internal view returns (uint256 _availableBorrow)
 	{
 		uint256 _lendAmount = G.getLendAmount(_self.reserveToken);
 		uint256 _deathAmount = _self._calcDeathAmount(_lendAmount);
 		uint256 _idealAmount = _self._calcIdealAmount(_lendAmount);
 		uint256 _marginAmount = _deathAmount.sub(_idealAmount);
+		return G.getAvailableAmount(_self.reserveToken, _marginAmount);
+	}
+
+	function _getAvailableDecrease(Self storage _self) internal view returns (uint256 _availableUnderlying)
+	{
+		uint256 _lendAmount = G.getLendAmount(_self.reserveToken);
+		uint256 _deathAmount = _self._calcDeathAmount(_lendAmount);
+		uint256 _limitAmount = _self._calcLimitAmount(_lendAmount);
+		uint256 _marginAmount = _deathAmount.sub(_limitAmount);
 		return G.getAvailableAmount(_self.reserveToken, _marginAmount);
 	}
 
@@ -163,7 +163,7 @@ library GCLeveragedReserveManager
 
 	function _increaseLeverage(Self storage _self, uint256 _amount) internal returns (bool _success)
 	{
-		bool _success1 = G.borrow(_self.reserveToken, G.min(_amount, _self._getAvailableBorrow()));
+		bool _success1 = G.borrow(_self.reserveToken, G.min(_amount, _self._getAvailableIncrease()));
 		bool _success2 = G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
 		G.repay(_self.reserveToken, G.min(G.getBalance(_self.underlyingToken), G.getBorrowAmount(_self.reserveToken)));
 		return _success1 && _success2;
@@ -171,7 +171,7 @@ library GCLeveragedReserveManager
 
 	function _decreaseLeverage(Self storage _self, uint256 _amount) internal returns (bool _success)
 	{
-		bool _success1 = G.redeem(_self.reserveToken, G.min(_amount, _self._getAvailableUnderlying()));
+		bool _success1 = G.redeem(_self.reserveToken, G.min(_amount, _self._getAvailableDecrease()));
 		bool _success2 = G.repay(_self.reserveToken, G.min(G.getBalance(_self.underlyingToken), G.getBorrowAmount(_self.reserveToken)));
 		G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
 		return _success1 && _success2;
