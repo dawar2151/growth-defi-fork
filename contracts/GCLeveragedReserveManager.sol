@@ -179,6 +179,9 @@ library GCLeveragedReserveManager
 
 	function _convertMiningToUnderlying(Self storage _self, uint256 _inputAmount) internal
 	{
-		GExchange(_self.miningExchange).convertFunds(_self.miningToken, _self.underlyingToken, _inputAmount, 0);
+		string memory _signature = "convertFunds(address,address,uint256,uint256)";
+		bytes memory _params = abi.encodeWithSignature(_signature, _self.miningToken, _self.underlyingToken, _inputAmount, 0);
+		(bool _success, bytes memory _result) = _self.miningExchange.delegatecall(_params);
+		_success; _result; // silences warnings
 	}
 }

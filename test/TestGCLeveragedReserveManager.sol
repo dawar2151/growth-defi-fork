@@ -16,9 +16,12 @@ contract TestGCLeveragedReserveManager is Env
 
 	constructor () public
 	{
-		lrm.init(COMP, cDAI);
+		lrm.init(cDAI, DAI, COMP);
+/*
+		lrm.setMinitingExchange(/ * fill me up * /);
+*/
 	}
-
+/*
 	function test01() public
 	{
 		_burnAll(COMP);
@@ -33,43 +36,36 @@ contract TestGCLeveragedReserveManager is Env
 		Assert.equal(_getBalance(COMP), 1e18, "COMP balance must be 1e18");
 		Assert.isAbove(_getBalance(DAI), 0e18, "DAI balance must be above 0e18");
 	}
-
+*/
 	function test02() public
-	{
-		uint256 _amount1 = lrm._calcConversionUnderlyingToMiningGivenMining(3e18);
-		uint256 _amount2 = G.calcConversionInputFromOutput(DAI, COMP, 3e18);
-		Assert.equal(_amount1, _amount2, "amounts must match");
-	}
-
-	function test03() public
 	{
 		uint256 _deathAmount = lrm._calcDeathAmount(1000000000e18);
 
 		Assert.equal(_deathAmount, 750000000e18, "death amount must be 750000000e18");
 	}
 
-	function test04() public
+	function test03() public
 	{
 		uint256 _limitAmount = lrm._calcLimitAmount(1000000000e18);
 
 		Assert.equal(_limitAmount, 690000000e18, "limit amount must be 690000000e18");
 	}
 
-	function test05() public
+	function test04() public
 	{
 		uint256 _idealAmount = lrm._calcIdealAmount(1000000000e18);
 
 		Assert.equal(_idealAmount, 660000000e18, "ideal amount must be 660000000e18");
 	}
 
-	function test06() public
+	function test05() public
 	{
 		uint256 _deviationAmount = lrm._calcDeviationAmount(1000000000e18);
 
 		Assert.equal(_deviationAmount, 7500000e18, "deviation amount must be 7500000e18");
 	}
 /*
-	function test07() public
+	function test06() public
 	{
 		_burnAll(DAI);
 		_burnAll(cDAI);
@@ -105,7 +101,7 @@ contract TestGCLeveragedReserveManager is Env
 		G.safeRedeem(cDAI, 100e18);
 	}
 
-	function test08() public
+	function test07() public
 	{
 		_burnAll(DAI);
 		_burnAll(cDAI);
@@ -140,7 +136,7 @@ contract TestGCLeveragedReserveManager is Env
 		Assert.isAbove(_getBalance(DAI), 999e18, "DAI amount must be above 999e18");
 	}
 */
-	function test09() public
+	function test08() public
 	{
 		_burnAll(COMP);
 		_burnAll(DAI);
@@ -156,8 +152,8 @@ contract TestGCLeveragedReserveManager is Env
 		Assert.equal(_getBalance(DAI), 0e18, "DAI balance must be 0e18");
 		Assert.equal(_getBalance(cDAI), 0e8, "cDAI balance must be 0e8");
 	}
-
-	function test10() public
+/*
+	function test09() public
 	{
 		_burnAll(COMP);
 		_burnAll(DAI);
@@ -177,7 +173,7 @@ contract TestGCLeveragedReserveManager is Env
 		Assert.isAbove(_getBalance(cDAI), 0e8, "cDAI balance must be above 0e8");
 	}
 
-	function test11() public
+	function test10() public
 	{
 		_burnAll(COMP);
 		_burnAll(DAI);
@@ -201,4 +197,5 @@ contract TestGCLeveragedReserveManager is Env
 		Assert.isAbove(_getBalance(cDAI), 0e8, "cDAI balance must be above 0e8");
 		Assert.isAtLeast(_rounds, 1, "rounds be at least 1");
 	}
+*/
 }
