@@ -3,11 +3,7 @@ pragma solidity ^0.6.0;
 
 import { GExchange } from "./GExchange.sol";
 
-import { Router02 } from "./interop/UniswapV2.sol";
-
 import { SushiswapExchangeAbstraction } from "./modules/SushiswapExchangeAbstraction.sol";
-
-import { $ } from "./network/$.sol";
 
 contract GSushiswapExchange is GExchange
 {
@@ -25,17 +21,4 @@ contract GSushiswapExchange is GExchange
 	{
 		return SushiswapExchangeAbstraction._convertFunds(_from, _to, _inputAmount, _minOutputAmount);
 	}
-
-	// used by stress-test
-	function faucet(address _token, uint256 _amount) public payable {
-		address payable _from = msg.sender;
-		uint256 _value = msg.value;
-		address _router = $.UniswapV2_ROUTER02;
-		address[] memory _path = new address[](2);
-		_path[0] = Router02(_router).WETH();
-		_path[1] = _token;
-		uint256 _spent = Router02(_router).swapETHForExactTokens{value: _value}(_amount, _path, _from, block.timestamp)[0];
-		_from.transfer(_value - _spent);
-	}
-	receive() external payable {}
 }

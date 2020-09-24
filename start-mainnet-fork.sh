@@ -1,6 +1,6 @@
 #!/bin/bash
 
-GAS_LIMIT=10000000
+GAS_LIMIT=100000000
 
 source .env
 

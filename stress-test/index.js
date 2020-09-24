@@ -149,7 +149,7 @@ const [account] = web3.currentProvider.getAddresses();
 const ABI_ERC20 = require('../build/contracts/ERC20.json').abi;
 const ABI_CTOKEN = require('../build/contracts/CToken.json').abi;
 const ABI_GTOKEN = require('../build/contracts/GToken.json').abi;
-const ABI_GEXCHANGE = require('../build/contracts/GSushiswapExchange.json').abi;
+const ABI_GEXCHANGE = require('../build/contracts/GUniswapV2Exchange.json').abi;
 
 async function getEthBalance(address) {
   const amount = await web3.eth.getBalance(address);
@@ -157,7 +157,7 @@ async function getEthBalance(address) {
 }
 
 async function mint(token, amount, maxCost) {
-  const GEXCHANGE_ADDRESS = require('../build/contracts/GSushiswapExchange.json').networks[networkId].address;
+  const GEXCHANGE_ADDRESS = require('../build/contracts/GUniswapV2Exchange.json').networks[networkId].address;
   const contract = new web3.eth.Contract(ABI_GEXCHANGE, GEXCHANGE_ADDRESS);
   const _amount = units(amount, token.decimals);
   const value = units(maxCost, 18);
@@ -274,7 +274,7 @@ async function main(args) {
   const success = await ctoken.approve(gtoken.address, '1000000000');
   console.log('approve', success);
   console.log('ctoken allowance', await ctoken.allowance(account, gtoken.address));
-/*
+
   for (let i = 0; i < 40; i++) {
     if (i < 20) {
       const balance = await ctoken.balanceOf(account);
@@ -302,7 +302,6 @@ async function main(args) {
     console.log('eth balance', await getEthBalance(account));
     await sleep(5 * 1000);
   }
-*/
 }
 
 entrypoint(main);
