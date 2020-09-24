@@ -21,8 +21,15 @@ library $
 		if (DEBUG) emit Debug(_from, _message, _value);
 	}
 
+	function debug(string memory _message, address _address) internal
+	{
+		address _from = msg.sender;
+		if (DEBUG) emit Debug(_from, _message, _address);
+	}
+
 	event Debug(address indexed _from, string _message);
 	event Debug(address indexed _from, string _message, uint256 _value);
+	event Debug(address indexed _from, string _message, address _address);
 
 	address constant GRO =
 		NETWORK == Network.Mainnet ? 0x09e64c2B61a5f1690Ee6fbeD9baf5D6990F8dFd0 :
@@ -93,6 +100,22 @@ library $
 		NETWORK == Network.Ropsten ? 0x1c8756FD2B28e9426CDBDcC7E3c4d64fa9A54728 :
 		// NETWORK == Network.Rinkeby ? 0x0000000000000000000000000000000000000000 :
 		NETWORK == Network.Kovan ? 0x506B0B2CF20FAA8f38a4E2B524EE43e1f4458Cc5 :
+		// NETWORK == Network.Goerli ? 0x0000000000000000000000000000000000000000 :
+		0x0000000000000000000000000000000000000000;
+
+	address constant AAVE_LENDING_POOL =
+		NETWORK == Network.Mainnet ? 0x398eC7346DcD622eDc5ae82352F02bE94C62d119 :
+		NETWORK == Network.Ropsten ? 0x9E5C7835E4b13368fd628196C4f1c6cEc89673Fa :
+		// NETWORK == Network.Rinkeby ? 0x0000000000000000000000000000000000000000 :
+		NETWORK == Network.Kovan ? 0x580D4Fdc4BF8f9b5ae2fb9225D584fED4AD5375c :
+		// NETWORK == Network.Goerli ? 0x0000000000000000000000000000000000000000 :
+		0x0000000000000000000000000000000000000000;
+
+	address constant AAVE_LENDING_POOL_CORE =
+		NETWORK == Network.Mainnet ? 0x3dfd23A6c5E8BbcFc9581d2E864a68feb6a076d3 :
+		NETWORK == Network.Ropsten ? 0x4295Ee704716950A4dE7438086d6f0FBC0BA9472 :
+		// NETWORK == Network.Rinkeby ? 0x0000000000000000000000000000000000000000 :
+		NETWORK == Network.Kovan ? 0x95D1189Ed88B380E319dF73fF00E479fcc4CFa45 :
 		// NETWORK == Network.Goerli ? 0x0000000000000000000000000000000000000000 :
 		0x0000000000000000000000000000000000000000;
 
