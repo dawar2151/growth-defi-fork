@@ -37,34 +37,6 @@ contract TestGCLeveragedReserveManager is Env
 		Assert.equal(_getBalance(COMP), 1e18, "COMP balance must be 1e18");
 		Assert.isAbove(_getBalance(DAI), 0e18, "DAI balance must be above 0e18");
 	}
-
-	function test02() public
-	{
-		uint256 _deathAmount = lrm._calcDeathAmount(1000000000e18);
-
-		Assert.equal(_deathAmount, 750000000e18, "death amount must be 750000000e18");
-	}
-
-	function test03() public
-	{
-		uint256 _limitAmount = lrm._calcLimitAmount(1000000000e18);
-
-		Assert.equal(_limitAmount, 690000000e18, "limit amount must be 690000000e18");
-	}
-
-	function test04() public
-	{
-		uint256 _idealAmount = lrm._calcIdealAmount(1000000000e18);
-
-		Assert.equal(_idealAmount, 660000000e18, "ideal amount must be 660000000e18");
-	}
-
-	function test05() public
-	{
-		uint256 _deviationAmount = lrm._calcDeviationAmount(1000000000e18);
-
-		Assert.equal(_deviationAmount, 7500000e18, "deviation amount must be 7500000e18");
-	}
 /*
 	function test06() public
 	{
