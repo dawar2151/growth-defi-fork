@@ -11,11 +11,8 @@ library GCLeveragedReserveManager
 	using SafeMath for uint256;
 	using GCLeveragedReserveManager for GCLeveragedReserveManager.Self;
 
-	uint256 constant DELEVERAGING_UNROLL_LIMIT = 25;
-	uint256 constant MINIMUM_RATIO_GRANULARITY = 4e16; // 4%
-	uint256 constant DEFAULT_IDEAL_COLLATERALIZATION_RATIO = 88e16; // 88% of 75% = 66%
-	uint256 constant DEFAULT_LIMIT_COLLATERALIZATION_RATIO = 96e16; // 96% of 75% = 72%
-	uint256 constant DEFAULT_COLLATERALIZATION_DEVIATION_RATIO = 1e16; // 1%
+	uint256 constant RATIO_MARGIN = 4e16; // 4%
+	uint256 constant IDEAL_COLLATERALIZATION_RATIO = 96e16; // 96% of 75% = 72%
 
 	struct Self {
 		address reserveToken;
@@ -28,8 +25,6 @@ library GCLeveragedReserveManager
 
 		bool leverageEnabled;
 		uint256 idealCollateralizationRatio;
-		uint256 limitCollateralizationRatio;
-		uint256 collateralizationDeviationRatio;
 	}
 
 	function init(Self storage _self, address _reserveToken, address _underlyingToken, address _miningToken) public
@@ -43,9 +38,7 @@ library GCLeveragedReserveManager
 		_self.miningMaxGulpAmount = 0;
 
 		_self.leverageEnabled = false;
-		_self.idealCollateralizationRatio = DEFAULT_IDEAL_COLLATERALIZATION_RATIO;
-		_self.limitCollateralizationRatio = DEFAULT_LIMIT_COLLATERALIZATION_RATIO;
-		_self.collateralizationDeviationRatio = DEFAULT_COLLATERALIZATION_DEVIATION_RATIO;
+		_self.idealCollateralizationRatio = G.getCollateralRatio(_reserveToken).mul(IDEAL_COLLATERALIZATION_RATIO).div(1e18);
 
 		G.safeEnter(_reserveToken);
 	}
@@ -67,40 +60,6 @@ library GCLeveragedReserveManager
 		_self.leverageEnabled = _leverageEnabled;
 	}
 
-	function setIdealCollateralizationRatio(Self storage _self, uint256 _idealCollateralizationRatio) public
-	{
-		require(_idealCollateralizationRatio >= MINIMUM_RATIO_GRANULARITY, "invalid ratio");
-		require(_idealCollateralizationRatio + MINIMUM_RATIO_GRANULARITY <= _self.limitCollateralizationRatio, "invalid ratio gap");
-		_self.idealCollateralizationRatio = _idealCollateralizationRatio;
-	}
-
-	function setLimitCollateralizationRatio(Self storage _self, uint256 _limitCollateralizationRatio) public
-	{
-		require(_limitCollateralizationRatio + MINIMUM_RATIO_GRANULARITY <= 1e18, "invalid ratio");
-		require(_self.idealCollateralizationRatio + MINIMUM_RATIO_GRANULARITY <= _limitCollateralizationRatio, "invalid ratio gap");
-		_self.limitCollateralizationRatio = _limitCollateralizationRatio;
-	}
-
-	function setCollateralizationDeviationRatio(Self storage _self, uint256 _collateralizationDeviationRatio) public
-	{
-		require(_collateralizationDeviationRatio <= MINIMUM_RATIO_GRANULARITY, "invalid ratio");
-		_self.collateralizationDeviationRatio = _collateralizationDeviationRatio;
-	}
-
-	function ensureLiquidity(Self storage _self, uint256 _requiredAmount) public returns (bool _success)
-	{
-		uint256 _availableAmount = _self._getAvailableDecrease();
-		for (uint256 _i; _i < DELEVERAGING_UNROLL_LIMIT; _i++) {
-			if (_requiredAmount <= _availableAmount) return true;
-			_success = _self._decreaseLeverage(_requiredAmount.sub(_availableAmount));
-			if (!_success) return false;
-			uint256 _newAvailableAmount = _self._getAvailableDecrease();
-			if (_newAvailableAmount <= _availableAmount) return false;
-			_availableAmount = _newAvailableAmount;
-		}
-		return false;
-	}
-
 	function gulpMiningAssets(Self storage _self) public returns (bool _success)
 	{
 		uint256 _miningAmount = G.getBalance(_self.miningToken);
@@ -111,72 +70,56 @@ library GCLeveragedReserveManager
 		return G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
 	}
 
+	function ensureLiquidity(Self storage _self, uint256 _requiredAmount) public returns (bool _success)
+	{
+		return _self._adjustLeverageWithRoom(_requiredAmount);
+	}
+
 	function adjustLeverage(Self storage _self) public returns (bool _success)
 	{
-		uint256 _borrowAmount = G.fetchBorrowAmount(_self.reserveToken);
-		if (!_self.leverageEnabled) return _self._decreaseLeverage(_borrowAmount);
-		uint256 _lendAmount = G.fetchLendAmount(_self.reserveToken);
-		uint256 _idealAmount = _self._calcIdealAmount(_lendAmount);
-		uint256 _deviationAmount = _self._calcDeviationAmount(_lendAmount);
-		if (_borrowAmount < _idealAmount.sub(_deviationAmount)) return _self._increaseLeverage(_idealAmount.sub(_borrowAmount));
-		if (_borrowAmount > _idealAmount.add(_deviationAmount)) return _self._decreaseLeverage(_borrowAmount.sub(_idealAmount));
+		return _self._adjustLeverageWithRoom(0);
+	}
+
+	function _adjustLeverageWithRoom(Self storage _self, uint256 _roomAmount) internal returns (bool _success)
+	{
+		uint256 _oldLendAmount = G.fetchLendAmount(_self.reserveToken);
+		uint256 _oldBorrowAmount = G.fetchBorrowAmount(_self.reserveToken);
+		uint256 _oldReserveAmount = _oldLendAmount.sub(_oldBorrowAmount);
+		uint256 _newReserveAmount = _oldReserveAmount.sub(_roomAmount);
+		uint256 _newLendAmount = _newReserveAmount;
+		if (_self.leverageEnabled) _newLendAmount = _newLendAmount.mul(1e18).div(uint256(1e18).sub(_self.idealCollateralizationRatio));
+		if (_newLendAmount > _oldLendAmount) return _self._dispatchFlashLoan(_newLendAmount.sub(_oldLendAmount), 1);
+		if (_newLendAmount < _oldLendAmount) return _self._dispatchFlashLoan(_oldLendAmount.sub(_newLendAmount), 2);
 		return true;
 	}
 
-	function _getAvailableIncrease(Self storage _self) internal view returns (uint256 _availableBorrow)
+	function _continueAdjustLeverageWithRoom(Self storage _self, uint256 _amount, uint256 _fee, uint256 _which) internal returns (bool _success)
 	{
-		uint256 _lendAmount = G.getLendAmount(_self.reserveToken);
-		uint256 _deathAmount = _self._calcDeathAmount(_lendAmount);
-		uint256 _idealAmount = _self._calcIdealAmount(_lendAmount);
-		uint256 _marginAmount = _deathAmount.sub(_idealAmount);
-		return G.getAvailableAmount(_self.reserveToken, _marginAmount);
+		uint256 _lendFee = _fee.mul(1e18).div(uint256(1e18).add(_self.idealCollateralizationRatio));
+		uint256 _borrowFee = _fee.sub(_lendFee);
+		if (_which == 1) {
+			bool _success1 = G.lend(_self.reserveToken, _amount.sub(_lendFee));
+			bool _success2 = G.borrow(_self.reserveToken, _amount.add(_borrowFee));
+			return _success1 && _success2;
+		}
+		if (_which == 2) {
+			bool _success1 = G.repay(_self.reserveToken, _amount.sub(_borrowFee));
+			bool _success2 = G.redeem(_self.reserveToken, _amount.add(_lendFee));
+			return _success1 && _success2;
+		}
+		require(false, "invalid operation");
 	}
 
-	function _getAvailableDecrease(Self storage _self) internal view returns (uint256 _availableUnderlying)
+	function _dispatchFlashLoan(Self storage _self, uint256 _amount, uint256 _which) internal returns (bool _success)
 	{
-		uint256 _borrowAmount = G.getBorrowAmount(_self.reserveToken);
-		if (_borrowAmount == 0) return G.getAvailableAmount(_self.reserveToken, 0);
-		uint256 _lendAmount = G.getLendAmount(_self.reserveToken);
-		uint256 _deathAmount = _self._calcDeathAmount(_lendAmount);
-		uint256 _limitAmount = _self._calcLimitAmount(_lendAmount);
-		uint256 _marginAmount = _deathAmount.sub(_limitAmount);
-		return G.getAvailableAmount(_self.reserveToken, _marginAmount);
+		return G.requestFlashLoan(_self.underlyingToken, _amount, abi.encode(_which));
 	}
 
-	function _calcIdealAmount(Self storage _self, uint256 _amount) internal view returns (uint256 _idealAmount)
+	function _receiveFlashLoan(Self storage _self, address _token, uint256 _amount, uint256 _fee, bytes calldata _params) public returns (bool _success)
 	{
-		return _amount.mul(G.getCollateralRatio(_self.reserveToken)).mul(_self.idealCollateralizationRatio).div(1e36);
-	}
-
-	function _calcLimitAmount(Self storage _self, uint256 _amount) internal view returns (uint256 _limitAmount)
-	{
-		return _amount.mul(G.getCollateralRatio(_self.reserveToken)).mul(_self.limitCollateralizationRatio).div(1e36);
-	}
-
-	function _calcDeathAmount(Self storage _self, uint256 _amount) internal view returns (uint256 _limitAmount)
-	{
-		return _amount.mul(G.getCollateralRatio(_self.reserveToken)).div(1e18);
-	}
-
-	function _calcDeviationAmount(Self storage _self, uint256 _amount) internal view returns (uint256 _deviationAmount)
-	{
-		return _amount.mul(G.getCollateralRatio(_self.reserveToken)).mul(_self.collateralizationDeviationRatio).div(1e36);
-	}
-
-	function _increaseLeverage(Self storage _self, uint256 _amount) internal returns (bool _success)
-	{
-		bool _success1 = G.borrow(_self.reserveToken, G.min(_amount, _self._getAvailableIncrease()));
-		bool _success2 = G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
-		G.repay(_self.reserveToken, G.min(G.getBalance(_self.underlyingToken), G.getBorrowAmount(_self.reserveToken)));
-		return _success1 && _success2;
-	}
-
-	function _decreaseLeverage(Self storage _self, uint256 _amount) internal returns (bool _success)
-	{
-		bool _success1 = G.redeem(_self.reserveToken, G.min(_amount, _self._getAvailableDecrease()));
-		bool _success2 = G.repay(_self.reserveToken, G.min(G.getBalance(_self.underlyingToken), G.getBorrowAmount(_self.reserveToken)));
-		G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
-		return _success1 && _success2;
+		require(_token == _self.underlyingToken, "invalid token");
+		(uint256 _which) = abi.decode(_params, (uint256));
+		return _self._continueAdjustLeverageWithRoom(_amount, _fee, _which);
 	}
 
 	function _convertMiningToUnderlying(Self storage _self, uint256 _inputAmount) internal

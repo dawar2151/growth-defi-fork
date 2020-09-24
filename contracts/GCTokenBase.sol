@@ -4,12 +4,13 @@ pragma solidity ^0.6.0;
 import { GToken } from "./GToken.sol";
 import { GFormulae } from "./GFormulae.sol";
 import { GTokenBase } from "./GTokenBase.sol";
+import { GFlashBorrower } from "./GFlashBorrower.sol";
 import { GCToken } from "./GCToken.sol";
 import { GCFormulae } from "./GCFormulae.sol";
 import { GCLeveragedReserveManager } from "./GCLeveragedReserveManager.sol";
 import { G } from "./G.sol";
 
-contract GCTokenBase is GTokenBase, GCToken
+contract GCTokenBase is GTokenBase, GFlashBorrower, GCToken
 {
 	using GCLeveragedReserveManager for GCLeveragedReserveManager.Self;
 
@@ -84,7 +85,7 @@ contract GCTokenBase is GTokenBase, GCToken
 		uint256 _underlyingCost = GCFormulae._calcUnderlyingCostFromCost(_cost, exchangeRate());
 		require(_underlyingCost > 0, "underlying cost must be greater than 0");
 		require(_prepareWithdrawal(_cost), "operation not available at the moment");
-//		_underlyingCost = G.min(_underlyingCost, G.getLendAmount(reserveToken));
+		_underlyingCost = G.min(_underlyingCost, G.getLendAmount(reserveToken));
 		G.safeRedeem(reserveToken, _underlyingCost);
 		G.pushFunds(underlyingToken, _from, _underlyingCost);
 		_burn(_from, _grossShares);
@@ -108,21 +109,6 @@ contract GCTokenBase is GTokenBase, GCToken
 		return lrm.leverageEnabled;
 	}
 
-	function idealCollateralizationRatio() public view override returns (uint256 _idealCollateralizationRatio)
-	{
-		return lrm.idealCollateralizationRatio;
-	}
-
-	function limitCollateralizationRatio() public view override returns (uint256 _limitCollateralizationRatio)
-	{
-		return lrm.limitCollateralizationRatio;
-	}
-
-	function collateralizationDeviationRatio() public view override returns (uint256 _collateralizationDeviationRatio)
-	{
-		return lrm.collateralizationDeviationRatio;
-	}
-
 	function setMiningExchange(address _miningExchange) public override onlyOwner nonReentrant
 	{
 		lrm.setMiningExchange(_miningExchange);
@@ -136,21 +122,6 @@ contract GCTokenBase is GTokenBase, GCToken
 	function setLeverageEnabled(bool _leverageEnabled) public override onlyOwner nonReentrant
 	{
 		lrm.setLeverageEnabled(_leverageEnabled);
-	}
-
-	function setIdealCollateralizationRatio(uint256 _idealCollateralizationRatio) public override onlyOwner nonReentrant
-	{
-		lrm.setIdealCollateralizationRatio(_idealCollateralizationRatio);
-	}
-
-	function setLimitCollateralizationRatio(uint256 _limitCollateralizationRatio) public override onlyOwner nonReentrant
-	{
-		lrm.setLimitCollateralizationRatio(_limitCollateralizationRatio);
-	}
-
-	function setCollateralizationDeviationRatio(uint256 _collateralizationDeviationRatio) public override onlyOwner nonReentrant
-	{
-		return lrm.setCollateralizationDeviationRatio(_collateralizationDeviationRatio);
 	}
 
 	function _prepareWithdrawal(uint256 _cost) internal override returns (bool _success)
@@ -171,6 +142,11 @@ contract GCTokenBase is GTokenBase, GCToken
 			emit ReserveChange(_newLend, _newBorrow);
 		}
 		return _success1 && _success2;
+	}
+
+	function _processFlashLoan(address _token, uint256 _amount, uint256 _fee, bytes calldata _params) internal override returns (bool _success)
+	{
+		return lrm._receiveFlashLoan(_token, _amount, _fee, _params);
 	}
 
 	event ReserveChange(uint256 _lendingReserveUnderlying, uint256 _borrowingReserveUnderlying);

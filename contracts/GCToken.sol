@@ -16,9 +16,6 @@ interface GCToken is GToken
 	function miningExchange() external view returns (address _miningExchange);
 	function miningGulpRange() external view returns (uint256 _miningMinGulpAmount, uint256 _miningMaxGulpAmount);
 	function leverageEnabled() external view returns (bool _leverageEnabled);
-	function idealCollateralizationRatio() external view returns (uint256 _idealCollateralizationRatio);
-	function limitCollateralizationRatio() external view returns (uint256 _limitCollateralizationRatio);
-	function collateralizationDeviationRatio() external view returns (uint256 _collateralizationDeviationRatio);
 
 	function depositUnderlying(uint256 _underlyingCost) external;
 	function withdrawUnderlying(uint256 _grossShares) external;
@@ -26,7 +23,4 @@ interface GCToken is GToken
 	function setMiningExchange(address _miningExchange) external;
 	function setMiningGulpRange(uint256 _miningMinGulpAmount, uint256 _miningMaxGulpAmount) external;
 	function setLeverageEnabled(bool _leverageEnabled) external;
-	function setIdealCollateralizationRatio(uint256 _idealCollateralizationRatio) external;
-	function setLimitCollateralizationRatio(uint256 _limitCollateralizationRatio) external;
-	function setCollateralizationDeviationRatio(uint256 _collateralizationDeviationRatio) external;
 }
