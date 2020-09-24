@@ -5,7 +5,7 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
 import { Transfers } from "./Transfers.sol";
 
-import { LendingPoolAddressesProvider, LendingPool } from "../interop/Aave.sol";
+import { LendingPool } from "../interop/Aave.sol";
 
 import { $ } from "../network/$.sol";
 
@@ -21,8 +21,7 @@ library AaveFlashLoanAbstraction
 	}
 
 	function _requestFlashLoan(address _token, uint256 _netAmount, bytes memory _context) internal returns (bool _success) {
-		address _provider = $.AAVE_LENDING_POOL_ADDRESSES_PROVIDER;
-		address _pool = LendingPoolAddressesProvider(_provider).getLendingPool();
+		address _pool = $.AAVE_LENDING_POOL;
 		try LendingPool(_pool).flashLoan(address(this), _token, _netAmount, _context) {
 			return true;
 		} catch (bytes memory /* _data */) {
@@ -31,8 +30,7 @@ library AaveFlashLoanAbstraction
 	}
 
 	function _paybackFlashLoan(address _token, uint256 _grossAmount) internal {
-		address _provider = $.AAVE_LENDING_POOL_ADDRESSES_PROVIDER;
-		address _poolCore = LendingPoolAddressesProvider(_provider).getLendingPoolCore();
+		address _poolCore = $.AAVE_LENDING_POOL_CORE;
 		Transfers._pushFunds(_token, _poolCore, _grossAmount);
 	}
 }
