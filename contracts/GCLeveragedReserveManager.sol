@@ -94,16 +94,16 @@ library GCLeveragedReserveManager
 
 	function _continueAdjustLeverage(Self storage _self, uint256 _amount, uint256 _fee, uint256 _which) internal returns (bool _success)
 	{
-		uint256 _lendFee = _fee.mul(1e18).div(uint256(1e18).add(_self.idealCollateralizationRatio));
-		uint256 _borrowFee = _fee.sub(_lendFee);
+//		uint256 _lendFee = _fee.mul(1e18).div(uint256(1e18).add(_self.idealCollateralizationRatio));
+//		uint256 _borrowFee = _fee.sub(_lendFee);
 		if (_which == 1) {
-			bool _success1 = G.lend(_self.reserveToken, _amount.sub(_lendFee));
-			bool _success2 = G.borrow(_self.reserveToken, _amount.add(_borrowFee));
+			bool _success1 = G.lend(_self.reserveToken, _amount.sub(_fee));
+			bool _success2 = G.borrow(_self.reserveToken, _amount);
 			return _success1 && _success2;
 		}
 		if (_which == 2) {
-			bool _success1 = G.repay(_self.reserveToken, _amount.sub(_borrowFee));
-			bool _success2 = G.redeem(_self.reserveToken, _amount.add(_lendFee));
+			bool _success1 = G.repay(_self.reserveToken, _amount);
+			bool _success2 = G.redeem(_self.reserveToken, _amount.add(_fee));
 			return _success1 && _success2;
 		}
 		require(false, "invalid operation");
