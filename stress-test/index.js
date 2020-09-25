@@ -149,6 +149,7 @@ const [account] = web3.currentProvider.getAddresses();
 const ABI_ERC20 = require('../build/contracts/ERC20.json').abi;
 const ABI_CTOKEN = require('../build/contracts/CToken.json').abi;
 const ABI_GTOKEN = require('../build/contracts/GToken.json').abi;
+const ABI_GCTOKEN = require('../build/contracts/GCToken.json').abi;
 const ABI_GEXCHANGE = require('../build/contracts/GUniswapV2Exchange.json').abi;
 
 async function getEthBalance(address) {
@@ -229,6 +230,25 @@ async function newGToken(address) {
   });
 }
 
+async function newGCToken(address) {
+  let self;
+  const fields = await newGToken(address);
+  const contract = new web3.eth.Contract(ABI_GCTOKEN, address);
+  const underlyingToken = await newERC20(await contract.methods.underlyingToken().call());
+  return (self = {
+    ...fields,
+    underlyingToken,
+    depositUnderlying: async (cost) => {
+      const _cost = units(cost, self.underlyingToken.decimals);
+      await contract.methods.depositUnderlying(_cost).send({ from: account });
+    },
+    withdrawUnderlying: async (grossShares) => {
+      const _grossShares = units(grossShares, self.decimals);
+      await contract.methods.withdrawUnderlying(_grossShares).send({ from: account });
+    },
+  });
+}
+
 function randomAmount(token, balance) {
   const _balance = units(balance, token.decimals);
   const _amount = Math.floor(Math.random() * (Number(_balance) + 1));
@@ -275,10 +295,10 @@ async function main(args) {
   console.log('approve', success);
   console.log('ctoken allowance', await ctoken.allowance(account, gtoken.address));
 
-  for (let i = 0; i < 40; i++) {
-    if (i < 20) {
+  for (let i = 0; i < 10; i++) {
+    if (i < 5) {
       const balance = await ctoken.balanceOf(account);
-      const amount = i == 19 ? balance : randomAmount(ctoken, balance);
+      const amount = i == 4 ? balance : randomAmount(ctoken, balance);
       console.log('DEPOSIT', amount);
       try {
         if (Number(amount) > 0) await gtoken.deposit(amount);
@@ -287,7 +307,7 @@ async function main(args) {
       }
     } else {
       const balance = await gtoken.balanceOf(account);
-      const amount = i == 39 ? balance : randomAmount(gtoken, balance);
+      const amount = i == 9 ? balance : randomAmount(gtoken, balance);
       console.log('WITHDRAW', amount);
       try {
         if (Number(amount) > 0) await gtoken.withdraw(amount);
