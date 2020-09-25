@@ -119,7 +119,7 @@ contract TestGCLeveragedReserveManager is Env
 		Assert.equal(_getBalance(DAI), 0e18, "DAI balance must be 0e18");
 		Assert.equal(_getBalance(cDAI), 0e8, "cDAI balance must be 0e8");
 
-		lrm.gulpMiningAssets();
+		lrm._gulpMiningAssets();
 
 		Assert.equal(_getBalance(COMP), 0e18, "COMP balance must be 0e18");
 		Assert.equal(_getBalance(DAI), 0e18, "DAI balance must be 0e18");
@@ -138,7 +138,7 @@ contract TestGCLeveragedReserveManager is Env
 		Assert.equal(_getBalance(cDAI), 0e8, "cDAI balance must be 0e8");
 
 		lrm.setMiningGulpRange(0e18, 100e18);
-		lrm.gulpMiningAssets();
+		lrm._gulpMiningAssets();
 
 		Assert.equal(_getBalance(COMP), 0e18, "COMP balance must be 0e18");
 		Assert.equal(_getBalance(DAI), 0e18, "DAI balance must be 0e18");
@@ -160,7 +160,7 @@ contract TestGCLeveragedReserveManager is Env
 
 		uint256 _rounds = 0;
 		while (_getBalance(COMP) > 0) {
-			lrm.gulpMiningAssets();
+			lrm._gulpMiningAssets();
 			_rounds++;
 		}
 

@@ -29,8 +29,7 @@ abstract contract GFlashBorrower is FlashLoanReceiver
 		address _pool = $.AAVE_LENDING_POOL;
 		assert(_from == _pool);
 		require(_processFlashLoan(_token, _amount, _fee, _params), "failure processing flash loan");
-		uint256 _grossAmount = _amount.add(_fee);
-		G.paybackFlashLoan(_token, _grossAmount);
+		G.paybackFlashLoan(_token, _amount.add(_fee));
 	}
 
 	function _processFlashLoan(address _token, uint256 _amount, uint256 _fee, bytes calldata _params) internal virtual returns (bool _success);

@@ -124,29 +124,17 @@ contract GCTokenBase is GTokenBase, GFlashBorrower, GCToken
 
 	function _prepareWithdrawal(uint256 _cost) internal override mayFlashBorrow returns (bool _success)
 	{
-		return _adjustReserve(GCFormulae._calcUnderlyingCostFromCost(_cost, G.fetchExchangeRate(reserveToken)));
+		return lrm.adjustReserve(GCFormulae._calcUnderlyingCostFromCost(_cost, G.fetchExchangeRate(reserveToken)));
 	}
 
 	function _prepareDeposit(uint256 _cost) internal override mayFlashBorrow returns (bool _success)
 	{
 		_cost; // silences warnings
-		return _adjustReserve(0);
-	}
-
-	function _adjustReserve(uint256 _roomAmount) internal returns (bool _success)
-	{
-		_success = lrm.adjustReserve(_roomAmount);
-		uint256 _lendAmount = G.fetchLendAmount(reserveToken);
-		uint256 _borrowAmount = G.fetchBorrowAmount(reserveToken);
-		_lendAmount = _lendAmount > _roomAmount ? _lendAmount.sub(_roomAmount) : 0;
-		emit ReserveChange(_lendAmount, _borrowAmount);
-		return _success;
+		return lrm.adjustReserve(0);
 	}
 
 	function _processFlashLoan(address _token, uint256 _amount, uint256 _fee, bytes calldata _params) internal override returns (bool _success)
 	{
 		return lrm._receiveFlashLoan(_token, _amount, _fee, _params);
 	}
-
-	event ReserveChange(uint256 _lendingReserveUnderlying, uint256 _borrowingReserveUnderlying);
 }

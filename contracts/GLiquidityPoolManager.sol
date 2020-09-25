@@ -63,7 +63,7 @@ library GLiquidityPoolManager
 	function burnPoolPortion(Self storage _self) public returns (uint256 _stakesAmount, uint256 _sharesAmount)
 	{
 		require(_self._hasPool(), "pool not available");
-		require(now > _self.lastBurningTime + BURNING_INTERVAL, "must wait lock interval");
+		require(now >= _self.lastBurningTime + BURNING_INTERVAL, "must wait lock interval");
 		_self.lastBurningTime = now;
 		return G.exitPool(_self.liquidityPool, _self.burningRate);
 	}

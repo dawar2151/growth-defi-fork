@@ -11,7 +11,6 @@ library GCLeveragedReserveManager
 	using SafeMath for uint256;
 	using GCLeveragedReserveManager for GCLeveragedReserveManager.Self;
 
-	uint256 constant RATIO_MARGIN = 4e16; // 4%
 	uint256 constant IDEAL_COLLATERALIZATION_RATIO = 96e16; // 96% of 75% = 72%
 
 	struct Self {
@@ -24,7 +23,6 @@ library GCLeveragedReserveManager
 		uint256 miningMaxGulpAmount;
 
 		bool leverageEnabled;
-		uint256 idealCollateralizationRatio;
 	}
 
 	function init(Self storage _self, address _reserveToken, address _underlyingToken, address _miningToken) public
@@ -38,7 +36,6 @@ library GCLeveragedReserveManager
 		_self.miningMaxGulpAmount = 0;
 
 		_self.leverageEnabled = false;
-		_self.idealCollateralizationRatio = G.getCollateralRatio(_reserveToken).mul(IDEAL_COLLATERALIZATION_RATIO).div(1e18);
 
 		G.safeEnter(_reserveToken);
 	}
@@ -67,12 +64,17 @@ library GCLeveragedReserveManager
 		return success1 && success2;
 	}
 
+	function _calcIdealCollateralizationRatio(Self storage _self) internal view returns (uint256 _idealCollateralizationRatio)
+	{
+		return G.getCollateralRatio(_self.reserveToken).mul(IDEAL_COLLATERALIZATION_RATIO).div(1e18);
+	}
+
 	function _gulpMiningAssets(Self storage _self) internal returns (bool _success)
 	{
 		uint256 _miningAmount = G.getBalance(_self.miningToken);
 		if (_miningAmount == 0) return true;
 		if (_miningAmount < _self.miningMinGulpAmount) return true;
-		if (_self.miningExchange == address(0)) return false;
+		if (_self.miningExchange == address(0)) return true;
 		_self._convertMiningToUnderlying(G.min(_miningAmount, _self.miningMaxGulpAmount));
 		return G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
 	}
@@ -86,7 +88,7 @@ library GCLeveragedReserveManager
 		uint256 _newReserveAmount = _reserveAmount.sub(_roomAmount);
 		uint256 _oldLendAmount = _lendAmount.sub(_roomAmount);
 		uint256 _newLendAmount = _newReserveAmount;
-		if (_self.leverageEnabled) _newLendAmount = _newLendAmount.mul(1e18).div(uint256(1e18).sub(_self.idealCollateralizationRatio));
+		if (_self.leverageEnabled) _newLendAmount = _newLendAmount.mul(1e18).div(uint256(1e18).sub(_self._calcIdealCollateralizationRatio()));
 		if (_newLendAmount > _oldLendAmount) return _self._dispatchFlashLoan(_newLendAmount.sub(_oldLendAmount), 1);
 		if (_newLendAmount < _oldLendAmount) return _self._dispatchFlashLoan(_oldLendAmount.sub(_newLendAmount), 2);
 		return true;
@@ -94,8 +96,6 @@ library GCLeveragedReserveManager
 
 	function _continueAdjustLeverage(Self storage _self, uint256 _amount, uint256 _fee, uint256 _which) internal returns (bool _success)
 	{
-//		uint256 _lendFee = _fee.mul(1e18).div(uint256(1e18).add(_self.idealCollateralizationRatio));
-//		uint256 _borrowFee = _fee.sub(_lendFee);
 		if (_which == 1) {
 			bool _success1 = G.lend(_self.reserveToken, _amount.sub(_fee));
 			bool _success2 = G.borrow(_self.reserveToken, _amount);
@@ -106,7 +106,7 @@ library GCLeveragedReserveManager
 			bool _success2 = G.redeem(_self.reserveToken, _amount.add(_fee));
 			return _success1 && _success2;
 		}
-		require(false, "invalid operation");
+		assert(false);
 	}
 
 	function _dispatchFlashLoan(Self storage _self, uint256 _amount, uint256 _which) internal returns (bool _success)
@@ -114,18 +114,15 @@ library GCLeveragedReserveManager
 		return G.requestFlashLoan(_self.underlyingToken, _amount, abi.encode(_which));
 	}
 
-	function _receiveFlashLoan(Self storage _self, address _token, uint256 _amount, uint256 _fee, bytes calldata _params) public returns (bool _success)
+	function _receiveFlashLoan(Self storage _self, address _token, uint256 _amount, uint256 _fee, bytes calldata _params) external returns (bool _success)
 	{
-		require(_token == _self.underlyingToken, "invalid token");
-		(uint256 _which) = abi.decode(_params, (uint256));
+		assert(_token == _self.underlyingToken);
+		uint256 _which = abi.decode(_params, (uint256));
 		return _self._continueAdjustLeverage(_amount, _fee, _which);
 	}
 
 	function _convertMiningToUnderlying(Self storage _self, uint256 _inputAmount) internal
 	{
-		string memory _signature = "convertFunds(address,address,uint256,uint256)";
-		bytes memory _params = abi.encodeWithSignature(_signature, _self.miningToken, _self.underlyingToken, _inputAmount, 0);
-		(bool _success, bytes memory _result) = _self.miningExchange.delegatecall(_params);
-		_success; _result; // silences warnings
+		G.dynamicConvertFunds(_self.miningExchange, _self.miningToken, _self.underlyingToken, _inputAmount, 0);
 	}
 }
