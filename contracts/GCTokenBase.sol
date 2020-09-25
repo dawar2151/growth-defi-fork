@@ -68,7 +68,7 @@ contract GCTokenBase is GTokenBase, GFlashBorrower, GCToken
 		uint256 _cost = GCFormulae._calcCostFromUnderlyingCost(_underlyingCost, exchangeRate());
 		(uint256 _netShares, uint256 _feeShares) = GFormulae._calcDepositSharesFromCost(_cost, totalReserve(), totalSupply(), depositFee());
 		require(_netShares > 0, "shares must be greater than 0");
-		require(_prepareDeposit(_cost), "operation not available at the moment");
+		require(_prepareDeposit(_cost), "not available at the moment");
 		G.pullFunds(underlyingToken, _from, _underlyingCost);
 		G.safeLend(reserveToken, _underlyingCost);
 		_mint(_from, _netShares);
@@ -84,7 +84,7 @@ contract GCTokenBase is GTokenBase, GFlashBorrower, GCToken
 		(uint256 _cost, uint256 _feeShares) = GFormulae._calcWithdrawalCostFromShares(_grossShares, totalReserve(), totalSupply(), withdrawalFee());
 		uint256 _underlyingCost = GCFormulae._calcUnderlyingCostFromCost(_cost, exchangeRate());
 		require(_underlyingCost > 0, "underlying cost must be greater than 0");
-		require(_prepareWithdrawal(_cost), "operation not available at the moment");
+		require(_prepareWithdrawal(_cost), "not available at the moment");
 		_underlyingCost = G.min(_underlyingCost, G.getLendAmount(reserveToken));
 		G.safeRedeem(reserveToken, _underlyingCost);
 		G.pushFunds(underlyingToken, _from, _underlyingCost);

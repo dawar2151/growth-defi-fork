@@ -95,7 +95,7 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 		require(_cost > 0, "cost must be greater than 0");
 		(uint256 _netShares, uint256 _feeShares) = GFormulae._calcDepositSharesFromCost(_cost, totalReserve(), totalSupply(), depositFee());
 		require(_netShares > 0, "shares must be greater than 0");
-		require(_prepareDeposit(_cost), "operation not available at the moment");
+		require(_prepareDeposit(_cost), "not available at the moment");
 		G.pullFunds(reserveToken, _from, _cost);
 		_mint(_from, _netShares);
 		_mint(address(this), _feeShares.div(2));
@@ -109,7 +109,7 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 		require(_grossShares > 0, "shares must be greater than 0");
 		(uint256 _cost, uint256 _feeShares) = GFormulae._calcWithdrawalCostFromShares(_grossShares, totalReserve(), totalSupply(), withdrawalFee());
 		require(_cost > 0, "cost must be greater than 0");
-		require(_prepareWithdrawal(_cost), "operation not available at the moment");
+		require(_prepareWithdrawal(_cost), "not available at the moment");
 		_cost = G.min(_cost, G.getBalance(reserveToken));
 		G.pushFunds(reserveToken, _from, _cost);
 		_burn(_from, _grossShares);
