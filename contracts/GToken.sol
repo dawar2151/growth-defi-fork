@@ -30,5 +30,4 @@ interface GToken is IERC20
 	function initiateLiquidityPoolMigration(address _migrationRecipient) external;
 	function cancelLiquidityPoolMigration() external;
 	function completeLiquidityPoolMigration() external;
-	function adjustReserve() external;
 }

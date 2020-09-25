@@ -74,7 +74,7 @@ contract GCTokenBase is GTokenBase, GFlashBorrower, GCToken
 		_mint(_from, _netShares);
 		_mint(address(this), _feeShares.div(2));
 		lpm.gulpPoolAssets();
-		_adjustReserve(false);
+		_adjustReserve();
 	}
 
 	function withdrawUnderlying(uint256 _grossShares) public override nonReentrant
@@ -91,7 +91,7 @@ contract GCTokenBase is GTokenBase, GFlashBorrower, GCToken
 		_burn(_from, _grossShares);
 		_mint(address(this), _feeShares.div(2));
 		lpm.gulpPoolAssets();
-		_adjustReserve(false);
+		_adjustReserve();
 	}
 
 	function miningExchange() public view override returns (address _miningExchange)
@@ -129,9 +129,8 @@ contract GCTokenBase is GTokenBase, GFlashBorrower, GCToken
 		return lrm.ensureLiquidity(GCFormulae._calcUnderlyingCostFromCost(_cost, G.fetchExchangeRate(reserveToken)));
 	}
 
-	function _adjustReserve(bool _explicit) internal override mayFlashBorrow returns (bool _success)
+	function _adjustReserve() internal override mayFlashBorrow returns (bool _success)
 	{
-		_explicit; // silences warnings
 		uint256 _oldLend = G.fetchLendAmount(reserveToken);
 		uint256 _oldBorrow = G.fetchBorrowAmount(reserveToken);
 		bool _success1 = lrm.gulpMiningAssets();
