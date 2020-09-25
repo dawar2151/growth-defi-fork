@@ -95,12 +95,11 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 		require(_cost > 0, "cost must be greater than 0");
 		(uint256 _netShares, uint256 _feeShares) = GFormulae._calcDepositSharesFromCost(_cost, totalReserve(), totalSupply(), depositFee());
 		require(_netShares > 0, "shares must be greater than 0");
-		require(_prepareDeposit(_cost), "not available at the moment");
 		G.pullFunds(reserveToken, _from, _cost);
+		require(_prepareDeposit(_cost), "not available at the moment");
 		_mint(_from, _netShares);
 		_mint(address(this), _feeShares.div(2));
 		lpm.gulpPoolAssets();
-		_adjustReserve();
 	}
 
 	function withdraw(uint256 _grossShares) public override nonReentrant
@@ -115,7 +114,6 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 		_burn(_from, _grossShares);
 		_mint(address(this), _feeShares.div(2));
 		lpm.gulpPoolAssets();
-		_adjustReserve();
 	}
 
 	function allocateLiquidityPool(uint256 _stakesAmount, uint256 _sharesAmount) public override onlyOwner nonReentrant
@@ -170,12 +168,6 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	function _prepareWithdrawal(uint256 _cost) internal virtual returns (bool _success)
 	{
 		__unused = __unused; _cost; // silences warnings
-		return true;
-	}
-
-	function _adjustReserve() internal virtual returns (bool _success)
-	{
-		__unused = __unused; // silences warnings
 		return true;
 	}
 

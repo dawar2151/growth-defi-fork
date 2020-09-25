@@ -60,7 +60,14 @@ library GCLeveragedReserveManager
 		_self.leverageEnabled = _leverageEnabled;
 	}
 
-	function gulpMiningAssets(Self storage _self) public returns (bool _success)
+	function adjustReserve(Self storage _self, uint256 _roomAmount) public returns (bool _success)
+	{
+		bool success1 = _self._gulpMiningAssets();
+		bool success2 = _self._adjustLeverage(_roomAmount);
+		return success1 && success2;
+	}
+
+	function _gulpMiningAssets(Self storage _self) internal returns (bool _success)
 	{
 		uint256 _miningAmount = G.getBalance(_self.miningToken);
 		if (_miningAmount == 0) return true;
@@ -70,17 +77,7 @@ library GCLeveragedReserveManager
 		return G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
 	}
 
-	function ensureLiquidity(Self storage _self, uint256 _requiredAmount) public returns (bool _success)
-	{
-		return _self._adjustLeverageWithRoom(_requiredAmount);
-	}
-
-	function adjustLeverage(Self storage _self) public returns (bool _success)
-	{
-		return _self._adjustLeverageWithRoom(0);
-	}
-
-	function _adjustLeverageWithRoom(Self storage _self, uint256 _roomAmount) internal returns (bool _success)
+	function _adjustLeverage(Self storage _self, uint256 _roomAmount) internal returns (bool _success)
 	{
 		uint256 _lendAmount = G.fetchLendAmount(_self.reserveToken);
 		uint256 _borrowAmount = G.fetchBorrowAmount(_self.reserveToken);
@@ -95,7 +92,7 @@ library GCLeveragedReserveManager
 		return true;
 	}
 
-	function _continueAdjustLeverageWithRoom(Self storage _self, uint256 _amount, uint256 _fee, uint256 _which) internal returns (bool _success)
+	function _continueAdjustLeverage(Self storage _self, uint256 _amount, uint256 _fee, uint256 _which) internal returns (bool _success)
 	{
 		uint256 _lendFee = _fee.mul(1e18).div(uint256(1e18).add(_self.idealCollateralizationRatio));
 		uint256 _borrowFee = _fee.sub(_lendFee);
@@ -121,7 +118,7 @@ library GCLeveragedReserveManager
 	{
 		require(_token == _self.underlyingToken, "invalid token");
 		(uint256 _which) = abi.decode(_params, (uint256));
-		return _self._continueAdjustLeverageWithRoom(_amount, _fee, _which);
+		return _self._continueAdjustLeverage(_amount, _fee, _which);
 	}
 
 	function _convertMiningToUnderlying(Self storage _self, uint256 _inputAmount) internal

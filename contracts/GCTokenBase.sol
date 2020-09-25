@@ -68,13 +68,12 @@ contract GCTokenBase is GTokenBase, GFlashBorrower, GCToken
 		uint256 _cost = GCFormulae._calcCostFromUnderlyingCost(_underlyingCost, exchangeRate());
 		(uint256 _netShares, uint256 _feeShares) = GFormulae._calcDepositSharesFromCost(_cost, totalReserve(), totalSupply(), depositFee());
 		require(_netShares > 0, "shares must be greater than 0");
-		require(_prepareDeposit(_cost), "not available at the moment");
 		G.pullFunds(underlyingToken, _from, _underlyingCost);
 		G.safeLend(reserveToken, _underlyingCost);
+		require(_prepareDeposit(_cost), "not available at the moment");
 		_mint(_from, _netShares);
 		_mint(address(this), _feeShares.div(2));
 		lpm.gulpPoolAssets();
-		_adjustReserve();
 	}
 
 	function withdrawUnderlying(uint256 _grossShares) public override nonReentrant
@@ -91,7 +90,6 @@ contract GCTokenBase is GTokenBase, GFlashBorrower, GCToken
 		_burn(_from, _grossShares);
 		_mint(address(this), _feeShares.div(2));
 		lpm.gulpPoolAssets();
-		_adjustReserve();
 	}
 
 	function miningExchange() public view override returns (address _miningExchange)
@@ -126,21 +124,23 @@ contract GCTokenBase is GTokenBase, GFlashBorrower, GCToken
 
 	function _prepareWithdrawal(uint256 _cost) internal override mayFlashBorrow returns (bool _success)
 	{
-		return lrm.ensureLiquidity(GCFormulae._calcUnderlyingCostFromCost(_cost, G.fetchExchangeRate(reserveToken)));
+		return _adjustReserve(GCFormulae._calcUnderlyingCostFromCost(_cost, G.fetchExchangeRate(reserveToken)));
 	}
 
-	function _adjustReserve() internal override mayFlashBorrow returns (bool _success)
+	function _prepareDeposit(uint256 _cost) internal override mayFlashBorrow returns (bool _success)
 	{
-		uint256 _oldLend = G.fetchLendAmount(reserveToken);
-		uint256 _oldBorrow = G.fetchBorrowAmount(reserveToken);
-		bool _success1 = lrm.gulpMiningAssets();
-		bool _success2 = lrm.adjustLeverage();
-		uint256 _newLend = G.fetchLendAmount(reserveToken);
-		uint256 _newBorrow = G.fetchBorrowAmount(reserveToken);
-		if (_newLend != _oldLend || _newBorrow != _oldBorrow) {
-			emit ReserveChange(_newLend, _newBorrow);
-		}
-		return _success1 && _success2;
+		_cost; // silences warnings
+		return _adjustReserve(0);
+	}
+
+	function _adjustReserve(uint256 _roomAmount) internal returns (bool _success)
+	{
+		_success = lrm.adjustReserve(_roomAmount);
+		uint256 _lendAmount = G.fetchLendAmount(reserveToken);
+		uint256 _borrowAmount = G.fetchBorrowAmount(reserveToken);
+		_lendAmount = _lendAmount > _roomAmount ? _lendAmount.sub(_roomAmount) : 0;
+		emit ReserveChange(_lendAmount, _borrowAmount);
+		return _success;
 	}
 
 	function _processFlashLoan(address _token, uint256 _amount, uint256 _fee, bytes calldata _params) internal override returns (bool _success)
