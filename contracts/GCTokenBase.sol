@@ -124,12 +124,12 @@ contract GCTokenBase is GTokenBase, GFlashBorrower, GCToken
 		lrm.setLeverageEnabled(_leverageEnabled);
 	}
 
-	function _prepareWithdrawal(uint256 _cost) internal override returns (bool _success)
+	function _prepareWithdrawal(uint256 _cost) internal override mayFlashBorrow returns (bool _success)
 	{
 		return lrm.ensureLiquidity(GCFormulae._calcUnderlyingCostFromCost(_cost, G.fetchExchangeRate(reserveToken)));
 	}
 
-	function _adjustReserve(bool _explicit) internal override returns (bool _success)
+	function _adjustReserve(bool _explicit) internal override mayFlashBorrow returns (bool _success)
 	{
 		_explicit; // silences warnings
 		uint256 _oldLend = G.fetchLendAmount(reserveToken);
