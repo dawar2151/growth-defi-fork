@@ -8,4 +8,6 @@ module.exports = async (deployer) => {
   deployer.link(GLiquidityPoolManager, gcDAI);
   deployer.link(GCLeveragedReserveManager, gcDAI);
   await deployer.deploy(gcDAI);
+  const token = await gcDAI.deployed();
+  await token.setMiningGulpRange('20000000000000000000', '500000000000000000000');
 };
