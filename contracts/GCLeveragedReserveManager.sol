@@ -82,12 +82,12 @@ library GCLeveragedReserveManager
 
 	function _adjustLeverageWithRoom(Self storage _self, uint256 _roomAmount) internal returns (bool _success)
 	{
-		uint256 _oldLendAmount = G.fetchLendAmount(_self.reserveToken);
-		uint256 _oldBorrowAmount = G.fetchBorrowAmount(_self.reserveToken);
-		uint256 _oldReserveAmount = _oldLendAmount.sub(_oldBorrowAmount);
-		_roomAmount = G.min(_roomAmount, _oldReserveAmount);
-		_oldLendAmount = _oldLendAmount.sub(_roomAmount);
-		uint256 _newReserveAmount = _oldReserveAmount.sub(_roomAmount);
+		uint256 _lendAmount = G.fetchLendAmount(_self.reserveToken);
+		uint256 _borrowAmount = G.fetchBorrowAmount(_self.reserveToken);
+		uint256 _reserveAmount = _lendAmount.sub(_borrowAmount);
+		_roomAmount = G.min(_roomAmount, _reserveAmount);
+		uint256 _newReserveAmount = _reserveAmount.sub(_roomAmount);
+		uint256 _oldLendAmount = _lendAmount.sub(_roomAmount);
 		uint256 _newLendAmount = _newReserveAmount;
 		if (_self.leverageEnabled) _newLendAmount = _newLendAmount.mul(1e18).div(uint256(1e18).sub(_self.idealCollateralizationRatio));
 		if (_newLendAmount > _oldLendAmount) return _self._dispatchFlashLoan(_newLendAmount.sub(_oldLendAmount), 1);
