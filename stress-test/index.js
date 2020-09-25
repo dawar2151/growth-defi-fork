@@ -246,6 +246,9 @@ async function newGCToken(address) {
       const _grossShares = units(grossShares, self.decimals);
       await contract.methods.withdrawUnderlying(_grossShares).send({ from: account });
     },
+    setLeverageEnabled: async (enabled) => {
+      await contract.methods.setLeverageEnabled(enabled).send({ from: account });
+    },
   });
 }
 
@@ -257,7 +260,7 @@ function randomAmount(token, balance) {
 
 async function main(args) {
   const GTOKEN_ADDRESS = require('../build/contracts/gcDAI.json').networks[networkId].address;
-  const gtoken = await newGToken(GTOKEN_ADDRESS);
+  const gtoken = await newGCToken(GTOKEN_ADDRESS);
   const ctoken = gtoken.reserveToken;
 
   blockSubscribe((number) => {
@@ -294,6 +297,8 @@ async function main(args) {
   const success = await ctoken.approve(gtoken.address, '1000000000');
   console.log('approve', success);
   console.log('ctoken allowance', await ctoken.allowance(account, gtoken.address));
+
+  gtoken.setLeverageEnabled(true);
 
   for (let i = 0; i < 10; i++) {
     if (i < 5) {

@@ -85,6 +85,8 @@ library GCLeveragedReserveManager
 		uint256 _oldLendAmount = G.fetchLendAmount(_self.reserveToken);
 		uint256 _oldBorrowAmount = G.fetchBorrowAmount(_self.reserveToken);
 		uint256 _oldReserveAmount = _oldLendAmount.sub(_oldBorrowAmount);
+		_roomAmount = G.min(_roomAmount, _oldReserveAmount);
+		_oldLendAmount = _oldLendAmount.sub(_roomAmount);
 		uint256 _newReserveAmount = _oldReserveAmount.sub(_roomAmount);
 		uint256 _newLendAmount = _newReserveAmount;
 		if (_self.leverageEnabled) _newLendAmount = _newLendAmount.mul(1e18).div(uint256(1e18).sub(_self.idealCollateralizationRatio));
