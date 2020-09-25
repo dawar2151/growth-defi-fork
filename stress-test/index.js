@@ -262,6 +262,7 @@ async function main(args) {
   const GTOKEN_ADDRESS = require('../build/contracts/gcDAI.json').networks[networkId].address;
   const gtoken = await newGCToken(GTOKEN_ADDRESS);
   const ctoken = gtoken.reserveToken;
+  const utoken = gtoken.underlyingToken;
 
   blockSubscribe((number) => {
     console.log('block ' + number);
@@ -276,34 +277,41 @@ async function main(args) {
   logSubscribe(events, (address, event, values) => {
     if (address == gtoken.address) {
       if (event == 'ReserveChange(uint256,uint256)') {
-        console.log('**', (100 * Number(values[1])) / Number(values[0]));
+        const lendAmount = coins(values[0], gtoken.underlyingToken.decimals);
+        const borrowAmount = coins(values[1], gtoken.underlyingToken.decimals);
+        const ratio = (100 * Number(borrowAmount)) / Number(lendAmount);
+        console.log('**', lendAmount, borrowAmount, ratio);
       } else {
         console.log('>>', values.slice(1).join(' '));
       }
     }
   });
 
-  await mint(ctoken, '1', '1');
-
   console.log(network);
   console.log(gtoken.name, gtoken.symbol, gtoken.decimals);
   console.log(ctoken.name, ctoken.symbol, ctoken.decimals);
+
+  await mint(ctoken, '1', '1');
+
   console.log('total supply', await gtoken.totalSupply());
   console.log('total reserve', await gtoken.totalReserve());
   console.log('gtoken balance', await gtoken.balanceOf(account));
   console.log('ctoken balance', await ctoken.balanceOf(account));
+  console.log('utoken balance', await utoken.balanceOf(account));
   console.log('eth balance', await getEthBalance(account));
 
-  const success = await ctoken.approve(gtoken.address, '1000000000');
-  console.log('approve', success);
+  console.log('approve', await ctoken.approve(gtoken.address, '1000000000'));
   console.log('ctoken allowance', await ctoken.allowance(account, gtoken.address));
 
-  gtoken.setLeverageEnabled(true);
+  console.log('approve', await utoken.approve(gtoken.address, '1000000000'));
+  console.log('utoken allowance', await utoken.allowance(account, gtoken.address));
 
-  for (let i = 0; i < 10; i++) {
-    if (i < 5) {
+  await gtoken.setLeverageEnabled(true);
+
+  for (let i = 0; i < 4; i++) {
+    if (i < 2) {
       const balance = await ctoken.balanceOf(account);
-      const amount = i == 4 ? balance : randomAmount(ctoken, balance);
+      const amount = i == 1 ? balance : randomAmount(ctoken, balance);
       console.log('DEPOSIT', amount);
       try {
         if (Number(amount) > 0) await gtoken.deposit(amount);
@@ -312,7 +320,7 @@ async function main(args) {
       }
     } else {
       const balance = await gtoken.balanceOf(account);
-      const amount = i == 9 ? balance : randomAmount(gtoken, balance);
+      const amount = i == 3 ? balance : randomAmount(gtoken, balance);
       console.log('WITHDRAW', amount);
       try {
         if (Number(amount) > 0) await gtoken.withdraw(amount);
@@ -324,6 +332,7 @@ async function main(args) {
     console.log('total reserve', await gtoken.totalReserve());
     console.log('gtoken balance', await gtoken.balanceOf(account));
     console.log('ctoken balance', await ctoken.balanceOf(account));
+    console.log('utoken balance', await utoken.balanceOf(account));
     console.log('eth balance', await getEthBalance(account));
     await sleep(5 * 1000);
   }
