@@ -175,9 +175,4 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	{
 		G.pushFunds(stakesToken, address(0), _stakesAmount);
 	}
-
-	event BurnLiquidityPoolPortion(uint256 _stakesAmount, uint256 _sharesAmount);
-	event InitiateLiquidityPoolMigration(address indexed _migrationRecipient);
-	event CancelLiquidityPoolMigration(address indexed _migrationRecipient);
-	event CompleteLiquidityPoolMigration(address indexed _migrationRecipient, uint256 _stakesAmount, uint256 _sharesAmount);
 }

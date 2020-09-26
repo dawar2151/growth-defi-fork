@@ -30,4 +30,9 @@ interface GToken is IERC20
 	function initiateLiquidityPoolMigration(address _migrationRecipient) external;
 	function cancelLiquidityPoolMigration() external;
 	function completeLiquidityPoolMigration() external;
+
+	event BurnLiquidityPoolPortion(uint256 _stakesAmount, uint256 _sharesAmount);
+	event InitiateLiquidityPoolMigration(address indexed _migrationRecipient);
+	event CancelLiquidityPoolMigration(address indexed _migrationRecipient);
+	event CompleteLiquidityPoolMigration(address indexed _migrationRecipient, uint256 _stakesAmount, uint256 _sharesAmount);
 }
