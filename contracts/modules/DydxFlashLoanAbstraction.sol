@@ -14,16 +14,6 @@ library DydxFlashLoanAbstraction
 {
 	using SafeMath for uint256;
 
-	function _getMarketId(address _solo, address _token) internal view returns (uint256 _marketId)
-	{
-		uint256 _numMarkets = SoloMargin(_solo).getNumMarkets();
-		for (uint256 _i = 0; _i < _numMarkets; _i++) {
-			address _address = SoloMargin(_solo).getMarketTokenAddress(_i);
-			if (_address == _token) return _i;
-		}
-		require(false, "unsupported token");
-	}
-
 	function _estimateFlashLoanFee(address _token, uint256 _netAmount) internal pure returns (uint256 _feeAmount)
 	{
 		_token; _netAmount; // silences warnings
@@ -35,7 +25,16 @@ library DydxFlashLoanAbstraction
 		address _solo = $.Dydx_SOLO_MARGIN;
 		uint256 _feeAmount = 2;
 		uint256 _grossAmount = _netAmount.add(_feeAmount);
-		uint256 _marketId = _getMarketId(_solo, _token);
+		uint256 _marketId = uint256(-1);
+		uint256 _numMarkets = SoloMargin(_solo).getNumMarkets();
+		for (uint256 _i = 0; _i < _numMarkets; _i++) {
+			address _address = SoloMargin(_solo).getMarketTokenAddress(_i);
+			if (_address == _token) {
+				_marketId = _i;
+				break;
+			}
+		}
+		if (_marketId == uint256(-1)) return false;
 		Account.Info[] memory _accounts = new Account.Info[](1);
 		_accounts[0] = Account.Info({ owner: address(this), number: 1 });
 		Actions.ActionArgs[] memory _actions = new Actions.ActionArgs[](3);
