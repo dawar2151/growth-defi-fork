@@ -15,8 +15,9 @@ library AaveFlashLoanAbstraction
 
 	uint256 constant FLASH_LOAN_FEE_RATIO = 9e14; // 0.09%
 
-	function _estimateFlashLoanFee(uint256 _netAmount) internal pure returns (uint256 _feeAmount)
+	function _estimateFlashLoanFee(address _token, uint256 _netAmount) internal pure returns (uint256 _feeAmount)
 	{
+		_token;
 		return _netAmount.mul(FLASH_LOAN_FEE_RATIO).div(1e18);
 	}
 

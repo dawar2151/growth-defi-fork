@@ -42,6 +42,7 @@ abstract contract GFlashBorrower is FlashLoanReceiver, ICallee
 		address _solo = $.Dydx_SOLO_MARGIN;
 		assert(_from == _solo);
 		assert(_sender == address(this));
+		assert(_account.owner == address(this));
 		(address _token, uint256 _amount, uint256 _fee, bytes memory _params) = abi.decode(_data, (address,uint256,uint256,bytes));
 		require(_processFlashLoan(_token, _amount, _fee, _params), "failure processing flash loan");
 		G.paybackFlashLoan(_token, _amount.add(_fee));

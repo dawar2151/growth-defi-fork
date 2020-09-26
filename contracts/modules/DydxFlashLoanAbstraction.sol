@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.0;
+pragma experimental ABIEncoderV2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
@@ -9,7 +10,7 @@ import { SoloMargin, Account, Actions, Types } from "../interop/Dydx.sol";
 
 import { $ } from "../network/$.sol";
 
-library DydxFlashLoanAstraction
+library DydxFlashLoanAbstraction
 {
 	using SafeMath for uint256;
 
@@ -23,9 +24,9 @@ library DydxFlashLoanAstraction
 		require(false, "unsupported token");
 	}
 
-	function _estimateFlashLoanFee(uint256 _netAmount) internal pure returns (uint256 _feeAmount)
+	function _estimateFlashLoanFee(address _token, uint256 _netAmount) internal pure returns (uint256 _feeAmount)
 	{
-		_netAmount; // silences warnings
+		_token; _netAmount; // silences warnings
 		return 2;
 	}
 
