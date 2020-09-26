@@ -3,7 +3,6 @@ pragma solidity ^0.6.0;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-import { GExchange } from "./GExchange.sol";
 import { G } from "./G.sol";
 
 library GCLeveragedReserveManager

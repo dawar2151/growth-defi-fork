@@ -36,7 +36,6 @@ abstract contract GFlashBorrower is FlashLoanReceiver, ICallee
 
 	function callFunction(address _sender, Account.Info memory _account, bytes memory _data) external override
 	{
-		_account; // silences warnings
 		assert(allowOperationLevel > 0);
 		address _from = msg.sender;
 		address _solo = $.Dydx_SOLO_MARGIN;
