@@ -20,8 +20,9 @@ library AaveFlashLoanAbstraction
 		return _netAmount.mul(FLASH_LOAN_FEE_RATIO).div(1e18);
 	}
 
-	function _requestFlashLoan(address _token, uint256 _netAmount, bytes memory _context) internal returns (bool _success) {
-		address _pool = $.AAVE_LENDING_POOL;
+	function _requestFlashLoan(address _token, uint256 _netAmount, bytes memory _context) internal returns (bool _success)
+	{
+		address _pool = $.Aave_AAVE_LENDING_POOL;
 		try LendingPool(_pool).flashLoan(address(this), _token, _netAmount, _context) {
 			return true;
 		} catch (bytes memory /* _data */) {
@@ -29,8 +30,9 @@ library AaveFlashLoanAbstraction
 		}
 	}
 
-	function _paybackFlashLoan(address _token, uint256 _grossAmount) internal {
-		address _poolCore = $.AAVE_LENDING_POOL_CORE;
+	function _paybackFlashLoan(address _token, uint256 _grossAmount) internal
+	{
+		address _poolCore = $.Aave_AAVE_LENDING_POOL_CORE;
 		Transfers._pushFunds(_token, _poolCore, _grossAmount);
 	}
 }

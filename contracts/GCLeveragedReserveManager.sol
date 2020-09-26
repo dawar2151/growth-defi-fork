@@ -115,7 +115,7 @@ library GCLeveragedReserveManager
 		return G.requestFlashLoan(_self.underlyingToken, _amount, abi.encode(_which));
 	}
 
-	function _receiveFlashLoan(Self storage _self, address _token, uint256 _amount, uint256 _fee, bytes calldata _params) external returns (bool _success)
+	function _receiveFlashLoan(Self storage _self, address _token, uint256 _amount, uint256 _fee, bytes memory _params) external returns (bool _success)
 	{
 		assert(_token == _self.underlyingToken);
 		uint256 _which = abi.decode(_params, (uint256));

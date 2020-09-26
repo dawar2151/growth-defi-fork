@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.0;
+pragma experimental ABIEncoderV2;
 
 import { GToken } from "./GToken.sol";
 import { GFormulae } from "./GFormulae.sol";
@@ -133,7 +134,7 @@ contract GCTokenBase is GTokenBase, GFlashBorrower, GCToken
 		return lrm.adjustReserve(0);
 	}
 
-	function _processFlashLoan(address _token, uint256 _amount, uint256 _fee, bytes calldata _params) internal override returns (bool _success)
+	function _processFlashLoan(address _token, uint256 _amount, uint256 _fee, bytes memory _params) internal override returns (bool _success)
 	{
 		return lrm._receiveFlashLoan(_token, _amount, _fee, _params);
 	}
