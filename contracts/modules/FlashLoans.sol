@@ -10,7 +10,7 @@ library FlashLoans
 {
 	function _estimateFlashLoanFee(address _token, uint256 _netAmount) internal pure returns (uint256 _feeAmount)
 	{
-		if ($.NETWORK == $.Network.Mainnet) {
+		if ($.NETWORK == $.Network.Mainnet || $.NETWORK == $.Network.Kovan) {
 			if (_token == $.DAI || _token == $.USDC) {
 				return DydxFlashLoanAbstraction._estimateFlashLoanFee(_token, _netAmount);
 			}
@@ -20,7 +20,7 @@ library FlashLoans
 
 	function _requestFlashLoan(address _token, uint256 _netAmount, bytes memory _context) internal returns (bool _success)
 	{
-		if ($.NETWORK == $.Network.Mainnet) {
+		if ($.NETWORK == $.Network.Mainnet || $.NETWORK == $.Network.Kovan) {
 			if (_token == $.DAI || _token == $.USDC) {
 				return DydxFlashLoanAbstraction._requestFlashLoan(_token, _netAmount, _context);
 			}
@@ -30,7 +30,7 @@ library FlashLoans
 
 	function _paybackFlashLoan(address _token, uint256 _grossAmount) internal
 	{
-		if ($.NETWORK == $.Network.Mainnet) {
+		if ($.NETWORK == $.Network.Mainnet || $.NETWORK == $.Network.Kovan) {
 			if (_token == $.DAI || _token == $.USDC) {
 				DydxFlashLoanAbstraction._paybackFlashLoan(_token, _grossAmount);
 				return;
