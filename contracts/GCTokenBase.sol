@@ -102,9 +102,9 @@ contract GCTokenBase is GTokenBase, GFlashBorrower, GCToken
 		return (lrm.miningMinGulpAmount, lrm.miningMaxGulpAmount);
 	}
 
-	function leverageEnabled() public view override returns (bool _leverageEnabled)
+	function collateralizationRatio() public view override returns (uint256 _collateralizationRatio)
 	{
-		return lrm.leverageEnabled;
+		return lrm.collateralizationRatio;
 	}
 
 	function setMiningExchange(address _miningExchange) public override onlyOwner nonReentrant
@@ -117,9 +117,9 @@ contract GCTokenBase is GTokenBase, GFlashBorrower, GCToken
 		lrm.setMiningGulpRange(_miningMinGulpAmount, _miningMaxGulpAmount);
 	}
 
-	function setLeverageEnabled(bool _leverageEnabled) public override onlyOwner nonReentrant
+	function setCollateralizationRatio(uint256 _collateralizationRatio) public override onlyOwner nonReentrant
 	{
-		lrm.setLeverageEnabled(_leverageEnabled);
+		lrm.setCollateralizationRatio(_collateralizationRatio);
 	}
 
 	function _prepareWithdrawal(uint256 _cost) internal override mayFlashBorrow returns (bool _success)

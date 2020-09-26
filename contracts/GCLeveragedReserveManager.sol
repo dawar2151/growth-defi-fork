@@ -11,7 +11,7 @@ library GCLeveragedReserveManager
 	using SafeMath for uint256;
 	using GCLeveragedReserveManager for GCLeveragedReserveManager.Self;
 
-	uint256 constant IDEAL_COLLATERALIZATION_RATIO = 96e16; // 96% of 75% = 72%
+	uint256 constant DEFAULT_COLLATERALIZATION_RATIO = 96e16; // 96% of 75% = 72%
 
 	struct Self {
 		address reserveToken;
@@ -22,7 +22,7 @@ library GCLeveragedReserveManager
 		uint256 miningMinGulpAmount;
 		uint256 miningMaxGulpAmount;
 
-		bool leverageEnabled;
+		uint256 collateralizationRatio;
 	}
 
 	function init(Self storage _self, address _reserveToken, address _underlyingToken, address _miningToken) public
@@ -35,7 +35,7 @@ library GCLeveragedReserveManager
 		_self.miningMinGulpAmount = 0;
 		_self.miningMaxGulpAmount = 0;
 
-		_self.leverageEnabled = false;
+		_self.collateralizationRatio = DEFAULT_COLLATERALIZATION_RATIO;
 
 		G.safeEnter(_reserveToken);
 	}
@@ -52,9 +52,10 @@ library GCLeveragedReserveManager
 		_self.miningMaxGulpAmount = _miningMaxGulpAmount;
 	}
 
-	function setLeverageEnabled(Self storage _self, bool _leverageEnabled) public
+	function setCollateralizationRatio(Self storage _self, uint256 _collateralizationRatio) public
 	{
-		_self.leverageEnabled = _leverageEnabled;
+		require(_collateralizationRatio <= 1e18, "invalid rate");
+		_self.collateralizationRatio = _collateralizationRatio;
 	}
 
 	function adjustReserve(Self storage _self, uint256 _roomAmount) public returns (bool _success)
@@ -64,9 +65,9 @@ library GCLeveragedReserveManager
 		return success1 && success2;
 	}
 
-	function _calcIdealCollateralizationRatio(Self storage _self) internal view returns (uint256 _idealCollateralizationRatio)
+	function _calcCollateralizationRatio(Self storage _self) internal view returns (uint256 _collateralizationRatio)
 	{
-		return G.getCollateralRatio(_self.reserveToken).mul(IDEAL_COLLATERALIZATION_RATIO).div(1e18);
+		return G.getCollateralRatio(_self.reserveToken).mul(_self.collateralizationRatio).div(1e18);
 	}
 
 	function _gulpMiningAssets(Self storage _self) internal returns (bool _success)
@@ -88,7 +89,7 @@ library GCLeveragedReserveManager
 		uint256 _newReserveAmount = _reserveAmount.sub(_roomAmount);
 		uint256 _oldLendAmount = _lendAmount.sub(_roomAmount);
 		uint256 _newLendAmount = _newReserveAmount;
-		if (_self.leverageEnabled) _newLendAmount = _newLendAmount.mul(1e18).div(uint256(1e18).sub(_self._calcIdealCollateralizationRatio()));
+		_newLendAmount = _newLendAmount.mul(1e18).div(uint256(1e18).sub(_self._calcCollateralizationRatio()));
 		if (_newLendAmount > _oldLendAmount) return _self._dispatchFlashLoan(_newLendAmount.sub(_oldLendAmount), 1);
 		if (_newLendAmount < _oldLendAmount) return _self._dispatchFlashLoan(_oldLendAmount.sub(_newLendAmount), 2);
 		return true;

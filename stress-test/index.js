@@ -261,8 +261,9 @@ async function newGCToken(address) {
       const _grossShares = units(grossShares, self.decimals);
       await contract.methods.withdrawUnderlying(_grossShares).send({ from: account });
     },
-    setLeverageEnabled: async (enabled) => {
-      await contract.methods.setLeverageEnabled(enabled).send({ from: account });
+    setCollateralizationRatio: async (collateralizationRatio) => {
+      const _collateralizationRatio = units(collateralizationRatio, 18);
+      await contract.methods.setCollateralizationRatio(_collateralizationRatio).send({ from: account });
     },
   });
 }
@@ -335,8 +336,7 @@ async function main(args) {
   try { await gtoken.allocateLiquidityPool(await stoken.balanceOf(account), await gtoken.balanceOf(account)); } catch (e) {}
 
   const ACTIONS = [
-    'leverageOn',
-    'leverageOff',
+    'changeRate',
     'deposit',
     'depositAll',
     'withdraw',
@@ -353,20 +353,11 @@ async function main(args) {
 
     const action = ACTIONS[randomInt(ACTIONS.length)];
 
-    if (action == 'leverageOn') {
-      console.log('LEVERAGE ON');
+    if (action == 'changeRate') {
+      const amount = String(randomInt(100) / 100);
+      console.log('CHANGE RATE', amount);
       try {
-        await gtoken.setLeverageEnabled(true);
-      } catch (e) {
-        console.log('!!', e.message);
-      }
-      continue;
-    }
-
-    if (action == 'leverageOff') {
-      console.log('LEVERAGE OFF');
-      try {
-        await gtoken.setLeverageEnabled(false);
+        await gtoken.setCollateralizationRatio(amount);
       } catch (e) {
         console.log('!!', e.message);
       }

@@ -37,79 +37,8 @@ contract TestGCLeveragedReserveManager is Env
 		Assert.equal(_getBalance(COMP), 1e18, "COMP balance must be 1e18");
 		Assert.isAbove(_getBalance(DAI), 0e18, "DAI balance must be above 0e18");
 	}
-/*
-	function test06() public
-	{
-		_burnAll(DAI);
-		_burnAll(cDAI);
-		_mint(DAI, 100e18);
 
-		Assert.equal(_getBalance(DAI), 100e18, "DAI balance must be 0e18");
-		Assert.equal(_getBalance(cDAI), 0e8, "cDAI balance must be 0e8");
-
-		G.safeLend(cDAI, 100e18);
-
-		uint256 _availableDAI = lrm._getAvailableUnderlying();
-
-		Assert.isAtMost(_availableDAI, 69e18, "DAI available must be at most 69e18");
-
-		_availableDAI = lrm._getAvailableBorrow();
-
-		Assert.isAtMost(_availableDAI, 66e18, "DAI available must be at most 66e18");
-
-		bool _success1 = G.borrow(DAI, 30e18);
-		Assert.isTrue(_success1, "failure borrowing DAI");
-
-		_availableDAI = lrm._getAvailableUnderlying();
-
-		Assert.isAtMost(_availableDAI, 69e18 - 29e18, "DAI available must be at most 69e18 minus 30e6");
-
-		_availableDAI = lrm._getAvailableBorrow();
-
-		Assert.isAtMost(_availableDAI, 66e18 - 29e18, "DAI available must be at most 66e18 minus 30e6");
-
-		bool _success2 = G.repay(DAI, 30e18);
-		Assert.isTrue(_success2, "failure repaying DAI");
-
-		G.safeRedeem(cDAI, 100e18);
-	}
-
-	function test07() public
-	{
-		_burnAll(DAI);
-		_burnAll(cDAI);
-		_mint(DAI, 1000e18);
-
-		Assert.equal(_getBalance(DAI), 1000e18, "DAI balance must be 1000e18");
-		Assert.equal(_getBalance(cDAI), 0e8, "cDAI balance must be 0e8");
-
-		G.safeLend(cDAI, 1000e18);
-
-		Assert.equal(_getBalance(DAI), 0e18, "DAI balance must be 0e18");
-		Assert.isAbove(G.fetchLendAmount(cDAI), 99999e16, "DAI lend amount must be above 99999e16");
-		Assert.equal(G.fetchBorrowAmount(cDAI), 0e18, "DAI borrow amount must be 0e6");
-
-		lrm.setLeverageEnabled(true);
-		bool _success = lrm.adjustLeverage();
-
-		Assert.isTrue(_success, "failure leveraging");
-		Assert.equal(_getBalance(DAI), 0e18, "DAI balance must be 0e18");
-		Assert.isAbove(G.fetchLendAmount(cDAI), 1000e18, "DAI balance must be above 1000e18");
-
-		lrm.setLeverageEnabled(false);
-		_success = lrm.adjustLeverage();
-
-		Assert.isTrue(_success, "failure deleveraging");
-		Assert.equal(_getBalance(DAI), 0e18, "DAI balance must be 0e18");
-
-		Assert.equal(G.fetchBorrowAmount(cDAI), 0e18, "DAI borrow balance must be 0e18");
-
-		G.safeRedeem(cDAI, G.fetchLendAmount(cDAI));
-
-		Assert.isAbove(_getBalance(DAI), 999e18, "DAI amount must be above 999e18");
-	}
-*/
-	function test08() public
+	function test02() public
 	{
 		_burnAll(COMP);
 		_burnAll(DAI);
@@ -126,7 +55,7 @@ contract TestGCLeveragedReserveManager is Env
 		Assert.equal(_getBalance(cDAI), 0e8, "cDAI balance must be 0e8");
 	}
 
-	function test09() public
+	function test03() public
 	{
 		_burnAll(COMP);
 		_burnAll(DAI);
@@ -145,7 +74,7 @@ contract TestGCLeveragedReserveManager is Env
 		Assert.isAbove(_getBalance(cDAI), 0e8, "cDAI balance must be above 0e8");
 	}
 
-	function test10() public
+	function test04() public
 	{
 		_burnAll(COMP);
 		_burnAll(DAI);
