@@ -279,7 +279,8 @@ function randomAmount(token, balance) {
 }
 
 async function main(args) {
-  const GTOKEN_ADDRESS = require('../build/contracts/gcDAI.json').networks[networkId].address;
+  const name = args[2] || 'gcDAI';
+  const GTOKEN_ADDRESS = require('../build/contracts/' + name + '.json').networks[networkId].address;
   const gtoken = await newGCToken(GTOKEN_ADDRESS);
   const stoken = gtoken.stakesToken;
   const ctoken = gtoken.reserveToken;
@@ -305,7 +306,7 @@ async function main(args) {
   console.log(gtoken.name, gtoken.symbol, gtoken.decimals);
   console.log(ctoken.name, ctoken.symbol, ctoken.decimals);
   console.log('approve', await stoken.approve(gtoken.address, '1000000000'));
-  console.log('ctoken allowance', await stoken.allowance(account, gtoken.address));
+  console.log('stoken allowance', await stoken.allowance(account, gtoken.address));
   console.log('approve', await ctoken.approve(gtoken.address, '1000000000'));
   console.log('ctoken allowance', await ctoken.allowance(account, gtoken.address));
   console.log('approve', await utoken.approve(gtoken.address, '1000000000'));
