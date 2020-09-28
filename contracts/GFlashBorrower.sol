@@ -9,6 +9,8 @@ import { G } from "./G.sol";
 import { FlashLoanReceiver } from "./interop/Aave.sol";
 import { ICallee, Account } from "./interop/Dydx.sol";
 
+import { FlashLoans } from "./modules/FlashLoans.sol";
+
 import { $ } from "./network/$.sol";
 
 abstract contract GFlashBorrower is FlashLoanReceiver, ICallee
@@ -31,7 +33,7 @@ abstract contract GFlashBorrower is FlashLoanReceiver, ICallee
 		address _pool = $.Aave_AAVE_LENDING_POOL;
 		assert(_from == _pool);
 		require(_processFlashLoan(_token, _amount, _fee, _params), "failure processing flash loan");
-		G.paybackFlashLoan(_token, _amount.add(_fee));
+		G.paybackFlashLoan(FlashLoans.Provider.Aave, _token, _amount.add(_fee));
 	}
 
 	function callFunction(address _sender, Account.Info memory _account, bytes memory _data) external override
@@ -44,7 +46,7 @@ abstract contract GFlashBorrower is FlashLoanReceiver, ICallee
 		assert(_account.owner == address(this));
 		(address _token, uint256 _amount, uint256 _fee, bytes memory _params) = abi.decode(_data, (address,uint256,uint256,bytes));
 		require(_processFlashLoan(_token, _amount, _fee, _params), "failure processing flash loan");
-		G.paybackFlashLoan(_token, _amount.add(_fee));
+		G.paybackFlashLoan(FlashLoans.Provider.Dydx, _token, _amount.add(_fee));
 	}
 
 	function _processFlashLoan(address _token, uint256 _amount, uint256 _fee, bytes memory _params) internal virtual returns (bool _success);

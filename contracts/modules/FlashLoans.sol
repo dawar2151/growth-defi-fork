@@ -8,34 +8,30 @@ import { $ } from "../network/$.sol";
 
 library FlashLoans
 {
-	function _estimateFlashLoanFee(address _token, uint256 _netAmount) internal pure returns (uint256 _feeAmount)
+	enum Provider { Aave, Dydx }
+
+	function _estimateFlashLoanFee(Provider _provider, address _token, uint256 _netAmount) internal pure returns (uint256 _feeAmount)
 	{
-		if ($.NETWORK == $.Network.Mainnet || $.NETWORK == $.Network.Kovan) {
-			if (_token == $.DAI || _token == $.USDC) {
-				return DydxFlashLoanAbstraction._estimateFlashLoanFee(_token, _netAmount);
-			}
-		}
-		return AaveFlashLoanAbstraction._estimateFlashLoanFee(_token, _netAmount);
+		if (_provider == Provider.Aave) return AaveFlashLoanAbstraction._estimateFlashLoanFee(_token, _netAmount);
+		if (_provider == Provider.Dydx) return DydxFlashLoanAbstraction._estimateFlashLoanFee(_token, _netAmount);
 	}
 
 	function _requestFlashLoan(address _token, uint256 _netAmount, bytes memory _context) internal returns (bool _success)
 	{
 		if ($.NETWORK == $.Network.Mainnet || $.NETWORK == $.Network.Kovan) {
-			if (_token == $.DAI || _token == $.USDC) {
-				return DydxFlashLoanAbstraction._requestFlashLoan(_token, _netAmount, _context);
-			}
+			_success = DydxFlashLoanAbstraction._requestFlashLoan(_token, _netAmount, _context);
+			if (_success) return true;
 		}
-		return AaveFlashLoanAbstraction._requestFlashLoan(_token, _netAmount, _context);
+		if ($.NETWORK == $.Network.Mainnet || $.NETWORK == $.Network.Ropsten || $.NETWORK == $.Network.Kovan) {
+			_success = AaveFlashLoanAbstraction._requestFlashLoan(_token, _netAmount, _context);
+			if (_success) return true;
+		}
+		return false;
 	}
 
-	function _paybackFlashLoan(address _token, uint256 _grossAmount) internal
+	function _paybackFlashLoan(Provider _provider, address _token, uint256 _grossAmount) internal
 	{
-		if ($.NETWORK == $.Network.Mainnet || $.NETWORK == $.Network.Kovan) {
-			if (_token == $.DAI || _token == $.USDC) {
-				DydxFlashLoanAbstraction._paybackFlashLoan(_token, _grossAmount);
-				return;
-			}
-		}
-		AaveFlashLoanAbstraction._paybackFlashLoan(_token, _grossAmount);
+		if (_provider == Provider.Aave) return AaveFlashLoanAbstraction._paybackFlashLoan(_token, _grossAmount);
+		if (_provider == Provider.Dydx) return DydxFlashLoanAbstraction._paybackFlashLoan(_token, _grossAmount);
 	}
 }
