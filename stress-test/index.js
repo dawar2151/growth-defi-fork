@@ -331,10 +331,15 @@ async function main(args) {
 
   await printSummary();
 
+  console.log('minting ctoken');
   await mint(ctoken, '100', '1');
+  console.log('minting stoken');
   await mint(stoken, '1', '1');
+  console.log('minting gtoken');
   await gtoken.deposit('1');
+  console.log('allocating the pool if required');
   try { await gtoken.allocateLiquidityPool(await stoken.balanceOf(account), await gtoken.balanceOf(account)); } catch (e) {}
+  console.log();
 
   const ACTIONS = [
     'changeRate',
