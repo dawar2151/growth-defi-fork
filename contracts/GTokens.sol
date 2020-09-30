@@ -31,10 +31,10 @@ contract gcUSDT is GCTokenBase
 	}
 }
 
-contract gcWETH is GCDelegatedTokenBase
+contract gcETH is GCDelegatedTokenBase
 {
 	constructor ()
-		GCDelegatedTokenBase("growth cWETH", "gcWETH", 8, $.GRO, $.cWETH, $.COMP, $.gcDAI) public
+		GCDelegatedTokenBase("growth cETH", "gcETH", 8, $.GRO, $.cETH, $.COMP, $.gcDAI) public
 	{
 	}
 }
@@ -59,6 +59,14 @@ contract gcZRX is GCDelegatedTokenBase
 {
 	constructor ()
 		GCDelegatedTokenBase("growth cZRX", "gcZRX", 8, $.GRO, $.cZRX, $.COMP, $.gcDAI) public
+	{
+	}
+}
+
+contract gcUNI is GCDelegatedTokenBase
+{
+	constructor ()
+		GCDelegatedTokenBase("growth cUNI", "gcUNI", 8, $.GRO, $.cUNI, $.COMP, $.gcDAI) public
 	{
 	}
 }
