@@ -3,6 +3,7 @@ pragma solidity ^0.6.0;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
+import { GCToken } from "./GCToken.sol";
 import { G } from "./G.sol";
 
 library GCDelegatedReserveManager
@@ -62,8 +63,9 @@ library GCDelegatedReserveManager
 	function adjustReserve(Self storage _self, uint256 _roomAmount) public returns (bool _success)
 	{
 		bool success1 = _self._gulpMiningAssets();
-		bool success2 = _self._adjustReserve(_roomAmount);
-		return success1 && success2;
+		bool success2 = _self._absorbGrowthProfits();
+		bool success3 = _self._adjustReserve(_roomAmount);
+		return success1 && success2 && success3;
 	}
 
 	function _calcCollateralizationRatio(Self storage _self) internal view returns (uint256 _collateralizationRatio)
@@ -79,6 +81,25 @@ library GCDelegatedReserveManager
 		if (_self.miningExchange == address(0)) return true;
 		_self._convertMiningToUnderlying(G.min(_miningAmount, _self.miningMaxGulpAmount));
 		return G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
+	}
+
+	function _absorbGrowthProfits(Self storage _self) internal returns (bool _success)
+	{
+		GCToken gct = GCToken(_self.growthToken);
+		uint256 _borrowAmount = G.fetchBorrowAmount(gct.underlyingToken());
+		(uint256 _reserveAmount,) = gct.calcWithdrawalCostFromShares(G.getBalance(address(gct)), gct.totalReserve(), gct.totalSupply(), gct.withdrawalFee());
+		uint256 _redeemableAmount = gct.calcUnderlyingCostFromCost(_reserveAmount, gct.exchangeRate());
+		if (_redeemableAmount > _borrowAmount) {
+			uint256 _profitAmount = _redeemableAmount.sub(_borrowAmount);
+			uint256 _cost = gct.calcCostFromUnderlyingCost(_profitAmount, gct.exchangeRate());
+			(uint256 _grossShares,) = gct.calcWithdrawalSharesFromCost(_cost, gct.totalReserve(), gct.totalSupply(), gct.withdrawalFee());
+			try gct.withdrawUnderlying(_grossShares) {
+				return G.repay(gct.reserveToken(), G.getBalance(gct.underlyingToken()));
+			} catch (bytes memory /* _data */) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	function _adjustReserve(Self storage _self, uint256 _roomAmount) internal returns (bool _success)
