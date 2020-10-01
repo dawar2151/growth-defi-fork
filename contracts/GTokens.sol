@@ -37,6 +37,8 @@ contract gcETH is GCDelegatedTokenBase
 		GCDelegatedTokenBase("growth cETH", "gcETH", 8, $.GRO, $.cETH, $.COMP, $.gcDAI) public
 	{
 	}
+
+	receive() external payable {}
 }
 
 contract gcWBTC is GCDelegatedTokenBase

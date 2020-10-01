@@ -7,6 +7,7 @@ import { Math } from "./Math.sol";
 import { Transfers } from "./Transfers.sol";
 
 import { Comptroller, PriceOracle, CToken } from "../interop/Compound.sol";
+import { WETH } from "../interop/WrappedEther.sol";
 
 import { $ } from "../network/$.sol";
 
@@ -16,6 +17,7 @@ library CompoundLendingMarketAbstraction
 
 	function _getUnderlyingToken(address _ctoken) internal view returns (address _token)
 	{
+		if (_ctoken == $.cETH) return $.WETH;
 		return CToken(_ctoken).underlying();
 	}
 
@@ -94,40 +96,94 @@ library CompoundLendingMarketAbstraction
 	function _lend(address _ctoken, uint256 _amount) internal returns (bool _success)
 	{
 		address _token = _getUnderlyingToken(_ctoken);
-		Transfers._approveFunds(_token, _ctoken, _amount);
-		try CToken(_ctoken).mint(_amount) returns (uint256 _errorCode) {
-			return _errorCode == 0;
-		} catch (bytes memory /* _data */) {
-			return false;
+		if (_token == $.WETH) {
+			try WETH(_token).withdraw(_amount) {
+				try CToken(_ctoken).mint{value: _amount}() {
+					return true;
+				} catch (bytes memory /* _data */) {
+					WETH(_token).deposit{value: _amount}();
+					return false;
+				}
+			} catch (bytes memory /* _data */) {
+				return false;
+			}
+		} else {
+			Transfers._approveFunds(_token, _ctoken, _amount);
+			try CToken(_ctoken).mint(_amount) returns (uint256 _errorCode) {
+				return _errorCode == 0;
+			} catch (bytes memory /* _data */) {
+				return false;
+			}
 		}
 	}
 
 	function _redeem(address _ctoken, uint256 _amount) internal returns (bool _success)
 	{
-		try CToken(_ctoken).redeemUnderlying(_amount) returns (uint256 _errorCode) {
-			return _errorCode == 0;
-		} catch (bytes memory /* _data */) {
-			return false;
+		if (_ctoken == $.cETH) {
+			try CToken(_ctoken).redeemUnderlying(_amount) returns (uint256 _errorCode) {
+				if (_errorCode == 0) {
+					address _token = _getUnderlyingToken(_ctoken);
+					WETH(_token).deposit{value: _amount}();
+					return true;
+				} else {
+					return false;
+				}
+			} catch (bytes memory /* _data */) {
+				return false;
+			}
+		} else {
+			try CToken(_ctoken).redeemUnderlying(_amount) returns (uint256 _errorCode) {
+				return _errorCode == 0;
+			} catch (bytes memory /* _data */) {
+				return false;
+			}
 		}
 	}
 
 	function _borrow(address _ctoken, uint256 _amount) internal returns (bool _success)
 	{
-		try CToken(_ctoken).borrow(_amount) returns (uint256 _errorCode) {
-			return _errorCode == 0;
-		} catch (bytes memory /* _data */) {
-			return false;
+		if (_ctoken == $.cETH) {
+			try CToken(_ctoken).borrow(_amount) returns (uint256 _errorCode) {
+				if (_errorCode == 0) {
+					address _token = _getUnderlyingToken(_ctoken);
+					WETH(_token).deposit{value: _amount}();
+					return true;
+				} else {
+					return false;
+				}
+			} catch (bytes memory /* _data */) {
+				return false;
+			}
+		} else {
+			try CToken(_ctoken).borrow(_amount) returns (uint256 _errorCode) {
+				return _errorCode == 0;
+			} catch (bytes memory /* _data */) {
+				return false;
+			}
 		}
 	}
 
 	function _repay(address _ctoken, uint256 _amount) internal returns (bool _success)
 	{
 		address _token = _getUnderlyingToken(_ctoken);
-		Transfers._approveFunds(_token, _ctoken, _amount);
-		try CToken(_ctoken).repayBorrow(_amount) returns (uint256 _errorCode) {
-			return _errorCode == 0;
-		} catch (bytes memory /* _data */) {
-			return false;
+		if (_token == $.WETH) {
+			try WETH(_token).withdraw(_amount) {
+				try CToken(_ctoken).repayBorrow{value: _amount}() {
+					return true;
+				} catch (bytes memory /* _data */) {
+					WETH(_token).deposit{value: _amount}();
+					return false;
+				}
+			} catch (bytes memory /* _data */) {
+				return false;
+			}
+		} else {
+			Transfers._approveFunds(_token, _ctoken, _amount);
+			try CToken(_ctoken).repayBorrow(_amount) returns (uint256 _errorCode) {
+				return _errorCode == 0;
+			} catch (bytes memory /* _data */) {
+				return false;
+			}
 		}
 	}
 
