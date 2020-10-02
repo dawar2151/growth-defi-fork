@@ -102,6 +102,11 @@ contract GCDelegatedTokenBase is GTokenBase, GCToken
 		return (drm.miningMinGulpAmount, drm.miningMaxGulpAmount);
 	}
 
+	function growthGulpRange() public view /*override*/ returns (uint256 _growthMinGulpAmount, uint256 _growthMaxGulpAmount)
+	{
+		return (drm.growthMinGulpAmount, drm.growthMaxGulpAmount);
+	}
+
 	function collateralizationRatio() public view override returns (uint256 _collateralizationRatio)
 	{
 		return drm.collateralizationRatio;
@@ -115,6 +120,11 @@ contract GCDelegatedTokenBase is GTokenBase, GCToken
 	function setMiningGulpRange(uint256 _miningMinGulpAmount, uint256 _miningMaxGulpAmount) public override onlyOwner nonReentrant
 	{
 		drm.setMiningGulpRange(_miningMinGulpAmount, _miningMaxGulpAmount);
+	}
+
+	function setGrowthGulpRange(uint256 _growthMinGulpAmount, uint256 _growthMaxGulpAmount) public /*override*/ onlyOwner nonReentrant
+	{
+		drm.setGrowthGulpRange(_growthMinGulpAmount, _growthMaxGulpAmount);
 	}
 
 	function setCollateralizationRatio(uint256 _collateralizationRatio) public override onlyOwner nonReentrant
