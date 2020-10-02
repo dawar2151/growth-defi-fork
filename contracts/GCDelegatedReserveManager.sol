@@ -23,6 +23,11 @@ library GCDelegatedReserveManager
 		uint256 miningMaxGulpAmount;
 
 		address growthToken;
+		address growthReserveToken;
+		address growthUnderlyingToken;
+		uint256 growthMinGulpAmount;
+		uint256 growthMaxGulpAmount;
+
 		uint256 collateralizationRatio;
 	}
 
@@ -37,6 +42,11 @@ library GCDelegatedReserveManager
 		_self.miningMaxGulpAmount = 0;
 
 		_self.growthToken = _growthToken;
+		_self.growthReserveToken = GCToken(_growthToken).reserveToken();
+		_self.growthUnderlyingToken = GCToken(_growthToken).underlyingToken();
+		_self.growthMinGulpAmount = 0;
+		_self.growthMaxGulpAmount = 0;
+
 		_self.collateralizationRatio = DEFAULT_COLLATERALIZATION_RATIO;
 
 		G.safeEnter(_reserveToken);
@@ -54,6 +64,13 @@ library GCDelegatedReserveManager
 		_self.miningMaxGulpAmount = _miningMaxGulpAmount;
 	}
 
+	function setGrowthGulpRange(Self storage _self, uint256 _growthMinGulpAmount, uint256 _growthMaxGulpAmount) public
+	{
+		require(_growthMinGulpAmount <= _growthMaxGulpAmount, "invalid range");
+		_self.growthMinGulpAmount = _growthMinGulpAmount;
+		_self.growthMaxGulpAmount = _growthMaxGulpAmount;
+	}
+
 	function setCollateralizationRatio(Self storage _self, uint256 _collateralizationRatio) public
 	{
 		require(_collateralizationRatio <= 1e18, "invalid rate");
@@ -63,7 +80,7 @@ library GCDelegatedReserveManager
 	function adjustReserve(Self storage _self, uint256 _roomAmount) public returns (bool _success)
 	{
 		bool success1 = _self._gulpMiningAssets();
-		bool success2 = _self._absorbGrowthProfits();
+		bool success2 = _self._gulpGrowthAssets();
 		bool success3 = _self._adjustReserve(_roomAmount);
 		return success1 && success2 && success3;
 	}
@@ -83,18 +100,57 @@ library GCDelegatedReserveManager
 		return G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
 	}
 
-	function _absorbGrowthProfits(Self storage _self) internal returns (bool _success)
+	function _gulpGrowthAssets(Self storage _self) internal returns (bool _success)
 	{
-		GCToken gct = GCToken(_self.growthToken);
-		uint256 _borrowAmount = G.fetchBorrowAmount(gct.underlyingToken());
-		(uint256 _reserveAmount,) = gct.calcWithdrawalCostFromShares(G.getBalance(address(gct)), gct.totalReserve(), gct.totalSupply(), gct.withdrawalFee());
-		uint256 _redeemableAmount = gct.calcUnderlyingCostFromCost(_reserveAmount, gct.exchangeRate());
-		if (_redeemableAmount > _borrowAmount) {
-			uint256 _profitAmount = _redeemableAmount.sub(_borrowAmount);
-			uint256 _cost = gct.calcCostFromUnderlyingCost(_profitAmount, gct.exchangeRate());
-			(uint256 _grossShares,) = gct.calcWithdrawalSharesFromCost(_cost, gct.totalReserve(), gct.totalSupply(), gct.withdrawalFee());
-			try gct.withdrawUnderlying(_grossShares) {
-				return G.repay(gct.reserveToken(), G.getBalance(gct.underlyingToken()));
+		uint256 _borrowAmount = G.fetchBorrowAmount(_self.growthReserveToken);
+		uint256 _redeemableAmount = _self._calcUnderlyingCostFromShares(G.getBalance(_self.growthToken));
+		if (_redeemableAmount <= _borrowAmount) return true;
+		uint256 _growthAmount = _redeemableAmount.sub(_borrowAmount);
+		if (_growthAmount < _self.growthMinGulpAmount) return true;
+		if (_self.miningExchange == address(0)) return true;
+		uint256 _grossShares = _self._calcSharesFromUnderlyingCost(G.min(_growthAmount, _self.growthMaxGulpAmount));
+		if (_grossShares == 0) return true;
+		try GCToken(_self.growthToken).withdrawUnderlying(_grossShares) {
+			_self._convertGrowthUnderlyingToUnderlying(G.getBalance(_self.growthUnderlyingToken));
+			return G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
+		} catch (bytes memory /* _data */) {
+			return false;
+		}
+	}
+
+	function _adjustReserve(Self storage _self, uint256 _roomAmount) internal returns (bool _success)
+	{
+		uint256 _borrowAmount = G.fetchBorrowAmount(_self.growthReserveToken);
+		uint256 _newIdealAmount;
+		{
+			uint256 _reserveAmount = G.fetchLendAmount(_self.reserveToken);
+			_roomAmount = G.min(_roomAmount, _reserveAmount);
+			uint256 _newReserveAmount = _reserveAmount.sub(_roomAmount);
+			uint256 _collateralRatio = _self._calcCollateralizationRatio();
+			uint256 _availableAmount = _reserveAmount.mul(_collateralRatio).div(1e18);
+			uint256 _newAvailableAmount = _newReserveAmount.mul(_collateralRatio).div(1e18);
+			uint256 _scallingRatio = _newAvailableAmount.mul(1e18).div(_availableAmount);
+			uint256 _freeAmount = G.getLiquidityAmount(_self.growthReserveToken);
+			uint256 _totalAmount = _borrowAmount.add(_freeAmount);
+			uint256 _idealAmount = _totalAmount.mul(DEFAULT_COLLATERALIZATION_RATIO).div(1e18);
+			_newIdealAmount = _idealAmount.mul(1e18).div(_scallingRatio);
+		}
+		if (_borrowAmount < _newIdealAmount) {
+			uint256 _amount = _newIdealAmount.sub(_borrowAmount);
+			_success = G.borrow(_self.growthReserveToken, _amount);
+			if (!_success) return false;
+			try GCToken(_self.growthToken).depositUnderlying(_amount) {
+				return true;
+			} catch (bytes memory /* _data */) {
+				G.repay(_self.growthReserveToken, _amount);
+				return false;
+			}
+		}
+		if (_borrowAmount > _newIdealAmount) {
+			uint256 _amount = _borrowAmount.sub(_newIdealAmount);
+			uint256 _grossShares = _self._calcSharesFromUnderlyingCost(_amount);
+			try GCToken(_self.growthToken).withdrawUnderlying(_grossShares) {
+				return G.repay(_self.growthReserveToken, G.getBalance(_self.growthUnderlyingToken));
 			} catch (bytes memory /* _data */) {
 				return false;
 			}
@@ -102,33 +158,33 @@ library GCDelegatedReserveManager
 		return true;
 	}
 
-	function _adjustReserve(Self storage _self, uint256 _roomAmount) internal returns (bool _success)
-	{
-/*
-		uint256 _lendAmount = G.fetchLendAmount(_self.reserveToken);
-		uint256 _borrowAmount = G.fetchBorrowAmount(_self.reserveToken);
-		uint256 _reserveAmount = _lendAmount.sub(_borrowAmount);
-		_roomAmount = G.min(_roomAmount, _reserveAmount);
-		uint256 _newReserveAmount = _reserveAmount.sub(_roomAmount);
-		uint256 _oldLendAmount = _lendAmount.sub(_roomAmount);
-		uint256 _newLendAmount = _newReserveAmount;
-		if (_newLendAmount > _oldLendAmount) {
-			bool _success1 = G.lend(_self.reserveToken, _amount.sub(_fee));
-			bool _success2 = G.borrow(_self.reserveToken, _amount);
-			return _success1 && _success2;
-		}
-		if (_newLendAmount < _oldLendAmount) {
-			bool _success1 = G.repay(_self.reserveToken, _amount);
-			bool _success2 = G.redeem(_self.reserveToken, _amount.add(_fee));
-			return _success1 && _success2;
-		}
-		assert(false);
-*/
-		return true;
+	function _calcUnderlyingCostFromShares(Self storage _self, uint256 _grossShares) internal view returns (uint256 _underlyingCost) {
+		uint256 _totalReserve = GCToken(_self.growthToken).totalReserve();
+		uint256 _totalSupply = GCToken(_self.growthToken).totalSupply();
+		uint256 _withdrawalFee = GCToken(_self.growthToken).withdrawalFee();
+		uint256 _exchangeRate = GCToken(_self.growthToken).exchangeRate();
+		(uint256 _cost,) = GCToken(_self.growthToken).calcWithdrawalCostFromShares(_grossShares, _totalReserve, _totalSupply, _withdrawalFee);
+		return GCToken(_self.growthToken).calcUnderlyingCostFromCost(_cost, _exchangeRate);
+	}
+
+	function _calcSharesFromUnderlyingCost(Self storage _self, uint256 _underlyingCost) internal view returns (uint256 _grossShares) {
+		uint256 _totalReserve = GCToken(_self.growthToken).totalReserve();
+		uint256 _totalSupply = GCToken(_self.growthToken).totalSupply();
+		uint256 _withdrawalFee = GCToken(_self.growthToken).withdrawalFee();
+		uint256 _exchangeRate = GCToken(_self.growthToken).exchangeRate();
+		uint256 _cost = GCToken(_self.growthToken).calcCostFromUnderlyingCost(_underlyingCost, _exchangeRate);
+		(_grossShares,) = GCToken(_self.growthToken).calcWithdrawalSharesFromCost(_cost, _totalReserve, _totalSupply, _withdrawalFee);
+		return _grossShares;
 	}
 
 	function _convertMiningToUnderlying(Self storage _self, uint256 _inputAmount) internal
 	{
 		G.dynamicConvertFunds(_self.miningExchange, _self.miningToken, _self.underlyingToken, _inputAmount, 0);
+	}
+
+	function _convertGrowthUnderlyingToUnderlying(Self storage _self, uint256 _inputAmount) internal
+	{
+		GCToken gct = GCToken(_self.growthToken);
+		G.dynamicConvertFunds(_self.miningExchange, gct.underlyingToken(), _self.underlyingToken, _inputAmount, 0);
 	}
 }
