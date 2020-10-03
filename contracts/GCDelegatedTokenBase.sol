@@ -112,6 +112,11 @@ contract GCDelegatedTokenBase is GTokenBase, GCToken
 		return drm.collateralizationRatio;
 	}
 
+	function collateralizationMargin() public view /*override*/ returns (uint256 _collateralizationMargin)
+	{
+		return drm.collateralizationMargin;
+	}
+
 	function setMiningExchange(address _miningExchange) public override onlyOwner nonReentrant
 	{
 		drm.setMiningExchange(_miningExchange);
@@ -130,6 +135,11 @@ contract GCDelegatedTokenBase is GTokenBase, GCToken
 	function setCollateralizationRatio(uint256 _collateralizationRatio) public override onlyOwner nonReentrant
 	{
 		drm.setCollateralizationRatio(_collateralizationRatio);
+	}
+
+	function setCollateralizationMargin(uint256 _collateralizationMargin) public /*override*/ onlyOwner nonReentrant
+	{
+		drm.setCollateralizationMargin(_collateralizationMargin);
 	}
 
 	function _prepareWithdrawal(uint256 _cost) internal override returns (bool _success)

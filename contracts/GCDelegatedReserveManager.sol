@@ -12,6 +12,7 @@ library GCDelegatedReserveManager
 	using GCDelegatedReserveManager for GCDelegatedReserveManager.Self;
 
 	uint256 constant DEFAULT_COLLATERALIZATION_RATIO = 80e16; // 80% of 50% = 40%
+	uint256 constant DEFAULT_COLLATERALIZATION_MARGIN = 8e16; // 8% of 50% = 4%
 
 	struct Self {
 		address reserveToken;
@@ -29,6 +30,7 @@ library GCDelegatedReserveManager
 		uint256 growthMaxGulpAmount;
 
 		uint256 collateralizationRatio;
+		uint256 collateralizationMargin;
 	}
 
 	function init(Self storage _self, address _reserveToken, address _underlyingToken, address _miningToken, address _growthToken) public
@@ -48,6 +50,7 @@ library GCDelegatedReserveManager
 		_self.growthMaxGulpAmount = 0;
 
 		_self.collateralizationRatio = DEFAULT_COLLATERALIZATION_RATIO;
+		_self.collateralizationMargin = DEFAULT_COLLATERALIZATION_MARGIN;
 
 		G.safeEnter(_reserveToken);
 	}
@@ -73,8 +76,14 @@ library GCDelegatedReserveManager
 
 	function setCollateralizationRatio(Self storage _self, uint256 _collateralizationRatio) public
 	{
-		require(_collateralizationRatio <= 1e18, "invalid rate");
+		require(_self.collateralizationMargin <= _collateralizationRatio && _collateralizationRatio.add(_self.collateralizationMargin) <= 1e18, "invalid ratio");
 		_self.collateralizationRatio = _collateralizationRatio;
+	}
+
+	function setCollateralizationMargin(Self storage _self, uint256 _collateralizationMargin) public
+	{
+		require(_collateralizationMargin <= _self.collateralizationRatio && _self.collateralizationRatio.add(_collateralizationMargin) <= 1e18, "invalid ratio");
+		_self.collateralizationMargin = _collateralizationMargin;
 	}
 
 	function adjustReserve(Self storage _self, uint256 _roomAmount) public returns (bool _success)
@@ -120,8 +129,7 @@ library GCDelegatedReserveManager
 
 	function _adjustReserve(Self storage _self, uint256 _roomAmount) internal returns (bool _success)
 	{
-		uint256 _borrowAmount = G.fetchBorrowAmount(_self.growthReserveToken);
-		uint256 _newIdealAmount;
+		uint256 _scallingRatio;
 		{
 			uint256 _reserveAmount = G.fetchLendAmount(_self.reserveToken);
 			_roomAmount = G.min(_roomAmount, _reserveAmount);
@@ -129,14 +137,25 @@ library GCDelegatedReserveManager
 			uint256 _collateralRatio = _self._calcCollateralizationRatio();
 			uint256 _availableAmount = _reserveAmount.mul(_collateralRatio).div(1e18);
 			uint256 _newAvailableAmount = _newReserveAmount.mul(_collateralRatio).div(1e18);
-			uint256 _scallingRatio = _newAvailableAmount.mul(1e18).div(_availableAmount);
+			_scallingRatio = _newAvailableAmount.mul(1e18).div(_availableAmount);
+		}
+		uint256 _borrowAmount = G.fetchBorrowAmount(_self.growthReserveToken);
+		uint256 _newBorrowAmount;
+		uint256 _minBorrowAmount;
+		uint256 _maxBorrowAmount;
+		{
 			uint256 _freeAmount = G.getLiquidityAmount(_self.growthReserveToken);
 			uint256 _totalAmount = _borrowAmount.add(_freeAmount);
-			uint256 _idealAmount = _totalAmount.mul(DEFAULT_COLLATERALIZATION_RATIO).div(1e18);
-			_newIdealAmount = _idealAmount.mul(1e18).div(_scallingRatio);
+			uint256 _idealAmount = _totalAmount.mul(_self.collateralizationRatio).div(1e18);
+			uint256 _marginAmount = _totalAmount.mul(_self.collateralizationMargin).div(1e18);
+			_newBorrowAmount = _idealAmount.mul(_scallingRatio).div(1e18);
+			uint256 _newMarginAmount = _marginAmount.mul(_scallingRatio).div(1e18);
+			_newMarginAmount = G.min(_newMarginAmount, _newBorrowAmount);
+			_minBorrowAmount = _newBorrowAmount.sub(_newMarginAmount);
+			_maxBorrowAmount = _newBorrowAmount.add(_newMarginAmount);
 		}
-		if (_borrowAmount < _newIdealAmount) {
-			uint256 _amount = _newIdealAmount.sub(_borrowAmount);
+		if (_borrowAmount < _minBorrowAmount) {
+			uint256 _amount = _newBorrowAmount.sub(_borrowAmount);
 			_success = G.borrow(_self.growthReserveToken, _amount);
 			if (!_success) return false;
 			try GCToken(_self.growthToken).depositUnderlying(_amount) {
@@ -146,8 +165,8 @@ library GCDelegatedReserveManager
 				return false;
 			}
 		}
-		if (_borrowAmount > _newIdealAmount) {
-			uint256 _amount = _borrowAmount.sub(_newIdealAmount);
+		if (_borrowAmount > _maxBorrowAmount) {
+			uint256 _amount = _borrowAmount.sub(_newBorrowAmount);
 			uint256 _grossShares = _self._calcSharesFromUnderlyingCost(_amount);
 			try GCToken(_self.growthToken).withdrawUnderlying(_grossShares) {
 				return G.repay(_self.growthReserveToken, G.getBalance(_self.growthUnderlyingToken));
