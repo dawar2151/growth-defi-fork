@@ -33,8 +33,8 @@ contract gcUSDT is GCTokenType1
 
 contract gcETH is GCTokenType2
 {
-	constructor ()
-		GCTokenType2("growth cETH", "gcETH", 8, $.GRO, $.cETH, $.COMP, $.gcDAI) public
+	constructor (address _growthToken)
+		GCTokenType2("growth cETH", "gcETH", 8, $.GRO, $.cETH, $.COMP, _growthToken) public
 	{
 	}
 
@@ -43,32 +43,32 @@ contract gcETH is GCTokenType2
 
 contract gcWBTC is GCTokenType2
 {
-	constructor ()
-		GCTokenType2("growth cWBTC", "gcWBTC", 8, $.GRO, $.cWBTC, $.COMP, $.gcDAI) public
+	constructor (address _growthToken)
+		GCTokenType2("growth cWBTC", "gcWBTC", 8, $.GRO, $.cWBTC, $.COMP, _growthToken) public
 	{
 	}
 }
 
 contract gcBAT is GCTokenType2
 {
-	constructor ()
-		GCTokenType2("growth cBAT", "gcBAT", 8, $.GRO, $.cBAT, $.COMP, $.gcDAI) public
+	constructor (address _growthToken)
+		GCTokenType2("growth cBAT", "gcBAT", 8, $.GRO, $.cBAT, $.COMP, _growthToken) public
 	{
 	}
 }
 
 contract gcZRX is GCTokenType2
 {
-	constructor ()
-		GCTokenType2("growth cZRX", "gcZRX", 8, $.GRO, $.cZRX, $.COMP, $.gcDAI) public
+	constructor (address _growthToken)
+		GCTokenType2("growth cZRX", "gcZRX", 8, $.GRO, $.cZRX, $.COMP, _growthToken) public
 	{
 	}
 }
 
 contract gcUNI is GCTokenType2
 {
-	constructor ()
-		GCTokenType2("growth cUNI", "gcUNI", 8, $.GRO, $.cUNI, $.COMP, $.gcDAI) public
+	constructor (address _growthToken)
+		GCTokenType2("growth cUNI", "gcUNI", 8, $.GRO, $.cUNI, $.COMP, _growthToken) public
 	{
 	}
 }
