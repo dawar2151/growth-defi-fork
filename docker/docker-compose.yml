@@ -1,0 +1,9 @@
+version: '2.2'
+
+services:
+  ganache-cli:
+    container_name: ganache-cli
+    image: ubuntu:18:04
+    volumes: [ "/root/growthdefi-v1-core/:/repo/" ]
+    restart: on-failure
+    command: /repo/start-mainnet-fork.sh
