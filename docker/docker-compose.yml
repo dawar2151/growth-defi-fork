@@ -9,3 +9,12 @@ services:
     volumes: [ "../:/repo/" ]
     ports: [ "8545:8545" ]
     restart: always
+  telegram-bot:
+    container_name: telegram-bot
+    image: node:10.22.1
+    working_dir: /repo/
+    command: node /repo/telegram-bot/index.js
+    volumes: [ "../:/repo/" ]
+    environment:
+      NETWORK: testing
+    restart: always
