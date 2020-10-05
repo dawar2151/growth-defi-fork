@@ -33,6 +33,8 @@ const network = process.env['NETWORK'] || 'development';
 
 const infuraProjectId = process.env['INFURA_PROJECT_ID'] || '';
 
+const testServer = process.env['TEST_SERVER'] || '';
+
 const privateKey = process.env['PRIVATE_KEY'];
 if (!privateKey) throw new Error('Unknown private key');
 
@@ -43,6 +45,7 @@ const NETWORK_ID = {
   'kovan': '42',
   'goerli': '5',
   'development': '1',
+  'testing': '1',
 };
 
 const networkId = NETWORK_ID[network];
@@ -54,6 +57,7 @@ const HTTP_PROVIDER_URL = {
   'kovan': 'https://kovan.infura.io/v3/' + infuraProjectId,
   'goerli': 'https://goerli.infura.io/v3/' + infuraProjectId,
   'development': 'http://localhost:8545/',
+  'testing': 'http://' + testServer + ':8545/',
 };
 
 const WEBSOCKET_PROVIDER_URL = {
@@ -63,6 +67,7 @@ const WEBSOCKET_PROVIDER_URL = {
   'kovan': 'wss://kovan.infura.io/ws/v3/' + infuraProjectId,
   'goerli': 'wss://goerli.infura.io/ws/v3/' + infuraProjectId,
   'development': 'http://localhost:8545/',
+  'testing': 'http://' + testServer + ':8545/',
 };
 
 const web3 = new Web3(new HDWalletProvider(privateKey, HTTP_PROVIDER_URL[network]));
