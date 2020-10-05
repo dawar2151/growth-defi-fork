@@ -19,6 +19,7 @@
   "scripts": {
     "build": "truffle compile",
     "deploy": "truffle migrate",
+    "deploy:testing": "truffle migrate --network testing",
     "deploy:mainnet": "truffle migrate --network mainnet",
     "deploy:ropsten": "truffle migrate --network ropsten",
     "deploy:rinkeby": "truffle migrate --network rinkeby",
