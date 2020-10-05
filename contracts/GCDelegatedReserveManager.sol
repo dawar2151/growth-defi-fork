@@ -18,8 +18,9 @@ library GCDelegatedReserveManager
 		address reserveToken;
 		address underlyingToken;
 
+		address exchange;
+
 		address miningToken;
-		address miningExchange;
 		uint256 miningMinGulpAmount;
 		uint256 miningMaxGulpAmount;
 
@@ -38,8 +39,9 @@ library GCDelegatedReserveManager
 		_self.reserveToken = _reserveToken;
 		_self.underlyingToken = _underlyingToken;
 
+		_self.exchange = address(0);
+
 		_self.miningToken = _miningToken;
-		_self.miningExchange = address(0);
 		_self.miningMinGulpAmount = 0;
 		_self.miningMaxGulpAmount = 0;
 
@@ -55,9 +57,9 @@ library GCDelegatedReserveManager
 		G.safeEnter(_reserveToken);
 	}
 
-	function setMiningExchange(Self storage _self, address _miningExchange) public
+	function setExchange(Self storage _self, address _exchange) public
 	{
-		_self.miningExchange = _miningExchange;
+		_self.exchange = _exchange;
 	}
 
 	function setMiningGulpRange(Self storage _self, uint256 _miningMinGulpAmount, uint256 _miningMaxGulpAmount) public
@@ -74,15 +76,10 @@ library GCDelegatedReserveManager
 		_self.growthMaxGulpAmount = _growthMaxGulpAmount;
 	}
 
-	function setCollateralizationRatio(Self storage _self, uint256 _collateralizationRatio) public
+	function setCollateralizationRatio(Self storage _self, uint256 _collateralizationRatio, uint256 _collateralizationMargin) public
 	{
-		require(_self.collateralizationMargin <= _collateralizationRatio && _collateralizationRatio.add(_self.collateralizationMargin) <= 1e18, "invalid ratio");
+		require(_collateralizationMargin <= _collateralizationRatio && _collateralizationRatio.add(_collateralizationMargin) <= 1e18, "invalid ratio");
 		_self.collateralizationRatio = _collateralizationRatio;
-	}
-
-	function setCollateralizationMargin(Self storage _self, uint256 _collateralizationMargin) public
-	{
-		require(_collateralizationMargin <= _self.collateralizationRatio && _self.collateralizationRatio.add(_collateralizationMargin) <= 1e18, "invalid ratio");
 		_self.collateralizationMargin = _collateralizationMargin;
 	}
 
@@ -104,7 +101,7 @@ library GCDelegatedReserveManager
 		uint256 _miningAmount = G.getBalance(_self.miningToken);
 		if (_miningAmount == 0) return true;
 		if (_miningAmount < _self.miningMinGulpAmount) return true;
-		if (_self.miningExchange == address(0)) return true;
+		if (_self.exchange == address(0)) return true;
 		_self._convertMiningToUnderlying(G.min(_miningAmount, _self.miningMaxGulpAmount));
 		return G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
 	}
@@ -116,7 +113,7 @@ library GCDelegatedReserveManager
 		if (_redeemableAmount <= _borrowAmount) return true;
 		uint256 _growthAmount = _redeemableAmount.sub(_borrowAmount);
 		if (_growthAmount < _self.growthMinGulpAmount) return true;
-		if (_self.miningExchange == address(0)) return true;
+		if (_self.exchange == address(0)) return true;
 		uint256 _grossShares = _self._calcSharesFromUnderlyingCost(G.min(_growthAmount, _self.growthMaxGulpAmount));
 		if (_grossShares == 0) return true;
 		try GCToken(_self.growthToken).withdrawUnderlying(_grossShares) {
@@ -198,12 +195,11 @@ library GCDelegatedReserveManager
 
 	function _convertMiningToUnderlying(Self storage _self, uint256 _inputAmount) internal
 	{
-		G.dynamicConvertFunds(_self.miningExchange, _self.miningToken, _self.underlyingToken, _inputAmount, 0);
+		G.dynamicConvertFunds(_self.exchange, _self.miningToken, _self.underlyingToken, _inputAmount, 0);
 	}
 
 	function _convertGrowthUnderlyingToUnderlying(Self storage _self, uint256 _inputAmount) internal
 	{
-		GCToken gct = GCToken(_self.growthToken);
-		G.dynamicConvertFunds(_self.miningExchange, gct.underlyingToken(), _self.underlyingToken, _inputAmount, 0);
+		G.dynamicConvertFunds(_self.exchange, _self.growthUnderlyingToken, _self.underlyingToken, _inputAmount, 0);
 	}
 }

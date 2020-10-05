@@ -2,73 +2,73 @@
 pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
-import { GCTokenBase } from "./GCTokenBase.sol";
-import { GCDelegatedTokenBase } from "./GCDelegatedTokenBase.sol";
+import { GCTokenType1 } from "./GCTokenType1.sol";
+import { GCTokenType2 } from "./GCTokenType2.sol";
 
 import { $ } from "./network/$.sol";
 
-contract gcDAI is GCTokenBase
+contract gcDAI is GCTokenType1
 {
 	constructor ()
-		GCTokenBase("growth cDAI", "gcDAI", 8, $.GRO, $.cDAI, $.COMP) public
+		GCTokenType1("growth cDAI", "gcDAI", 8, $.GRO, $.cDAI, $.COMP) public
 	{
 	}
 }
 
-contract gcUSDC is GCTokenBase
+contract gcUSDC is GCTokenType1
 {
 	constructor ()
-		GCTokenBase("growth cUSDC", "gcUSDC", 8, $.GRO, $.cUSDC, $.COMP) public
+		GCTokenType1("growth cUSDC", "gcUSDC", 8, $.GRO, $.cUSDC, $.COMP) public
 	{
 	}
 }
 
-contract gcUSDT is GCTokenBase
+contract gcUSDT is GCTokenType1
 {
 	constructor ()
-		GCTokenBase("growth cUSDT", "gcUSDT", 8, $.GRO, $.cUSDT, $.COMP) public
+		GCTokenType1("growth cUSDT", "gcUSDT", 8, $.GRO, $.cUSDT, $.COMP) public
 	{
 	}
 }
 
-contract gcETH is GCDelegatedTokenBase
+contract gcETH is GCTokenType2
 {
 	constructor ()
-		GCDelegatedTokenBase("growth cETH", "gcETH", 8, $.GRO, $.cETH, $.COMP, $.gcDAI) public
+		GCTokenType2("growth cETH", "gcETH", 8, $.GRO, $.cETH, $.COMP, $.gcDAI) public
 	{
 	}
 
 	receive() external payable {}
 }
 
-contract gcWBTC is GCDelegatedTokenBase
+contract gcWBTC is GCTokenType2
 {
 	constructor ()
-		GCDelegatedTokenBase("growth cWBTC", "gcWBTC", 8, $.GRO, $.cWBTC, $.COMP, $.gcDAI) public
+		GCTokenType2("growth cWBTC", "gcWBTC", 8, $.GRO, $.cWBTC, $.COMP, $.gcDAI) public
 	{
 	}
 }
 
-contract gcBAT is GCDelegatedTokenBase
+contract gcBAT is GCTokenType2
 {
 	constructor ()
-		GCDelegatedTokenBase("growth cBAT", "gcBAT", 8, $.GRO, $.cBAT, $.COMP, $.gcDAI) public
+		GCTokenType2("growth cBAT", "gcBAT", 8, $.GRO, $.cBAT, $.COMP, $.gcDAI) public
 	{
 	}
 }
 
-contract gcZRX is GCDelegatedTokenBase
+contract gcZRX is GCTokenType2
 {
 	constructor ()
-		GCDelegatedTokenBase("growth cZRX", "gcZRX", 8, $.GRO, $.cZRX, $.COMP, $.gcDAI) public
+		GCTokenType2("growth cZRX", "gcZRX", 8, $.GRO, $.cZRX, $.COMP, $.gcDAI) public
 	{
 	}
 }
 
-contract gcUNI is GCDelegatedTokenBase
+contract gcUNI is GCTokenType2
 {
 	constructor ()
-		GCDelegatedTokenBase("growth cUNI", "gcUNI", 8, $.GRO, $.cUNI, $.COMP, $.gcDAI) public
+		GCTokenType2("growth cUNI", "gcUNI", 8, $.GRO, $.cUNI, $.COMP, $.gcDAI) public
 	{
 	}
 }
