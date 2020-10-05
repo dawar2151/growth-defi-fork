@@ -20,7 +20,7 @@ contract TestGCLeveragedReserveManager is Env
 		lrm.init(cDAI, DAI, COMP);
 
 		address exchange = DeployedAddresses.GSushiswapExchange();
-		lrm.setMiningExchange(exchange);
+		lrm.setExchange(exchange);
 	}
 
 	function test01() public

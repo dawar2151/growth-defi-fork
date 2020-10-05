@@ -17,6 +17,6 @@ module.exports = async (deployer, network) => {
     exchange = await GUniswapV2Exchange.deployed();
   }
   const token = await gcUSDC.deployed();
-  await token.setMiningExchange(exchange.address);
+  await token.setExchange(exchange.address);
   await token.setMiningGulpRange('20000000000000000000', '500000000000000000000');
 };
