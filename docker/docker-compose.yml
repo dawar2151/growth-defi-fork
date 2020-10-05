@@ -15,5 +15,6 @@ services:
     working_dir: /repo/
     command: node /repo/telegram-bot/index.js
     volumes: [ "../:/repo/" ]
+    environment:
+      NETWORK: testing
     restart: always
-
