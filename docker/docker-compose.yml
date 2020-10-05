@@ -1,0 +1,11 @@
+version: '2.2'
+
+services:
+  ganache-cli:
+    container_name: ganache-cli
+    image: node:10.22.1
+    working_dir: /repo/
+    command: /repo/start-mainnet-fork.sh
+    volumes: [ "../:/repo/" ]
+    ports: [ "8545:8545" ]
+    restart: always
