@@ -15,6 +15,7 @@ contract GCDelegatedTokenBase is GTokenBase, GCToken
 	using GCDelegatedReserveManager for GCDelegatedReserveManager.Self;
 
 	address public immutable override underlyingToken;
+	address public immutable growthToken;
 
 	GCDelegatedReserveManager.Self drm;
 
@@ -23,6 +24,7 @@ contract GCDelegatedTokenBase is GTokenBase, GCToken
 	{
 		address _underlyingToken = G.getUnderlyingToken(_reserveToken);
 		underlyingToken = _underlyingToken;
+		growthToken = _growthToken;
 		drm.init(_reserveToken, _underlyingToken, _miningToken, _growthToken);
 	}
 
@@ -48,7 +50,7 @@ contract GCDelegatedTokenBase is GTokenBase, GCToken
 
 	function totalReserveUnderlying() public view override returns (uint256 _totalReserveUnderlying)
 	{
-		return lendingReserveUnderlying().sub(borrowingReserveUnderlying());
+		return lendingReserveUnderlying();
 	}
 
 	function lendingReserveUnderlying() public view override returns (uint256 _lendingReserveUnderlying)
@@ -58,7 +60,13 @@ contract GCDelegatedTokenBase is GTokenBase, GCToken
 
 	function borrowingReserveUnderlying() public view override returns (uint256 _borrowingReserveUnderlying)
 	{
-		return G.getBorrowAmount(reserveToken);
+		uint256 _lendAmount = G.getLendAmount(reserveToken);
+		uint256 _availableAmount = _lendAmount.mul(G.getCollateralRatio(reserveToken)).div(1e18);
+		address _growthReserveToken = GCToken(growthToken).reserveToken();
+		uint256 _borrowAmount = G.getBorrowAmount(_growthReserveToken);
+		uint256 _freeAmount = G.getLiquidityAmount(_growthReserveToken);
+		uint256 _totalAmount = _borrowAmount.add(_freeAmount);
+		return _availableAmount.mul(_borrowAmount).div(_totalAmount);
 	}
 
 	function depositUnderlying(uint256 _underlyingCost) public override nonReentrant
