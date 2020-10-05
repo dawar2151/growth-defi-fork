@@ -152,7 +152,6 @@ function units(coins, decimals) {
 const [account] = web3.currentProvider.getAddresses();
 
 const ABI_ERC20 = require('../build/contracts/ERC20.json').abi;
-const ABI_CTOKEN = require('../build/contracts/CToken.json').abi;
 const ABI_GTOKEN = require('../build/contracts/GToken.json').abi;
 const ABI_GCTOKEN = require('../build/contracts/GCToken.json').abi;
 const ABI_GEXCHANGE = require('../build/contracts/GUniswapV2Exchange.json').abi;
@@ -203,21 +202,12 @@ async function newERC20(address) {
   });
 }
 
-async function newCToken(address) {
-  let self;
-  const fields = await newERC20(address);
-  const contract = new web3.eth.Contract(ABI_CTOKEN, address);
-  return (self = {
-    ...fields,
-  });
-}
-
 async function newGToken(address) {
   let self;
   const fields = await newERC20(address);
   const contract = new web3.eth.Contract(ABI_GTOKEN, address);
-  const stakesToken = await newCToken(await contract.methods.stakesToken().call());
-  const reserveToken = await newCToken(await contract.methods.reserveToken().call());
+  const stakesToken = await newERC20(await contract.methods.stakesToken().call());
+  const reserveToken = await newERC20(await contract.methods.reserveToken().call());
   return (self = {
     ...fields,
     stakesToken,
