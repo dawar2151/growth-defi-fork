@@ -179,8 +179,8 @@ library GCDelegatedReserveManager
 		uint256 _totalSupply = GCToken(_self.growthToken).totalSupply();
 		uint256 _withdrawalFee = GCToken(_self.growthToken).withdrawalFee();
 		uint256 _exchangeRate = GCToken(_self.growthToken).exchangeRate();
-		(uint256 _cost,) = GCToken(_self.growthToken).calcWithdrawalCostFromShares(_grossShares, _totalReserve, _totalSupply, _withdrawalFee);
-		return GCToken(_self.growthToken).calcUnderlyingCostFromCost(_cost, _exchangeRate);
+		(_underlyingCost,) = GCToken(_self.growthToken).calcWithdrawalUnderlyingCostFromShares(_grossShares, _totalReserve, _totalSupply, _withdrawalFee, _exchangeRate);
+		return _underlyingCost;
 	}
 
 	function _calcSharesFromUnderlyingCost(Self storage _self, uint256 _underlyingCost) internal view returns (uint256 _grossShares) {
@@ -188,8 +188,7 @@ library GCDelegatedReserveManager
 		uint256 _totalSupply = GCToken(_self.growthToken).totalSupply();
 		uint256 _withdrawalFee = GCToken(_self.growthToken).withdrawalFee();
 		uint256 _exchangeRate = GCToken(_self.growthToken).exchangeRate();
-		uint256 _cost = GCToken(_self.growthToken).calcCostFromUnderlyingCost(_underlyingCost, _exchangeRate);
-		(_grossShares,) = GCToken(_self.growthToken).calcWithdrawalSharesFromCost(_cost, _totalReserve, _totalSupply, _withdrawalFee);
+		(_grossShares,) = GCToken(_self.growthToken).calcWithdrawalSharesFromUnderlyingCost(_underlyingCost, _totalReserve, _totalSupply, _withdrawalFee, _exchangeRate);
 		return _grossShares;
 	}
 

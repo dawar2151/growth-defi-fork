@@ -32,7 +32,7 @@ abstract contract GFlashBorrower is FlashLoanReceiver, ICallee
 		address _from = msg.sender;
 		address _pool = $.Aave_AAVE_LENDING_POOL;
 		assert(_from == _pool);
-		require(_processFlashLoan(_token, _amount, _fee, _params), "failure processing flash loan");
+		require(_processFlashLoan(_token, _amount, _fee, _params)/*, "failure processing flash loan"*/);
 		G.paybackFlashLoan(FlashLoans.Provider.Aave, _token, _amount.add(_fee));
 	}
 
@@ -45,7 +45,7 @@ abstract contract GFlashBorrower is FlashLoanReceiver, ICallee
 		assert(_sender == address(this));
 		assert(_account.owner == address(this));
 		(address _token, uint256 _amount, uint256 _fee, bytes memory _params) = abi.decode(_data, (address,uint256,uint256,bytes));
-		require(_processFlashLoan(_token, _amount, _fee, _params), "failure processing flash loan");
+		require(_processFlashLoan(_token, _amount, _fee, _params)/*, "failure processing flash loan"*/);
 		G.paybackFlashLoan(FlashLoans.Provider.Dydx, _token, _amount.add(_fee));
 	}
 

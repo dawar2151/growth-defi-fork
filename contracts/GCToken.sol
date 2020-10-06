@@ -7,6 +7,10 @@ interface GCToken is GToken
 {
 	function calcCostFromUnderlyingCost(uint256 _underlyingCost, uint256 _exchangeRate) external pure returns (uint256 _cost);
 	function calcUnderlyingCostFromCost(uint256 _cost, uint256 _exchangeRate) external pure returns (uint256 _underlyingCost);
+	function calcDepositSharesFromUnderlyingCost(uint256 _underlyingCost, uint256 _totalReserve, uint256 _totalSupply, uint256 _depositFee, uint256 _exchangeRate) external pure returns (uint256 _netShares, uint256 _feeShares);
+	function calcDepositUnderlyingCostFromShares(uint256 _netShares, uint256 _totalReserve, uint256 _totalSupply, uint256 _depositFee, uint256 _exchangeRate) external pure returns (uint256 _underlyingCost, uint256 _feeShares);
+	function calcWithdrawalSharesFromUnderlyingCost(uint256 _underlyingCost, uint256 _totalReserve, uint256 _totalSupply, uint256 _withdrawalFee, uint256 _exchangeRate) external pure returns (uint256 _grossShares, uint256 _feeShares);
+	function calcWithdrawalUnderlyingCostFromShares(uint256 _grossShares, uint256 _totalReserve, uint256 _totalSupply, uint256 _withdrawalFee, uint256 _exchangeRate) external pure returns (uint256 _underlyingCost, uint256 _feeShares);
 
 	function miningToken() external view returns (address _miningToken);
 	function growthToken() external view returns (address _growthToken);

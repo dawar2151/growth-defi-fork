@@ -32,6 +32,26 @@ abstract contract GCTokenBase is GTokenBase, GCToken
 		return GCFormulae._calcUnderlyingCostFromCost(_cost, _exchangeRate);
 	}
 
+	function calcDepositSharesFromUnderlyingCost(uint256 _underlyingCost, uint256 _totalReserve, uint256 _totalSupply, uint256 _depositFee, uint256 _exchangeRate) public pure override returns (uint256 _netShares, uint256 _feeShares)
+	{
+		return GCFormulae._calcDepositSharesFromUnderlyingCost(_underlyingCost, _totalReserve, _totalSupply, _depositFee, _exchangeRate);
+	}
+
+	function calcDepositUnderlyingCostFromShares(uint256 _netShares, uint256 _totalReserve, uint256 _totalSupply, uint256 _depositFee, uint256 _exchangeRate) public pure override returns (uint256 _underlyingCost, uint256 _feeShares)
+	{
+		return GCFormulae._calcDepositUnderlyingCostFromShares(_netShares, _totalReserve, _totalSupply, _depositFee, _exchangeRate);
+	}
+
+	function calcWithdrawalSharesFromUnderlyingCost(uint256 _underlyingCost, uint256 _totalReserve, uint256 _totalSupply, uint256 _withdrawalFee, uint256 _exchangeRate) public pure override returns (uint256 _grossShares, uint256 _feeShares)
+	{
+		return GCFormulae._calcWithdrawalSharesFromUnderlyingCost(_underlyingCost, _totalReserve, _totalSupply, _withdrawalFee, _exchangeRate);
+	}
+
+	function calcWithdrawalUnderlyingCostFromShares(uint256 _grossShares, uint256 _totalReserve, uint256 _totalSupply, uint256 _withdrawalFee, uint256 _exchangeRate) public pure override returns (uint256 _underlyingCost, uint256 _feeShares)
+	{
+		return GCFormulae._calcWithdrawalUnderlyingCostFromShares(_grossShares, _totalReserve, _totalSupply, _withdrawalFee, _exchangeRate);
+	}
+
 	function exchangeRate() public view override returns (uint256 _exchangeRate)
 	{
 		return G.getExchangeRate(reserveToken);

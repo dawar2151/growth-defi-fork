@@ -61,7 +61,7 @@ contract GCTokenType1 is GCTokenBase, GFlashBorrower
 		lrm.setMiningGulpRange(_miningMinGulpAmount, _miningMaxGulpAmount);
 	}
 
-	function setGrowthGulpRange(uint256 _growthMinGulpAmount, uint256 _growthMaxGulpAmount) public override onlyOwner nonReentrant
+	function setGrowthGulpRange(uint256 _growthMinGulpAmount, uint256 _growthMaxGulpAmount) public override /*onlyOwner nonReentrant*/
 	{
 		_growthMinGulpAmount; _growthMaxGulpAmount; // silences warnings
 	}
