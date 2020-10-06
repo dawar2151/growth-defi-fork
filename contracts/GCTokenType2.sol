@@ -28,7 +28,7 @@ contract GCTokenType2 is GCTokenBase
 		uint256 _borrowAmount = G.getBorrowAmount(_growthReserveToken);
 		uint256 _freeAmount = G.getLiquidityAmount(_growthReserveToken);
 		uint256 _totalAmount = _borrowAmount.add(_freeAmount);
-		return _availableAmount.mul(_borrowAmount).div(_totalAmount);
+		return _totalAmount > 0 ? _availableAmount.mul(_borrowAmount).div(_totalAmount) : 0;
 	}
 
 	function exchange() public view override returns (address _exchange)

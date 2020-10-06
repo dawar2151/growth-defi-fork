@@ -85,10 +85,10 @@ library GCDelegatedReserveManager
 
 	function adjustReserve(Self storage _self, uint256 _roomAmount) public returns (bool _success)
 	{
-		bool success1 = _self._gulpMiningAssets();
-		bool success2 = _self._gulpGrowthAssets();
-		bool success3 = _self._adjustReserve(_roomAmount);
-		return success1 && success2 && success3;
+		bool _success1 = _self._gulpMiningAssets();
+		bool _success2 = _self._gulpGrowthAssets();
+		bool _success3 = _self._adjustReserve(_roomAmount);
+		return _success1 && _success2 && _success3;
 	}
 
 	function _calcCollateralizationRatio(Self storage _self) internal view returns (uint256 _collateralizationRatio)
