@@ -165,8 +165,11 @@ library GCDelegatedReserveManager
 		if (_borrowAmount > _maxBorrowAmount) {
 			uint256 _amount = _borrowAmount.sub(_newBorrowAmount);
 			uint256 _grossShares = _self._calcSharesFromUnderlyingCost(_amount);
+			_grossShares = G.min(_grossShares, G.getBalance(_self.growthToken));
+			if (_grossShares == 0) return true;
 			try GCToken(_self.growthToken).withdrawUnderlying(_grossShares) {
-				return G.repay(_self.growthReserveToken, G.getBalance(_self.growthUnderlyingToken));
+				uint256 _repayAmount = G.min(_borrowAmount, G.getBalance(_self.growthUnderlyingToken));
+				return G.repay(_self.growthReserveToken, _repayAmount);
 			} catch (bytes memory /* _data */) {
 				return false;
 			}
