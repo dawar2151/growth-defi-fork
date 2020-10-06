@@ -21,5 +21,5 @@ module.exports = async (deployer, network) => {
   const token = await gcWBTC.deployed();
   await token.setExchange(exchange.address);
   await token.setMiningGulpRange('20000000000000000000', '500000000000000000000');
-  await token.setGrowthGulpRange('100000000', '100000000');
+  await token.setGrowthGulpRange('10000000000000000000000', '20000000000000000000000');
 };
