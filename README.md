@@ -188,9 +188,12 @@ _Under construction_
 
 ## Building, Deploying and Testing
 
-Compiling the smart contracts:
+configuring the repository:
 
     $ npm i
+
+Compiling the smart contracts:
+
     $ npm run build
 
 Deploying the smart contracts (locally):
