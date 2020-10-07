@@ -161,7 +161,7 @@ Every gToken contract is associated to a Balancer liquidity pool comprised of
 50% of GRO and 50% of the given gToken. This liquidity pool is available
 publicly for external use and arbitrage and is set up with a trade fee of 10%.
 
-Associated with the liquidity pool there is some also some priviledged (admin)
+Associated with the liquidity pool there is also some priviledged (admin)
 functionality to:
 
 1. Allocate the pool and associate with the gToken contract
@@ -170,8 +170,8 @@ functionality to:
 4. Migrate the pool funds (GRO and gToken balances) to an external address
    with a 7 day grace period
 
-Note that before the liquidity pool is allocated and after it has been migrated
-the gToken contract does not collect the 1% fee described above.
+Note that before the liquidity pool is allocated, and also after it has been
+migrated, the gToken contract does not collect the 1% fee described above.
 
 Relevant implementation files:
 
@@ -180,5 +180,13 @@ Relevant implementation files:
 * [GTokenBase.sol](contracts/GTokenBase.sol)
 * [GLiquidityPoolManager.sol](contracts/GLiquidityPoolManager.sol)
 
+### Basic gcToken Type 1 functionality
+
+### Basic gcToken Type 2 functionality
+
+_Under construction_
+
 ## Building and Testing
+
+_Under construction_
 
