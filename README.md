@@ -95,9 +95,9 @@ presented below. Their actual functionality is described in the next section.
   all the available gTokens: gcDAI, gcUSDC, gcUSDT (of Type 1) and gcETH,
   gcWBTC, gcBAT, gcZRX and gcUNI (of Type 2). _Note that the Type 2 is
   currently under development and should not yet be regarded as final._
-* **A public library** [G.sol](contracts/G.sol) that compiles and serve as
+* **A public library** [G.sol](contracts/G.sol) that compiles and serves as
   entrypoint to all the relevant functions available under the
-  [modules](contracts/modules) folder. This library exists mostly to work
+  [/modules/](contracts/modules) folder. This library exists mostly to work
   around the EVM limitation of contract sizes, but it also provide a concise
   standardized and neat reference to library code.
 * **Two handy pure calculation libraries** that hoist gToken and gcToken
@@ -113,7 +113,7 @@ presented below. Their actual functionality is described in the next section.
   such as [GUniswapV2Exchange.sol](contracts/GUniswapV2Exchange.sol),
   [GSushiswapExchange.sol](contracts/GSushiswapExchange.sol). _Possibly more
   providers or more sophisticated routing maybe be added on the future._
-* *The reference implementation of the GRO token* is available on
+* **The reference implementation of the GRO token** is available on
   [GrowthToken.sol](contracts/GrowthToken.sol).
 
 ## High-Level Smart Contract Functionality
