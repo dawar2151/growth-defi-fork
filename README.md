@@ -74,8 +74,8 @@ presented below. Their actual functionality is described in the next section.
 * **Concrete contract files** that derive from the abstract contract files by
   filling in the specific details purposedly left open. These provide the
   final/leaf contracts in the gTokens hierarchy. At the moment these comprise
-  the two types of gcTokens implementated in two flavors, Type 1 gcTokens
-  [GCTokenType1.sol](contracts/GCTokenType1.sol) and Type 2 gcTokens
+  the gcTokens implemented in two flavors: Type 1 gcTokens
+  [GCTokenType1.sol](contracts/GCTokenType1.sol); and Type 2 gcTokens
   [GCTokenType2.sol](contracts/GCTokenType2.sol). _Note that the Type 2 is
   currently under development and should not yet be regarded as final._
 * **Component contracts as (public) libraries** that provide core functionality
