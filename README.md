@@ -194,6 +194,14 @@ Relevant implementation files:
 
 _Under construction_
 
+Relevant implementation files:
+
+* [GCToken.sol](contracts/GCToken.sol)
+* [GCFormulae.sol](contracts/GCFormulae.sol)
+* [GCTokenBase.sol](contracts/GCTokenBase.sol)
+* [GCTokenType2.sol](contracts/GCTokenType2.sol)
+* [GCDelegatedReserveManager.sol](contracts/GCDelegatedReserveManager.sol)
+
 ## Building, Deploying and Testing
 
 configuring the repository:
