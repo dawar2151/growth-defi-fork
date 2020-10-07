@@ -135,7 +135,7 @@ hierarchy:
       * gcZRX
       * gcUNI
 
-Currently all gTokens are gcTokens because each of them is based on their
+Currently all gTokens are also gcTokens, because they are based on their
 Compound cToken counterpart. Other gTokens based on other platforms
 (such as Aave, Curve, etc) will be added to the hierarchy in the future.
 
