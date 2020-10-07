@@ -186,16 +186,16 @@ gcTokens are cTokens based on their Compound counterpart. For instance gcDAI
 has as reserve token cDAI.
 
 The gcTokens Type 1 are stable-coin based. They maintain a reserve using their
-Compound counterpart which provides yield to the associated underlying asset
-(DAI in case of cDAI) and also allows for the collection of COMP tokens.
+Compound counterpart which provides yield based on the associated underlying
+asset (DAI in case of cDAI) and also allows for the collection of COMP tokens.
 
-The COMP collected is converted to DAI, and used to min cDAI, as soon as a
+The COMP collected is converted to DAI, and used to mint cDAI, as soon as a
 minimal amount is reached. The conversion is performed using the associated
 exchange contract and is limited to a maximal amount. Both the min/max amounts
 and the exchange contract can be modified by the gcToken contract owner.
 
 The gcToken Type 1 contract incorporates the ability to deposit/withdraw
-balances directly in DAI handling internally the deatils of minting cDAI and
+balances directly in DAI handling internally the details of minting cDAI and
 redeeming DAI from cDAI.
 
 The main functionality of the gcToken Type 1 contract is leveraging. The
@@ -208,9 +208,9 @@ is closed to the actual amount of DAI carried by the reserve.
 For example, if we have $100 worth of DAI in the reserve, assuming 75%
 DAI collateralization ratio from Compound, after 1-cycle, we would have
 borrowed $75 worth of DAI and minted $175 worth of cDAI. If we repeat that
-process we gets closer and closer to borrowing $300 worth of DAI and minting
-$400 worth of cDAI. The reserve becomes the actual difference between these
-two amounts.
+process, at each cycle, we get closer and closer to borrowing $300 worth of DAI
+and minting $400 worth of cDAI. The reserve becomes the actual difference
+between these two amounts and the leverage is maximal.
 
 The proccess of cycling into and out off leverage could be done via loops
 using just the liquidity available in the gToken contract. However, we have
@@ -223,8 +223,8 @@ collateralization ratio allowed by Compound. In order to switch off leveraging
 one must set this collateralization ratio to 0%.
 
 As a final note, leveraging is used to potentialize gains on the Compound
-platform. Due to liquidity mining lending and borrowing from itself may
-temporary result in higher yields.
+platform. Due to liquidity mining lending and borrowing from itself may,
+at times, result in higher yields.
 
 Relevant implementation files:
 
