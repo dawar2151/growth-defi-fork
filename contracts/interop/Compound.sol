@@ -25,7 +25,9 @@ interface CToken is IERC20
 	function getCash() external view returns (uint256 _cash);
 	function borrowBalanceCurrent(address _account) external returns (uint256 _borrowBalance);
 	function balanceOfUnderlying(address _owner) external returns (uint256 _underlyingBalance);
+	function mint() external payable;
 	function mint(uint256 _mintAmount) external returns (uint256 _errorCode);
+	function repayBorrow() external payable;
 	function repayBorrow(uint256 _repayAmount) external returns (uint256 _errorCode);
 	function redeemUnderlying(uint256 _redeemAmount) external returns (uint256 _errorCode);
 	function borrow(uint256 _borrowAmount) external returns (uint256 _errorCode);

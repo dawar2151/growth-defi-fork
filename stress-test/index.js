@@ -256,9 +256,10 @@ async function newGCToken(address) {
       const _grossShares = units(grossShares, self.decimals);
       await contract.methods.withdrawUnderlying(_grossShares).send({ from: account });
     },
-    setCollateralizationRatio: async (collateralizationRatio) => {
+    setCollateralizationRatio: async (collateralizationRatio, collateralizationMargin) => {
       const _collateralizationRatio = units(collateralizationRatio, 18);
-      await contract.methods.setCollateralizationRatio(_collateralizationRatio).send({ from: account });
+      const _collateralizationMargin = units(collateralizationMargin, 18);
+      await contract.methods.setCollateralizationRatio(_collateralizationRatio, _collateralizationMargin).send({ from: account });
     },
   });
 }
@@ -337,7 +338,7 @@ async function main(args) {
   console.log();
 
   const ACTIONS = [
-    'changeRate',
+    'changeRatio',
     'deposit',
     'depositAll',
     'withdraw',
@@ -354,11 +355,13 @@ async function main(args) {
 
     const action = ACTIONS[randomInt(ACTIONS.length)];
 
-    if (action == 'changeRate') {
-      const amount = String(randomInt(100) / 100);
-      console.log('CHANGE RATE', amount);
+    if (action == 'changeRatio') {
+      const ratio = String(randomInt(100) / 100);
+      const defaultMargin = String(1 / 100);
+      const margin = String(Math.min(ratio, defaultMargin));
+      console.log('CHANGE RATIO', ratio, margin);
       try {
-        await gtoken.setCollateralizationRatio(amount);
+        await gtoken.setCollateralizationRatio(ratio, margin);
       } catch (e) {
         console.log('!!', e.message);
       }

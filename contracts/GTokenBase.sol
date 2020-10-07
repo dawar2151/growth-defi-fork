@@ -10,7 +10,7 @@ import { GFormulae } from "./GFormulae.sol";
 import { GLiquidityPoolManager } from "./GLiquidityPoolManager.sol";
 import { G } from "./G.sol";
 
-contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
+abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 {
 	using GLiquidityPoolManager for GLiquidityPoolManager.Self;
 
@@ -157,19 +157,8 @@ contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 		emit CompleteLiquidityPoolMigration(_migrationRecipient, _stakesAmount, _sharesAmount);
 	}
 
-	uint256 private __unused;
-
-	function _prepareDeposit(uint256 _cost) internal virtual returns (bool _success)
-	{
-		__unused = __unused; _cost; // silences warnings
-		return true;
-	}
-
-	function _prepareWithdrawal(uint256 _cost) internal virtual returns (bool _success)
-	{
-		__unused = __unused; _cost; // silences warnings
-		return true;
-	}
+	function _prepareDeposit(uint256 _cost) internal virtual returns (bool _success);
+	function _prepareWithdrawal(uint256 _cost) internal virtual returns (bool _success);
 
 	function _burnStakes(uint256 _stakesAmount) internal virtual
 	{

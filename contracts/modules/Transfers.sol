@@ -15,7 +15,14 @@ library Transfers
 
 	function _approveFunds(address _token, address _to, uint256 _amount) internal
 	{
-		IERC20(_token).safeApprove(_to, _amount);
+		uint256 _allowance = IERC20(_token).allowance(address(this), _to);
+		if (_allowance > _amount) {
+			IERC20(_token).safeDecreaseAllowance(_to, _allowance - _amount);
+		}
+		else
+		if (_allowance < _amount) {
+			IERC20(_token).safeIncreaseAllowance(_to, _amount - _allowance);
+		}
 	}
 
 	function _pullFunds(address _token, address _from, uint256 _amount) internal

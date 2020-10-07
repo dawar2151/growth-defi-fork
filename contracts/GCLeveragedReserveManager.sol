@@ -11,17 +11,20 @@ library GCLeveragedReserveManager
 	using GCLeveragedReserveManager for GCLeveragedReserveManager.Self;
 
 	uint256 constant DEFAULT_COLLATERALIZATION_RATIO = 96e16; // 96% of 75% = 72%
+	uint256 constant DEFAULT_COLLATERALIZATION_MARGIN = 0e16; // 0% of 75% = 0%
 
 	struct Self {
 		address reserveToken;
 		address underlyingToken;
 
+		address exchange;
+
 		address miningToken;
-		address miningExchange;
 		uint256 miningMinGulpAmount;
 		uint256 miningMaxGulpAmount;
 
 		uint256 collateralizationRatio;
+		uint256 collateralizationMargin;
 	}
 
 	function init(Self storage _self, address _reserveToken, address _underlyingToken, address _miningToken) public
@@ -29,19 +32,21 @@ library GCLeveragedReserveManager
 		_self.reserveToken = _reserveToken;
 		_self.underlyingToken = _underlyingToken;
 
+		_self.exchange = address(0);
+
 		_self.miningToken = _miningToken;
-		_self.miningExchange = address(0);
 		_self.miningMinGulpAmount = 0;
 		_self.miningMaxGulpAmount = 0;
 
 		_self.collateralizationRatio = DEFAULT_COLLATERALIZATION_RATIO;
+		_self.collateralizationMargin = DEFAULT_COLLATERALIZATION_MARGIN;
 
 		G.safeEnter(_reserveToken);
 	}
 
-	function setMiningExchange(Self storage _self, address _miningExchange) public
+	function setExchange(Self storage _self, address _exchange) public
 	{
-		_self.miningExchange = _miningExchange;
+		_self.exchange = _exchange;
 	}
 
 	function setMiningGulpRange(Self storage _self, uint256 _miningMinGulpAmount, uint256 _miningMaxGulpAmount) public
@@ -51,10 +56,11 @@ library GCLeveragedReserveManager
 		_self.miningMaxGulpAmount = _miningMaxGulpAmount;
 	}
 
-	function setCollateralizationRatio(Self storage _self, uint256 _collateralizationRatio) public
+	function setCollateralizationRatio(Self storage _self, uint256 _collateralizationRatio, uint256 _collateralizationMargin) public
 	{
-		require(_collateralizationRatio <= 1e18, "invalid rate");
+		require(_collateralizationMargin <= _collateralizationRatio && _collateralizationRatio.add(_collateralizationMargin) <= 1e18, "invalid ratio");
 		_self.collateralizationRatio = _collateralizationRatio;
+		_self.collateralizationMargin = _collateralizationMargin;
 	}
 
 	function adjustReserve(Self storage _self, uint256 _roomAmount) public returns (bool _success)
@@ -74,7 +80,7 @@ library GCLeveragedReserveManager
 		uint256 _miningAmount = G.getBalance(_self.miningToken);
 		if (_miningAmount == 0) return true;
 		if (_miningAmount < _self.miningMinGulpAmount) return true;
-		if (_self.miningExchange == address(0)) return true;
+		if (_self.exchange == address(0)) return true;
 		_self._convertMiningToUnderlying(G.min(_miningAmount, _self.miningMaxGulpAmount));
 		return G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
 	}
@@ -123,6 +129,6 @@ library GCLeveragedReserveManager
 
 	function _convertMiningToUnderlying(Self storage _self, uint256 _inputAmount) internal
 	{
-		G.dynamicConvertFunds(_self.miningExchange, _self.miningToken, _self.underlyingToken, _inputAmount, 0);
+		G.dynamicConvertFunds(_self.exchange, _self.miningToken, _self.underlyingToken, _inputAmount, 0);
 	}
 }

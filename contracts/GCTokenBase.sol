@@ -1,30 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.0;
-pragma experimental ABIEncoderV2;
 
-import { GToken } from "./GToken.sol";
 import { GFormulae } from "./GFormulae.sol";
 import { GTokenBase } from "./GTokenBase.sol";
-import { GFlashBorrower } from "./GFlashBorrower.sol";
 import { GCToken } from "./GCToken.sol";
 import { GCFormulae } from "./GCFormulae.sol";
-import { GCLeveragedReserveManager } from "./GCLeveragedReserveManager.sol";
 import { G } from "./G.sol";
 
-contract GCTokenBase is GTokenBase, GFlashBorrower, GCToken
+abstract contract GCTokenBase is GTokenBase, GCToken
 {
-	using GCLeveragedReserveManager for GCLeveragedReserveManager.Self;
-
+	address public immutable override miningToken;
+	address public immutable override growthToken;
 	address public immutable override underlyingToken;
 
-	GCLeveragedReserveManager.Self lrm;
-
-	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakeToken, address _reserveToken, address _miningToken)
+	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakeToken, address _reserveToken, address _miningToken, address _growthToken)
 		GTokenBase(_name, _symbol, _decimals, _stakeToken, _reserveToken) public
 	{
+		miningToken = _miningToken;
+		growthToken = _growthToken;
 		address _underlyingToken = G.getUnderlyingToken(_reserveToken);
 		underlyingToken = _underlyingToken;
-		lrm.init(_reserveToken, _underlyingToken, _miningToken);
 	}
 
 	function calcCostFromUnderlyingCost(uint256 _underlyingCost, uint256 _exchangeRate) public pure override returns (uint256 _cost)
@@ -37,27 +32,42 @@ contract GCTokenBase is GTokenBase, GFlashBorrower, GCToken
 		return GCFormulae._calcUnderlyingCostFromCost(_cost, _exchangeRate);
 	}
 
+	function calcDepositSharesFromUnderlyingCost(uint256 _underlyingCost, uint256 _totalReserve, uint256 _totalSupply, uint256 _depositFee, uint256 _exchangeRate) public pure override returns (uint256 _netShares, uint256 _feeShares)
+	{
+		return GCFormulae._calcDepositSharesFromUnderlyingCost(_underlyingCost, _totalReserve, _totalSupply, _depositFee, _exchangeRate);
+	}
+
+	function calcDepositUnderlyingCostFromShares(uint256 _netShares, uint256 _totalReserve, uint256 _totalSupply, uint256 _depositFee, uint256 _exchangeRate) public pure override returns (uint256 _underlyingCost, uint256 _feeShares)
+	{
+		return GCFormulae._calcDepositUnderlyingCostFromShares(_netShares, _totalReserve, _totalSupply, _depositFee, _exchangeRate);
+	}
+
+	function calcWithdrawalSharesFromUnderlyingCost(uint256 _underlyingCost, uint256 _totalReserve, uint256 _totalSupply, uint256 _withdrawalFee, uint256 _exchangeRate) public pure override returns (uint256 _grossShares, uint256 _feeShares)
+	{
+		return GCFormulae._calcWithdrawalSharesFromUnderlyingCost(_underlyingCost, _totalReserve, _totalSupply, _withdrawalFee, _exchangeRate);
+	}
+
+	function calcWithdrawalUnderlyingCostFromShares(uint256 _grossShares, uint256 _totalReserve, uint256 _totalSupply, uint256 _withdrawalFee, uint256 _exchangeRate) public pure override returns (uint256 _underlyingCost, uint256 _feeShares)
+	{
+		return GCFormulae._calcWithdrawalUnderlyingCostFromShares(_grossShares, _totalReserve, _totalSupply, _withdrawalFee, _exchangeRate);
+	}
+
 	function exchangeRate() public view override returns (uint256 _exchangeRate)
 	{
 		return G.getExchangeRate(reserveToken);
 	}
 
-	function totalReserve() public view override(GToken, GTokenBase) returns (uint256 _totalReserve)
+	function totalReserveUnderlying() public view virtual override returns (uint256 _totalReserveUnderlying)
 	{
-		return GCFormulae._calcCostFromUnderlyingCost(totalReserveUnderlying(), exchangeRate());
+		return GCFormulae._calcUnderlyingCostFromCost(totalReserve(), exchangeRate());
 	}
 
-	function totalReserveUnderlying() public view override returns (uint256 _totalReserveUnderlying)
-	{
-		return lendingReserveUnderlying().sub(borrowingReserveUnderlying());
-	}
-
-	function lendingReserveUnderlying() public view override returns (uint256 _lendingReserveUnderlying)
+	function lendingReserveUnderlying() public view virtual override returns (uint256 _lendingReserveUnderlying)
 	{
 		return G.getLendAmount(reserveToken);
 	}
 
-	function borrowingReserveUnderlying() public view override returns (uint256 _borrowingReserveUnderlying)
+	function borrowingReserveUnderlying() public view virtual override returns (uint256 _borrowingReserveUnderlying)
 	{
 		return G.getBorrowAmount(reserveToken);
 	}
@@ -91,51 +101,5 @@ contract GCTokenBase is GTokenBase, GFlashBorrower, GCToken
 		_burn(_from, _grossShares);
 		_mint(address(this), _feeShares.div(2));
 		lpm.gulpPoolAssets();
-	}
-
-	function miningExchange() public view override returns (address _miningExchange)
-	{
-		return lrm.miningExchange;
-	}
-
-	function miningGulpRange() public view override returns (uint256 _miningMinGulpAmount, uint256 _miningMaxGulpAmount)
-	{
-		return (lrm.miningMinGulpAmount, lrm.miningMaxGulpAmount);
-	}
-
-	function collateralizationRatio() public view override returns (uint256 _collateralizationRatio)
-	{
-		return lrm.collateralizationRatio;
-	}
-
-	function setMiningExchange(address _miningExchange) public override onlyOwner nonReentrant
-	{
-		lrm.setMiningExchange(_miningExchange);
-	}
-
-	function setMiningGulpRange(uint256 _miningMinGulpAmount, uint256 _miningMaxGulpAmount) public override onlyOwner nonReentrant
-	{
-		lrm.setMiningGulpRange(_miningMinGulpAmount, _miningMaxGulpAmount);
-	}
-
-	function setCollateralizationRatio(uint256 _collateralizationRatio) public override onlyOwner nonReentrant
-	{
-		lrm.setCollateralizationRatio(_collateralizationRatio);
-	}
-
-	function _prepareWithdrawal(uint256 _cost) internal override mayFlashBorrow returns (bool _success)
-	{
-		return lrm.adjustReserve(GCFormulae._calcUnderlyingCostFromCost(_cost, G.fetchExchangeRate(reserveToken)));
-	}
-
-	function _prepareDeposit(uint256 _cost) internal override mayFlashBorrow returns (bool _success)
-	{
-		_cost; // silences warnings
-		return lrm.adjustReserve(0);
-	}
-
-	function _processFlashLoan(address _token, uint256 _amount, uint256 _fee, bytes memory _params) internal override returns (bool _success)
-	{
-		return lrm._receiveFlashLoan(_token, _amount, _fee, _params);
 	}
 }
