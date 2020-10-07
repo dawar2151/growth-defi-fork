@@ -186,7 +186,29 @@ Relevant implementation files:
 
 _Under construction_
 
-## Building and Testing
+## Building, Deploying and Testing
 
-_Under construction_
+Compiling the smart contracts:
+
+    $ npm i
+    $ npm run build
+
+Deploying the smart contracts (locally):
+
+    $ ./start-mainnet-fork.sh
+    $ npm run deploy
+
+Deploying the smart contracts to mainnet:
+
+    $ npm run deploy:mainnet
+
+Running the unit tests:
+
+    $ ./start-mainnet-fork.sh
+    $ npm run test
+
+Running the stress test:
+
+    $ ./start-mainnet-fork.sh
+    $ npm run stress-test
 
