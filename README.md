@@ -3,7 +3,7 @@
 This repository contains the source code for the GrowthDeFi smart contracts
 (Version 1) and related support code for testing and monitoring the contracts.
 
-## Repository Organization
+## 1. Repository Organization
 
 * [/contracts/](contracts). This folder is where the smart contract source code
   resides.
@@ -21,7 +21,7 @@ This repository contains the source code for the GrowthDeFi smart contracts
 * [/test/](test). This folder contains a set of relevant unit tests for Truffle
   written in Solidity.
 
-## Source Code
+## 2. Source Code
 
 The smart contracts are written in Solidity and the source code is organized in
 the following folder structure:
@@ -116,7 +116,7 @@ presented below. Their actual functionality is described in the next section.
 * **The reference implementation of the GRO token** is available on
   [GrowthToken.sol](contracts/GrowthToken.sol).
 
-## High-Level Smart Contract Functionality
+## 3. High-Level Smart Contract Functionality
 
 This repository implements the first batch of tokens for the GrowthDeFi
 platform. These tokens, so called gTokens, are organized in the following
@@ -139,7 +139,7 @@ Currently all gTokens are also gcTokens, because they are based on their
 Compound cToken counterpart. Other gTokens based on other platforms
 (such as Aave, Curve, etc) will be added to the hierarchy in the future.
 
-### Basic gToken functionality
+### 3.1 Basic gToken functionality
 
 A gToken is a token that maintains a reserve, in another token, and provides
 its supply. The price of a gToken unit can be derived by the ratio between the
@@ -180,7 +180,7 @@ Relevant implementation files:
 * [GTokenBase.sol](contracts/GTokenBase.sol)
 * [GLiquidityPoolManager.sol](contracts/GLiquidityPoolManager.sol)
 
-### Basic gcToken Type 1 functionality
+### 3.2 Basic gcToken Type 1 functionality
 
 Relevant implementation files:
 
@@ -190,7 +190,7 @@ Relevant implementation files:
 * [GCTokenType1.sol](contracts/GCTokenType1.sol)
 * [GCLeveragedReserveManager.sol](contracts/GCLeveragedReserveManager.sol)
 
-### Basic gcToken Type 2 functionality
+### 3.3 Basic gcToken Type 2 functionality
 
 _Under construction_
 
@@ -202,7 +202,7 @@ Relevant implementation files:
 * [GCTokenType2.sol](contracts/GCTokenType2.sol)
 * [GCDelegatedReserveManager.sol](contracts/GCDelegatedReserveManager.sol)
 
-## Building, Deploying and Testing
+## 4. Building, Deploying and Testing
 
 configuring the repository:
 
