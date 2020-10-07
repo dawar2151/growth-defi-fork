@@ -182,6 +182,14 @@ Relevant implementation files:
 
 ### Basic gcToken Type 1 functionality
 
+Relevant implementation files:
+
+* [GCToken.sol](contracts/GCToken.sol)
+* [GCFormulae.sol](contracts/GCFormulae.sol)
+* [GCTokenBase.sol](contracts/GCTokenBase.sol)
+* [GCTokenType1.sol](contracts/GCTokenType1.sol)
+* [GCLeveragedReserveManager.sol](contracts/GCLeveragedReserveManager.sol)
+
 ### Basic gcToken Type 2 functionality
 
 _Under construction_
