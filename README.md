@@ -58,7 +58,7 @@ presented below. Their actual functionality is described in the next section.
   an extension of that interface to decribe the GrowthDeFi V1 tokens based on
   Compound cTokens (and refered to as gcTokens).
   [GExchange.sol](contracts/GExchange.sol) is a simple interface for an external
-  contract specialized in token conversion, which allows for the replacement
+  contract specialized in token conversion; which allows for the replacement
   and customization of the conversion service provider used by gTokens at any
   given point in time.
 * **Abstract contract files** that provide the basis implementation of shared
@@ -66,10 +66,11 @@ presented below. Their actual functionality is described in the next section.
   [GTokenBase.sol](contracts/GTokenBase.sol) for gTokens and
   [GCTokenBase.sol](contracts/GCTokenBase.sol) for gcTokens.
   Note that gTokens extend the ERC-20 specification and we use the
-  [OpenZeppelin](https://openzeppelin.com/) library as basis for their
-  implementation. Besides the ERC-20 related functionality we also make use
-  of OpenZeppelin's Ownable to guard admin-only public functions and
-  ReentrancyGuard to conservatively guard all public functions against reentrancy.
+  [OpenZeppelin](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/v3.1.0)
+  library as basis for their implementation. Besides the ERC-20 related
+  functionality we also make use of OpenZeppelin's Ownable to guard admin-only
+  public functions and ReentrancyGuard to conservatively guard all publicly
+  exposed functions against reentrancy.
 * **Concrete contract files** that derive from the abstract contract files by
   filling in the specific details purposedly left open. These provide the
   final/leaf contracts in the gTokens hierarchy. At the moment these comprise
@@ -77,7 +78,7 @@ presented below. Their actual functionality is described in the next section.
   [GCTokenType1.sol](contracts/GCTokenType1.sol) and Type 2 gcTokens
   [GCTokenType2.sol](contracts/GCTokenType2.sol). _Note that the Type 2 is
   currently under development and should not yet be regarded as final._
-* **Component contract (public) libraries** that provide core functionality
+* **Component contracts as (public) libraries** that provide core functionality
   implementation. Besides properly encapsulating the functionality they also
   allow working around the contract size limitations of the EVM.
   These are [GLiquidityPoolManager.sol](contracts/GLiquidityPoolManager.sol)
