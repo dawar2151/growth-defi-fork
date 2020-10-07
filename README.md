@@ -118,5 +118,68 @@ presented below. Their actual functionality is described in the next section.
 
 ## High-Level Smart Contract Functionality
 
+This repository implements the first batch of tokens for the GrowthDeFi
+platform. These tokens, so called gTokens, are organized in the following
+hierarchy:
+
+* gToken
+  * gcToken
+    * gcToken (Type 1)
+      * gcDAI
+      * gcUSDC
+      * gcUSDT
+    * gcToken (Type 2)
+      * gcETH
+      * gcWBTC
+      * gcBAT
+      * gcZRX
+      * gcUNI
+
+Currently all gTokens are gcTokens because each of them is based on their
+Compound cToken counterpart. Other gTokens based on other platforms
+(such as Aave, Curve, etc) will be added to the hierarchy in the future.
+
+### Basic gToken functionality
+
+A gToken is a token that maintains a reserve, in another token, and provides
+its supply. The price of a gToken unit can be derived by the ratio between the
+reserve and the supply.
+
+To mint and burn gTokens one must deposit and withdrawal the underlying reserve
+token to and from the associated gToken smart contract. Anyone can perform
+these operations as long as they provide the required underlyning reserve
+token amount.
+
+For each of these operations there is a 1% fee deducted from the gToken amount
+involved in the operation. The fee is based on the nominal price of gTokens
+calculated just before the actual operation takes place.
+
+The fee collected is split twofold: half is immediatelly burned, which is
+equivalent to redistributing the underlying associated reserve among all gToken
+holds; the other half is provided to a liquidity pool.
+
+Every gToken contract is associated to a Balancer liquidity pool comprised of
+50% of GRO and 50% of the given gToken. This liquidity pool is available
+publicly for external use and arbitrage and is set up with a trade fee of 10%.
+
+Associated with the liquidity pool there is some also some priviledged (admin)
+functionality to:
+
+1- Allocate the pool and associate with the gToken contract
+2- Burn 0.5% (or the actual burning rate) once per week
+3- Set the burning rate, which is initially 0.5%
+4- Migrate the pool funds (GRO and gToken balances) to an external address
+   with a 7 day grace period
+
+Note that before the liquidity pool is allocated and after it has been migrated
+the gToken contract does not collect the 1% fee described above.
+
+Relevant implementation files:
+
+* [GToken.sol](contracts/GToken.sol)
+* [GFormulae.sol](contracts/GFormulae.sol)
+* [GTokenBase.sol](contracts/GTokenBase.sol)
+* [GLiquidityPoolManager.sol](contracts/GLiquidityPoolManager.sol)
+
 ## Building and Testing
 
