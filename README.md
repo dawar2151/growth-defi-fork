@@ -49,7 +49,7 @@ the following folder structure:
 The [/contracts/](contracts) folder contains basically 10 groups of files as
 presented below. Their actual functionality is described in the next section.
 
-* *Interface files*, such as [GToken.sol](contracts/GToken.sol),
+* **Interface files**, such as [GToken.sol](contracts/GToken.sol),
   [GCToken.sol](contracts/GCToken.sol), and
   [GExchange.sol](contracts/GExchange.sol) that describe the available public
   interface to the smart contracts.
@@ -61,7 +61,7 @@ presented below. Their actual functionality is described in the next section.
   contract specialized in token conversion, which allows for the replacement
   and customization of the conversion service provider used by gTokens at any
   given point in time.
-* *Abstract contract files* that provide the basis implementation of shared
+* **Abstract contract files** that provide the basis implementation of shared
   functionality for their respective interface. These are basically
   [GTokenBase.sol](contracts/GTokenBase.sol) for gTokens and
   [GCTokenBase.sol](contracts/GCTokenBase.sol) for gcTokens.
@@ -70,14 +70,14 @@ presented below. Their actual functionality is described in the next section.
   implementation. Besides the ERC-20 related functionality we also make use
   of OpenZeppelin's Ownable to guard admin-only public functions and
   ReentrancyGuard to conservatively guard all public functions against reentrancy.
-* *Concrete contract files* that derive from the abstract contract files by
+* **Concrete contract files** that derive from the abstract contract files by
   filling in the specific details purposedly left open. These provide the
   final/leaf contracts in the gTokens hierarchy. At the moment these comprise
   the two types of gcTokens implementated in two flavors, Type 1 gcTokens
   [GCTokenType1.sol](contracts/GCTokenType1.sol) and Type 2 gcTokens
   [GCTokenType2.sol](contracts/GCTokenType2.sol). _Note that the Type 2 is
   currently under development and should not yet be regarded as final._
-* *Component contract (public) libraries* that provide core functionality
+* **Component contract (public) libraries** that provide core functionality
   implementation. Besides properly encapsulating the functionality they also
   allow working around the contract size limitations of the EVM.
   These are [GLiquidityPoolManager.sol](contracts/GLiquidityPoolManager.sol)
@@ -90,24 +90,24 @@ presented below. Their actual functionality is described in the next section.
   delegated reserve management/handling where borrowing is employed to mint
   Type 1 gcTokens that are used to maintain and grow the cToken reserve
   (used by Type 2 gcTokens);
-* *A single entrypoint file* [GTokens.sol](contracts/GTokens.sol) that succinctly declares
+* **A single entrypoint file** [GTokens.sol](contracts/GTokens.sol) that succinctly declares
   all the available gTokens: gcDAI, gcUSDC, gcUSDT (of Type 1) and gcETH,
   gcWBTC, gcBAT, gcZRX and gcUNI (of Type 2). _Note that the Type 2 is
   currently under development and should not yet be regarded as final._
-* *A public library* [G.sol](contracts/G.sol) that compiles and serve as
+* **A public library** [G.sol](contracts/G.sol) that compiles and serve as
   entrypoint to all the relevant functions available under the
   [modules](contracts/modules) folder. This library exists mostly to work
   around the EVM limitation of contract sizes, but it also provide a concise
   standardized and neat reference to library code.
-* *Two handy libraries* that hoist gToken and gcToken minting/burning
-  calculations, [GFormulae](contracts/GFormulae.sol) and
+* **Two handy pure calculation libraries** that hoist gToken and gcToken
+  minting/burning formulas, [GFormulae](contracts/GFormulae.sol) and
   [GCFormulae](contracts/GCFormulae.sol) respectively. These provide a set of
   pure (in the Solidity sense) functions.
-* *A contract that helps abstract FlashLoans callbacks*
+* **A contract that helps abstract FlashLoans callbacks**
   [GFlashBorrower.sol](contracts/GFlashBorrower.sol) for both Aave and DyDx.
   This class is used by Type 1 tokens to perform flash loans and efficiently
   maintain the desired leverage level.
-* *Two, and possibly more, exchange implementations* deriving from
+* **Two, and possibly more, exchange implementations** deriving from
   [GExchange.sol](contracts/GExchange.sol) to handle token conversion,
   such as [GUniswapV2Exchange.sol](contracts/GUniswapV2Exchange.sol),
   [GSushiswapExchange.sol](contracts/GSushiswapExchange.sol). _Possibly more
