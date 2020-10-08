@@ -214,7 +214,7 @@ between these two amounts and the leverage is maximal.
 
 The proccess of cycling into and out off leverage could be done via loops
 using just the liquidity available in the gToken contract. However, we have
-optimized the process to avoid loops using a flash swap. We borrow the required
+optimized the process to avoid loops using a flash loan. We borrow the required
 amount of assets to perform the operation and then return it in a single shot.
 
 Note that the actual reserve collateralization ratio used by the gcToken Type 1
