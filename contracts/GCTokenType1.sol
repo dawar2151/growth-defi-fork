@@ -61,9 +61,8 @@ contract GCTokenType1 is GCTokenBase, GFlashBorrower
 		lrm.setMiningGulpRange(_miningMinGulpAmount, _miningMaxGulpAmount);
 	}
 
-	function setGrowthGulpRange(uint256 _growthMinGulpAmount, uint256 _growthMaxGulpAmount) public override /*onlyOwner nonReentrant*/
+	function setGrowthGulpRange(uint256 /* _growthMinGulpAmount */, uint256 /* _growthMaxGulpAmount */) public override /*onlyOwner nonReentrant*/
 	{
-		_growthMinGulpAmount; _growthMaxGulpAmount; // silences warnings
 	}
 
 	function setCollateralizationRatio(uint256 _collateralizationRatio, uint256 _collateralizationMargin) public override onlyOwner nonReentrant
@@ -76,9 +75,8 @@ contract GCTokenType1 is GCTokenBase, GFlashBorrower
 		return lrm.adjustReserve(GCFormulae._calcUnderlyingCostFromCost(_cost, G.fetchExchangeRate(reserveToken)));
 	}
 
-	function _prepareDeposit(uint256 _cost) internal override mayFlashBorrow returns (bool _success)
+	function _prepareDeposit(uint256 /* _cost */) internal override mayFlashBorrow returns (bool _success)
 	{
-		_cost; // silences warnings
 		return lrm.adjustReserve(0);
 	}
 

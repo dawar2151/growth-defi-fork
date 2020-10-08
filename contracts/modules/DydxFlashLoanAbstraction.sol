@@ -14,9 +14,8 @@ library DydxFlashLoanAbstraction
 {
 	using SafeMath for uint256;
 
-	function _estimateFlashLoanFee(address _token, uint256 _netAmount) internal pure returns (uint256 _feeAmount)
+	function _estimateFlashLoanFee(address /* _token */, uint256 /* _netAmount */) internal pure returns (uint256 _feeAmount)
 	{
-		_token; _netAmount; // silences warnings
 		return 2;
 	}
 

@@ -76,9 +76,8 @@ contract GCTokenType2 is GCTokenBase
 		return drm.adjustReserve(GCFormulae._calcUnderlyingCostFromCost(_cost, G.fetchExchangeRate(reserveToken)));
 	}
 
-	function _prepareDeposit(uint256 _cost) internal override returns (bool _success)
+	function _prepareDeposit(uint256 /* _cost */) internal override returns (bool _success)
 	{
-		_cost; // silences warnings
 		return drm.adjustReserve(0);
 	}
 }
