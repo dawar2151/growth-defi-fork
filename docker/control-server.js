@@ -1,4 +1,4 @@
-const httprequire('http');
+const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const child_process = require('child_process');
