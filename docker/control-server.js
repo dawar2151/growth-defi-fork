@@ -31,7 +31,16 @@ http.createServer((request, response) => {
 
   var contentType = mimeTypes[extname] || 'application/octet-stream';
 
-  console.log(filePath);
+  if (filePath == '/restart') {
+    dir = exec('docker restart ganache-cli', (error, stdout, stderr) => {
+      if (error) {
+        response.writeHead(500);
+        response.end('Sorry, check with the site admin for error: '+JSON.stringify(error)+' ..\n');
+      }
+      response.writeHead(200, { 'Content-Type': contentType });
+      response.end(success, 'utf-8');
+    });
+  }
 
   fs.readFile(filePath, (error, content) => {
     if (error) {
