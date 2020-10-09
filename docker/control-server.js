@@ -39,7 +39,7 @@ http.createServer((request, response) => {
     if (filePath == './restart') {
       response.writeHead(200, { 'Content-Type': 'text/plain' });
       if (busy) {
-        response.end('Server already restarting');
+        response.end('Server already restarting\n');
         return;
       }
       busy = true;
