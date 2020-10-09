@@ -32,21 +32,22 @@ http.createServer((request, response) => {
 
   const contentType = mimeTypes[extname] || 'application/octet-stream';
 
-  if (filePath == '/restart') {
+  if (filePath == './restart') {
     child_process.exec('docker restart ganache-cli', (error, stdout, stderr) => {
       if (error) {
-        response.writeHead(500);
-        response.end('Sorry, check with the site admin for error: '+JSON.stringify(error)+' ..\n');
+        response.writeHead(500, { 'Content-Type': 'text/html' });
+        response.end('Sorry, the service could not be restarted');
       }
       response.writeHead(200, { 'Content-Type': contentType });
-      response.end(success, 'utf-8');
+      response.end('Service restarted! Please wait a minute before it is completely up', 'utf-8');
     });
+    return;
   }
 
   fs.readFile(filePath, (error, content) => {
     if (error) {
       if(error.code == 'ENOENT') {
-        fs.readFile('./404.html', function(error, content) {
+        fs.readFile('./404.html', (error, content) => {
           response.writeHead(404, { 'Content-Type': 'text/html' });
           response.end(content, 'utf-8');
         });
