@@ -41,6 +41,11 @@ abstract contract GFlashBorrower is FlashLoanReceiver, ICallee
 	 * @dev Handles Aave callback. Delegates the processing of the funds
 	 *      to the virtual function _processFlashLoan and later takes care
 	 *      of paying it back.
+	 * @param _token The ERC-20 contract address.
+	 * @param _amount The amount being borrowed.
+	 * @param _fee The fee, in addition to the amount borrowed, to be repaid.
+	 * @param _params Additional user parameters provided when the flash
+	 *                loan was requested.
 	 */
 	function executeOperation(address _token, uint256 _amount, uint256 _fee, bytes calldata _params) external override
 	{
@@ -56,6 +61,12 @@ abstract contract GFlashBorrower is FlashLoanReceiver, ICallee
 	 * @dev Handles Dydx callback. Delegates the processing of the funds
 	 *      to the virtual function _processFlashLoan and later takes care
 	 *      of paying it back.
+	 * @param _sender The contract address of the initiator of the flash
+	 *                loan, expected to be the current contract.
+	 * @param _account Dydx account info provided in the callback.
+	 * @param _data Aditional external data provided to the Dydx callback,
+	 *              this is used by the Dydx module to pass the ERC-20 token
+	 *              address, the amount and fee, as well as user parameters.
 	 */
 	function callFunction(address _sender, Account.Info memory _account, bytes memory _data) external override
 	{
@@ -75,6 +86,12 @@ abstract contract GFlashBorrower is FlashLoanReceiver, ICallee
 	 *      with borrowed funds. It receives the funds, deposited in the
 	 *      current contract, and must ensure they are available as balance
 	 *      of the current contract, including fees, before it returns.
+	 * @param _token The ERC-20 contract address.
+	 * @param _amount The amount being borrowed.
+	 * @param _fee The fee, in addition to the amount borrowed, to be repaid.
+	 * @param _params Additional user parameters provided when the flash
+	 *                loan was requested.
+	 * @return _success A boolean indicating success.
 	 */
 	function _processFlashLoan(address _token, uint256 _amount, uint256 _fee, bytes memory _params) internal virtual returns (bool _success);
 }

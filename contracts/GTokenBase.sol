@@ -21,7 +21,7 @@ import { G } from "./G.sol";
  *         deposited assets by providing the associated amount of gToken shares.
  *         The nominal price of a gToken is given by the ratio between the
  *         reserve balance and the total supply of shares. Upon deposit and
- *         withdrawal of funds a 1% fee is applied and collected from in shares.
+ *         withdrawal of funds a 1% fee is applied and collected from shares.
  *         Half of it is immediately burned, which is equivalent to
  *         redistributing it to all gToken holders, and the other half is
  *         provided to a liquidity pool configured as a 50% GRO/50% gToken with
@@ -67,12 +67,11 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	 * @notice Allows for the beforehand calculation of shares to be
 	 *         received/minted upon depositing to the contract.
 	 * @param _cost The amount of reserve token being deposited.
-	 * @param _totalReserve The reserve balance as obtained by totalReserve()
-	 * @param _totalSupply The shares supply as obtained by totalSupply()
-	 * @param _depositFee The current deposit fee as obtained by depositFee()
-	 * @return Both the net amount and fee amount of shares being received
-	 *         and paid, respectivelly. Their sum accounts for the total
-	 *         amount of shares to be minted in the deposit operation.
+	 * @param _totalReserve The reserve balance as obtained by totalReserve().
+	 * @param _totalSupply The shares supply as obtained by totalSupply().
+	 * @param _depositFee The current deposit fee as obtained by depositFee().
+	 * @return _netShares The net amount of shares being received.
+	 * @return _feeShares The fee amount of shares being deducted.
 	 */
 	function calcDepositSharesFromCost(uint256 _cost, uint256 _totalReserve, uint256 _totalSupply, uint256 _depositFee) public pure override returns (uint256 _netShares, uint256 _feeShares)
 	{
@@ -84,13 +83,11 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	 *         reserve token to be deposited in order to receive the desired
 	 *         amount of shares.
 	 * @param _netShares The amount of this gToken shares to receive.
-	 * @param _totalReserve The reserve balance as obtained by totalReserve()
-	 * @param _totalSupply The shares supply as obtained by totalSupply()
-	 * @param _depositFee The current deposit fee as obtained by depositFee()
-	 * @return Both the cost, in the reserve token, and the fee amount of
-	 *         shares being paid. The sum of the net amount and the fee
-	 *         amount accounts for the total amount of shares to be minted
-	 *         in the deposit operation.
+	 * @param _totalReserve The reserve balance as obtained by totalReserve().
+	 * @param _totalSupply The shares supply as obtained by totalSupply().
+	 * @param _depositFee The current deposit fee as obtained by depositFee().
+	 * @return _cost The cost, in the reserve token, to be paid.
+	 * @return _feeShares The fee amount of shares being deducted.
 	 */
 	function calcDepositCostFromShares(uint256 _netShares, uint256 _totalReserve, uint256 _totalSupply, uint256 _depositFee) public pure override returns (uint256 _cost, uint256 _feeShares)
 	{
@@ -104,8 +101,9 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	 * @param _totalReserve The reserve balance as obtained by totalReserve()
 	 * @param _totalSupply The shares supply as obtained by totalSupply()
 	 * @param _withdrawalFee The current withdrawl fee as obtained by withdrawalFee()
-	 * @return Both the gross amount and fee amount of shares being given
-	 *         and paid, respectivelly.
+	 * @return _grossShares The total amount of shares being deducted,
+	 *                      including fees.
+	 * @return _feeShares The fee amount of shares being deducted.
 	 */
 	function calcWithdrawalSharesFromCost(uint256 _cost, uint256 _totalReserve, uint256 _totalSupply, uint256 _withdrawalFee) public pure override returns (uint256 _grossShares, uint256 _feeShares)
 	{
@@ -117,11 +115,11 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	 *         reserve token to be withdrawn given the desired amount of
 	 *         shares.
 	 * @param _grossShares The amount of this gToken shares to provide.
-	 * @param _totalReserve The reserve balance as obtained by totalReserve()
-	 * @param _totalSupply The shares supply as obtained by totalSupply()
-	 * @param _withdrawalFee The current withdrawal fee as obtained by withdrawalFee()
-	 * @return Both the cost, being received in the reserve token, and the
-	 *         fee amount of shares being paid.
+	 * @param _totalReserve The reserve balance as obtained by totalReserve().
+	 * @param _totalSupply The shares supply as obtained by totalSupply().
+	 * @param _withdrawalFee The current withdrawal fee as obtained by withdrawalFee().
+	 * @return _cost The cost, in the reserve token, to be received.
+	 * @return _feeShares The fee amount of shares being deducted.
 	 */
 	function calcWithdrawalCostFromShares(uint256 _grossShares, uint256 _totalReserve, uint256 _totalSupply, uint256 _withdrawalFee) public pure override returns (uint256 _cost, uint256 _feeShares)
 	{
@@ -131,8 +129,8 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	/**
 	 * @notice Provides the amount of reserve tokens currently being help by
 	 *         this contract.
-	 * @return An amount of the reserve token corresponding to this
-	 *         contract's balance.
+	 * @return _totalReserve The amount of the reserve token corresponding
+	 *                       to this contract's balance.
 	 */
 	function totalReserve() public view virtual override returns (uint256 _totalReserve)
 	{
@@ -145,8 +143,9 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	 *         upon deposit. The fee defaults to 1% and is temporarily 0%
 	 *         before the liquidity pool is allocated or after it has been
 	 *         migrated.
-	 * @return A percent value that accounts for the percentage of shares
-	 *         being minted at each deposit that be collected as fee.
+	 * @return _depositFee A percent value that accounts for the percentage
+	 *                     of shares being minted at each deposit that be
+	 *                     collected as fee.
 	 */
 	function depositFee() public view override returns (uint256 _depositFee) {
 		return lpm.hasPool() ? DEPOSIT_FEE : 0;
@@ -158,8 +157,9 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	 *         upon withdrawal. The fee defaults to 1% and is temporarily 0%
 	 *         before the liquidity pool is allocated or after it has been
 	 *         migrated.
-	 * @return A percent value that accounts for the percentage of shares
-	 *         being burned at each withdrawal that be collected as fee.
+	 * @return _withdrawalFee A percent value that accounts for the
+	 *                        percentage of shares being burned at each
+	 *                        withdrawal that be collected as fee.
 	 */
 	function withdrawalFee() public view override returns (uint256 _withdrawalFee) {
 		return lpm.hasPool() ? WITHDRAWAL_FEE : 0;
@@ -167,7 +167,7 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 
 	/**
 	 * @notice Provides the address of the liquidity pool contract.
-	 * @return An address identifying the liquidity pool.
+	 * @return _liquidityPool An address identifying the liquidity pool.
 	 */
 	function liquidityPool() public view override returns (address _liquidityPool)
 	{
@@ -178,8 +178,9 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	 * @notice Provides the percentage of the liquidity pool to be burned.
 	 *         This amount should account approximately for the swap fees
 	 *         collected by the liquidity pool during a 7-day period.
-	 * @return A percent value that corresponds to the current amount of
-	 *         the liquidity pool to be burned at each 7-day cycle.
+	 * @return _burningRate A percent value that corresponds to the current
+	 *                      amount of the liquidity pool to be burned at
+	 *                      each 7-day cycle.
 	 */
 	function liquidityPoolBurningRate() public view override returns (uint256 _burningRate)
 	{
@@ -190,8 +191,8 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	 * @notice Marks when the last liquidity pool burn took place. There is
 	 *         a minimum 7-day grace period between consecutive burnings of
 	 *         the liquidity pool.
-	 * @return A timestamp for when the liquidity pool burning took place
-	 *         for the last time.
+	 * @return _lastBurningTime A timestamp for when the liquidity pool
+	 *                          burning took place for the last time.
 	 */
 	function liquidityPoolLastBurningTime() public view override returns (uint256 _lastBurningTime)
 	{
@@ -200,8 +201,8 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 
 	/**
 	 * @notice Provides the address receiving the liquidity pool migration.
-	 * @return An address to which funds will be sent upon liquidity pool
-	 *         migration completion.
+	 * @return _migrationRecipient An address to which funds will be sent
+	 *                             upon liquidity pool migration completion.
 	 */
 	function liquidityPoolMigrationRecipient() public view override returns (address _migrationRecipient)
 	{
@@ -211,8 +212,9 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	/**
 	 * @notice Provides the timestamp for when the liquidity pool migration
 	 *         can be completed.
-	 * @return A timestamp that defines the end of the 7-day grace period
-	 *         for liquidity pool migration.
+	 * @return _migrationUnlockTime A timestamp that defines the end of the
+	 *                              7-day grace period for liquidity pool
+	 *                              migration.
 	 */
 	function liquidityPoolMigrationUnlockTime() public view override returns (uint256 _migrationUnlockTime)
 	{
