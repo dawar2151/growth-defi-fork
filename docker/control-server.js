@@ -38,8 +38,16 @@ http.createServer((request, response) => {
         response.writeHead(500, { 'Content-Type': 'text/html' });
         response.end('Sorry, the service could not be restarted');
       }
-      response.writeHead(200, { 'Content-Type': 'text/html' });
-      response.end('Service restarted! Please wait a minute before it is completely up', 'utf-8');
+      setTimeout(() => {
+        child_process.exec('npm run migrate', (error, stdout, stderr) => {
+          if (error) {
+            response.writeHead(500, { 'Content-Type': 'text/html' });
+            response.end('Sorry, the service could not be restarted');
+          }
+          response.writeHead(200, { 'Content-Type': 'text/html' });
+          response.end('Service restarted!', 'utf-8');
+        });
+      }, 15000);
     });
     return;
   }
