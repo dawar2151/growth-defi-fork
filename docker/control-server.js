@@ -1,17 +1,18 @@
-var http = require('http');
-var fs = require('fs');
-var path = require('path');
+const httprequire('http');
+const fs = require('fs');
+const path = require('path');
+const child_process = require('child_process');
 
 http.createServer((request, response) => {
   console.log('request ', request.url);
 
-  var filePath = '.' + request.url;
+  let filePath = '.' + request.url;
   if (filePath == './') {
     filePath = './index.html';
   }
 
-  var extname = String(path.extname(filePath)).toLowerCase();
-  var mimeTypes = {
+  const extname = String(path.extname(filePath)).toLowerCase();
+  const mimeTypes = {
     '.html': 'text/html',
     '.js': 'text/javascript',
     '.css': 'text/css',
@@ -29,10 +30,10 @@ http.createServer((request, response) => {
     '.wasm': 'application/wasm'
   };
 
-  var contentType = mimeTypes[extname] || 'application/octet-stream';
+  const contentType = mimeTypes[extname] || 'application/octet-stream';
 
   if (filePath == '/restart') {
-    dir = exec('docker restart ganache-cli', (error, stdout, stderr) => {
+    child_process.exec('docker restart ganache-cli', (error, stdout, stderr) => {
       if (error) {
         response.writeHead(500);
         response.end('Sorry, check with the site admin for error: '+JSON.stringify(error)+' ..\n');
