@@ -2,10 +2,11 @@ const http = require('http');
 const child_process = require('child_process');
 
 const port = 8546;
+const timeout = 10 * 60 * 1000;
 
 let busy = false;
 
-http.createServer((request, response) => {
+const server = http.createServer((request, response) => {
 
   console.log(new Date().toISOString(), request.url);
 
@@ -39,5 +40,6 @@ http.createServer((request, response) => {
     }
   }
 
-}).listen(port);
-console.log('Server running at http://localhost:' + port + '/');
+});
+server.setTimeout(timeout);
+server.listen(port, () => console.log('Server running at http://localhost:' + port + '/'));
