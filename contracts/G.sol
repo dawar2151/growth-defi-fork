@@ -9,6 +9,15 @@ import { FlashLoans } from "./modules/FlashLoans.sol";
 import { BalancerLiquidityPoolAbstraction } from "./modules/BalancerLiquidityPoolAbstraction.sol";
 import { CompoundLendingMarketAbstraction } from "./modules/CompoundLendingMarketAbstraction.sol";
 
+/**
+ * @dev This public library provides a single entrypoint to all the relevant
+ *      internal libraries available in the modules folder. It exists to
+ *      circunvent the contract size limitation imposed by the EVM. All function
+ *      calls are directly delegated to the target library function preserving
+ *      argument and return values exactly as they are. Thit library is shared
+ *      by all contracts and even other public libraries from this repository,
+ *      therefore it needs to be published alongside them.
+ */
 library G
 {
 	function min(uint256 _amount1, uint256 _amount2) public pure returns (uint256 _minAmount) { return Math._min(_amount1, _amount2); }

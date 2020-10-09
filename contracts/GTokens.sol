@@ -7,6 +7,10 @@ import { GCTokenType2 } from "./GCTokenType2.sol";
 
 import { $ } from "./network/$.sol";
 
+/**
+ * @notice Definition of gcDAI. As a gcToken Type 1, it uses cDAI as reserve
+ * and employs leverage to maximize returns.
+ */
 contract gcDAI is GCTokenType1
 {
 	constructor ()
@@ -15,6 +19,10 @@ contract gcDAI is GCTokenType1
 	}
 }
 
+/**
+ * @notice Definition of gcUSDC. As a gcToken Type 1, it uses cUSDC as reserve
+ * and employs leverage to maximize returns.
+ */
 contract gcUSDC is GCTokenType1
 {
 	constructor ()
@@ -23,6 +31,10 @@ contract gcUSDC is GCTokenType1
 	}
 }
 
+/**
+ * @notice Definition of gcUSDT. As a gcToken Type 1, it uses cUSDT as reserve
+ * and employs leverage to maximize returns.
+ */
 contract gcUSDT is GCTokenType1
 {
 	constructor ()
@@ -31,6 +43,10 @@ contract gcUSDT is GCTokenType1
 	}
 }
 
+/**
+ * @notice Definition of gcETH. As a gcToken Type 2, it uses cETH as reserve
+ * which serves as collateral for minting gcDAI.
+ */
 contract gcETH is GCTokenType2
 {
 	constructor (address _growthToken)
@@ -41,6 +57,10 @@ contract gcETH is GCTokenType2
 	receive() external payable {}
 }
 
+/**
+ * @notice Definition of gcWBTC. As a gcToken Type 2, it uses cWBTC as reserve
+ * which serves as collateral for minting gcDAI.
+ */
 contract gcWBTC is GCTokenType2
 {
 	constructor (address _growthToken)
@@ -49,6 +69,10 @@ contract gcWBTC is GCTokenType2
 	}
 }
 
+/**
+ * @notice Definition of gcBAT. As a gcToken Type 2, it uses cBAT as reserve
+ * which serves as collateral for minting gcDAI.
+ */
 contract gcBAT is GCTokenType2
 {
 	constructor (address _growthToken)
@@ -57,6 +81,10 @@ contract gcBAT is GCTokenType2
 	}
 }
 
+/**
+ * @notice Definition of gcZRX. As a gcToken Type 2, it uses cZRX as reserve
+ * which serves as collateral for minting gcDAI.
+ */
 contract gcZRX is GCTokenType2
 {
 	constructor (address _growthToken)
@@ -65,6 +93,10 @@ contract gcZRX is GCTokenType2
 	}
 }
 
+/**
+ * @notice Definition of gcUNI. As a gcToken Type 2, it uses cUNI as reserve
+ * which serves as collateral for minting gcDAI.
+ */
 contract gcUNI is GCTokenType2
 {
 	constructor (address _growthToken)

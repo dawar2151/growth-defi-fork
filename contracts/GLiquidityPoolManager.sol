@@ -3,6 +3,13 @@ pragma solidity ^0.6.0;
 
 import { G } from "./G.sol";
 
+/**
+ * @dev This library implements data structure abstraction for the liquidity
+ *      pool management code in order to circuvent the EVM contract size limit.
+ *      It is therefore a public library shared by all gToken contracts and
+ *      needs to be published alongside them. See GTokenBase.sol for further
+ *      documentation.
+ */
 library GLiquidityPoolManager
 {
 	using GLiquidityPoolManager for GLiquidityPoolManager.Self;
@@ -27,6 +34,13 @@ library GLiquidityPoolManager
 		uint256 migrationUnlockTime;
 	}
 
+	/**
+	 * @dev Initializes the data structure. This method is exposed publicly.
+	 * @param _stakesToken The ERC-20 token address to be used as stakes
+	 *                     token (GRO).
+	 * @param _sharesToken The ERC-20 token address to be used as shares
+	 *                     token (gToken).
+	 */
 	function init(Self storage _self, address _stakesToken, address _sharesToken) public
 	{
 		_self.stakesToken = _stakesToken;
@@ -42,11 +56,19 @@ library GLiquidityPoolManager
 		_self.migrationUnlockTime = uint256(-1);
 	}
 
+	/**
+	 * @dev Verifies whether or not a liquidity pool has been allocated and
+	 *      not yet migrated. This method is exposed publicly.
+	 */
 	function hasPool(Self storage _self) public view returns (bool _poolAvailable)
 	{
 		return _self._hasPool();
 	}
 
+	/**
+	 * @dev Moves the current balances (if any) of stakes and shares tokens
+	 *      to the liquidity pool. This method is exposed publicly.
+	 */
 	function gulpPoolAssets(Self storage _self) public
 	{
 		if (!_self._hasPool()) return;
@@ -54,12 +76,25 @@ library GLiquidityPoolManager
 		G.joinPool(_self.liquidityPool, _self.sharesToken, G.getBalance(_self.sharesToken));
 	}
 
+	/**
+	 * @dev Sets the liquidity pool burning rate. This method is exposed
+	 *      publicly.
+	 * @param _burningRate The percent value of the liquidity pool to be
+	 *                     burned at each 7-day period.
+	 */
 	function setBurningRate(Self storage _self, uint256 _burningRate) public
 	{
 		require(_burningRate <= 1e18, "invalid rate");
 		_self.burningRate = _burningRate;
 	}
 
+	/**
+	 * @dev Burns a portion of the liquidity pool according to the defined
+	 *      burning rate. It must happen at most once every 7-days. This
+	 *      method does not actually burn the funds, but it will redeem
+	 *      the amounts from the pool to the caller contract, which is then
+	 *      assumed to perform the burn. This method is exposed publicly.
+	 */
 	function burnPoolPortion(Self storage _self) public returns (uint256 _stakesAmount, uint256 _sharesAmount)
 	{
 		require(_self._hasPool(), "pool not available");
@@ -68,6 +103,16 @@ library GLiquidityPoolManager
 		return G.exitPool(_self.liquidityPool, _self.burningRate);
 	}
 
+	/**
+	 * @dev Creates a fresh new liquidity pool and deposits the initial
+	 *      amounts of the stakes token and the shares token. The pool
+	 *      if configure 50%/50% with a 10% swap fee. This method is exposed
+	 *      publicly.
+	 * @param _stakesAmount The amount of stakes token initially deposited
+	 *                      into the pool.
+	 * @param _sharesAmount The amount of shares token initially deposited
+	 *                      into the pool.
+	 */
 	function allocatePool(Self storage _self, uint256 _stakesAmount, uint256 _sharesAmount) public
 	{
 		require(_self.state == State.Created, "pool cannot be allocated");
@@ -75,6 +120,13 @@ library GLiquidityPoolManager
 		_self.liquidityPool = G.createPool(_self.stakesToken, _stakesAmount, _self.sharesToken, _sharesAmount);
 	}
 
+	/**
+	 * @dev Initiates the liquidity pool migration by setting a funds
+	 *      recipent and starting the clock towards the 7-day grace period.
+	 *      This method is exposed publicly.
+	 * @param _migrationRecipient The recipient address to where funds will
+	 *                            be transfered.
+	 */
 	function initiatePoolMigration(Self storage _self, address _migrationRecipient) public
 	{
 		require(_self.state == State.Allocated, "pool not allocated");
@@ -83,6 +135,10 @@ library GLiquidityPoolManager
 		_self.migrationUnlockTime = now + MIGRATION_INTERVAL;
 	}
 
+	/**
+	 * @dev Cancels the liquidity pool migration by reseting the procedure
+	 *      to its original state. This method is exposed publicly.
+	 */
 	function cancelPoolMigration(Self storage _self) public returns (address _migrationRecipient)
 	{
 		require(_self.state == State.Migrating, "migration not initiated");
@@ -93,6 +149,12 @@ library GLiquidityPoolManager
 		return _migrationRecipient;
 	}
 
+	/**
+	 * @dev Completes the liquidity pool migration by redeeming all funds
+	 *      from the pool. This method does not actually transfer the
+	 *      redemeed funds to the recipient, it assumes the caller contract
+	 *      will perform that. This method is exposed publicly.
+	 */
 	function completePoolMigration(Self storage _self) public returns (address _migrationRecipient, uint256 _stakesAmount, uint256 _sharesAmount)
 	{
 		require(_self.state == State.Migrating, "migration not initiated");
@@ -103,6 +165,10 @@ library GLiquidityPoolManager
 		return (_migrationRecipient, _stakesAmount, _sharesAmount);
 	}
 
+	/**
+	 * @dev Verifies whether or not a liquidity pool has been allocated and
+	 *      not yet migrated. This method is exposed publicly.
+	 */
 	function _hasPool(Self storage _self) internal view returns (bool _poolAvailable)
 	{
 		return _self.state == State.Allocated || _self.state == State.Migrating;
