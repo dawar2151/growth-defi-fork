@@ -7,7 +7,7 @@ let busy = false;
 
 http.createServer((request, response) => {
 
-  console.log('request ', request.url);
+  console.log(new Date().toISOString(), 'request', request.url);
 
   let filePath = '.' + request.url;
   if (filePath == './') {
