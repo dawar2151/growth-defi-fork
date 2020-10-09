@@ -247,7 +247,7 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	}
 
 	/**
-	 * @notice Performs the burnung of gToken shares upon the withdrawal of
+	 * @notice Performs the burning of gToken shares upon the withdrawal of
 	 *         the reserve token. The actual amount of the reserve token to
 	 *         be received can be calculated using the
 	 *         calcWithdrawalCostFromShares function. In every withdrawal,

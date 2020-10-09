@@ -13,8 +13,8 @@ contract GCTokenType2 is GCTokenBase
 
 	GCDelegatedReserveManager.Self drm;
 
-	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakeToken, address _reserveToken, address _miningToken, address _growthToken)
-		GCTokenBase(_name, _symbol, _decimals, _stakeToken, _reserveToken, _miningToken, _growthToken) public
+	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakesToken, address _reserveToken, address _miningToken, address _growthToken)
+		GCTokenBase(_name, _symbol, _decimals, _stakesToken, _reserveToken, _miningToken, _growthToken) public
 	{
 		address _underlyingToken = G.getUnderlyingToken(_reserveToken);
 		drm.init(_reserveToken, _underlyingToken, _miningToken, _growthToken);
@@ -71,13 +71,13 @@ contract GCTokenType2 is GCTokenBase
 		drm.setCollateralizationRatio(_collateralizationRatio, _collateralizationMargin);
 	}
 
-	function _prepareWithdrawal(uint256 _cost) internal override returns (bool _success)
-	{
-		return drm.adjustReserve(GCFormulae._calcUnderlyingCostFromCost(_cost, G.fetchExchangeRate(reserveToken)));
-	}
-
 	function _prepareDeposit(uint256 /* _cost */) internal override returns (bool _success)
 	{
 		return drm.adjustReserve(0);
+	}
+
+	function _prepareWithdrawal(uint256 _cost) internal override returns (bool _success)
+	{
+		return drm.adjustReserve(GCFormulae._calcUnderlyingCostFromCost(_cost, G.fetchExchangeRate(reserveToken)));
 	}
 }
