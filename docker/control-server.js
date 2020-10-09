@@ -6,6 +6,7 @@ const child_process = require('child_process');
 let busy = false;
 
 http.createServer((request, response) => {
+
   console.log('request ', request.url);
 
   let filePath = '.' + request.url;
@@ -44,21 +45,24 @@ http.createServer((request, response) => {
       busy = true;
       child_process.exec('docker restart ganache-cli', (error, stdout, stderr) => {
         if (error) {
-          response.writeHead(500, { 'Content-Type': 'text/plain' });
-          response.end('Sorry, docker service could not be restarted');
+          console.log(stderr);
+          response.writeHead(200, { 'Content-Type': 'text/plain' });
+          response.end(stderr, 'utf-8');
           busy = false;
           return;
         }
         setTimeout(() => {
           child_process.exec('npm run deploy', (error, stdout, stderr) => {
             if (error) {
-              response.writeHead(500, { 'Content-Type': 'text/plain' });
-              response.end('Sorry, truffle migration failed');
+              console.log(stderr);
+              response.writeHead(200, { 'Content-Type': 'text/plain' });
+              response.end(stderr, 'utf-8');
               busy = false;
               return;
             }
+            console.log(stdout);
             response.writeHead(200, { 'Content-Type': 'text/html' });
-            response.end('Success, service restarted', 'utf-8');
+            response.end(stdout, 'utf-8');
             busy = false;
           });
         }, 15000);
@@ -87,5 +91,6 @@ http.createServer((request, response) => {
     }
   });
 */
+
 }).listen(8000);
 console.log('Server running at http://127.0.0.1:8000/');
