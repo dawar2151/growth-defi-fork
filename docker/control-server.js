@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const child_process = require('child_process');
 
+let busy = false;
+
 http.createServer((request, response) => {
   console.log('request ', request.url);
 
@@ -34,19 +36,30 @@ http.createServer((request, response) => {
 
   if (request.method == 'POST') {
     if (filePath == './restart') {
+      if (busy) {
+        response.writeHead(500, { 'Content-Type': 'text/plain' });
+        response.end('Wait a bit, the service is already restarting');
+        return;
+      }
+      busy = true;
       child_process.exec('docker restart ganache-cli', (error, stdout, stderr) => {
         if (error) {
-          response.writeHead(500, { 'Content-Type': 'text/html' });
-          response.end('Sorry, the service could not be restarted');
+          response.writeHead(500, { 'Content-Type': 'text/plain' });
+          response.end('Sorry, docker service could not be restarted');
+          busy = false;
+          return;
         }
         setTimeout(() => {
           child_process.exec('npm run deploy', (error, stdout, stderr) => {
             if (error) {
-              response.writeHead(500, { 'Content-Type': 'text/html' });
-              response.end('Sorry, the service could not be restarted');
+              response.writeHead(500, { 'Content-Type': 'text/plain' });
+              response.end('Sorry, truffle migration failed');
+              busy = false;
+              return;
             }
             response.writeHead(200, { 'Content-Type': 'text/html' });
-            response.end('Service restarted!', 'utf-8');
+            response.end('Success, service restarted', 'utf-8');
+            busy = false;
           });
         }, 15000);
       });
