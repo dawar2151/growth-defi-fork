@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.0;
 
+/**
+ * @dev This library is provided for conveniece. It is the single source for
+ *      the current network and all related hardcoded contract addresses. It
+ *      also provide useful definitions for debuging faultless code via events.
+ */
 library $
 {
 	enum Network { Mainnet, Ropsten, Rinkeby, Kovan, Goerli }
