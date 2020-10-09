@@ -7,7 +7,7 @@ let busy = false;
 
 http.createServer((request, response) => {
 
-  console.log(new Date().toISOString(), 'request', request.url);
+  console.log(new Date().toISOString(), request.url);
 
   let filePath = '.' + request.url;
   if (filePath == './') {
@@ -37,17 +37,16 @@ http.createServer((request, response) => {
 
   if (request.method == 'POST') {
     if (filePath == './restart') {
+      response.writeHead(200, { 'Content-Type': 'text/plain' });
       if (busy) {
-        response.writeHead(500, { 'Content-Type': 'text/plain' });
-        response.end('Wait a bit, the service is already restarting');
+        response.end('Server already restarting');
         return;
       }
       busy = true;
       child_process.exec('docker restart ganache-cli', (error, stdout, stderr) => {
         if (error) {
           console.log(stderr);
-          response.writeHead(200, { 'Content-Type': 'text/plain' });
-          response.end(stderr, 'utf-8');
+          response.end(stderr);
           busy = false;
           return;
         }
@@ -55,14 +54,12 @@ http.createServer((request, response) => {
           child_process.exec('npm run deploy', (error, stdout, stderr) => {
             if (error) {
               console.log(stderr);
-              response.writeHead(200, { 'Content-Type': 'text/plain' });
-              response.end(stderr, 'utf-8');
+              response.end(stderr);
               busy = false;
               return;
             }
             console.log(stdout);
-            response.writeHead(200, { 'Content-Type': 'text/html' });
-            response.end(stdout, 'utf-8');
+            response.end(stdout);
             busy = false;
           });
         }, 15000);
