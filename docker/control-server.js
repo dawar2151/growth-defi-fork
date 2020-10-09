@@ -32,25 +32,28 @@ http.createServer((request, response) => {
 
   const contentType = mimeTypes[extname] || 'application/octet-stream';
 
-  if (filePath == './restart') {
-    child_process.exec('docker restart ganache-cli', (error, stdout, stderr) => {
-      if (error) {
-        response.writeHead(500, { 'Content-Type': 'text/html' });
-        response.end('Sorry, the service could not be restarted');
-      }
-      setTimeout(() => {
-        child_process.exec('npm run migrate', (error, stdout, stderr) => {
-          if (error) {
-            response.writeHead(500, { 'Content-Type': 'text/html' });
-            response.end('Sorry, the service could not be restarted');
-          }
-          response.writeHead(200, { 'Content-Type': 'text/html' });
-          response.end('Service restarted!', 'utf-8');
-        });
-      }, 15000);
-    });
-    return;
+  if (request.method == 'POST') {
+    if (filePath == './restart') {
+      child_process.exec('docker restart ganache-cli', (error, stdout, stderr) => {
+        if (error) {
+          response.writeHead(500, { 'Content-Type': 'text/html' });
+          response.end('Sorry, the service could not be restarted');
+        }
+        setTimeout(() => {
+          child_process.exec('npm run deploy', (error, stdout, stderr) => {
+            if (error) {
+              response.writeHead(500, { 'Content-Type': 'text/html' });
+              response.end('Sorry, the service could not be restarted');
+            }
+            response.writeHead(200, { 'Content-Type': 'text/html' });
+            response.end('Service restarted!', 'utf-8');
+          });
+        }, 15000);
+      });
+      return;
+    }
   }
+
 /*
   fs.readFile(filePath, (error, content) => {
     if (error) {
