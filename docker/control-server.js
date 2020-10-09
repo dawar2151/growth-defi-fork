@@ -38,12 +38,12 @@ http.createServer((request, response) => {
         response.writeHead(500, { 'Content-Type': 'text/html' });
         response.end('Sorry, the service could not be restarted');
       }
-      response.writeHead(200, { 'Content-Type': contentType });
+      response.writeHead(200, { 'Content-Type': 'text/html' });
       response.end('Service restarted! Please wait a minute before it is completely up', 'utf-8');
     });
     return;
   }
-
+/*
   fs.readFile(filePath, (error, content) => {
     if (error) {
       if(error.code == 'ENOENT') {
@@ -62,6 +62,6 @@ http.createServer((request, response) => {
       response.end(content, 'utf-8');
     }
   });
-
+*/
 }).listen(8000);
 console.log('Server running at http://127.0.0.1:8000/');
