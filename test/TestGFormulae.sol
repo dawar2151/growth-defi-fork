@@ -11,12 +11,12 @@ contract TestGFormulae is Env
 {
 	function test01() public
 	{
-		uint256 _cost1 = 101e18;
+		uint256 _cost1 = 100e18;
 		uint256 _totalReserve = 1000e18;
 		uint256 _totalSupply = 1000e18;
 		uint256 _depositFee = 1e16;
 		(uint256 _netShares, uint256 _feeShares1) = GFormulae._calcDepositSharesFromCost(_cost1, _totalReserve, _totalSupply, _depositFee);
-		Assert.equal(_netShares, 100e18, "net shares must be 100e18");
+		Assert.equal(_netShares, 99e18, "net shares must be 99e18");
 		(uint256 _cost2, uint256 _feeShares2) = GFormulae._calcDepositCostFromShares(_netShares, _totalReserve, _totalSupply, _depositFee);
 		Assert.equal(_cost1, _cost2, "costs must be equal");
 		Assert.equal(_feeShares1, _feeShares2, "fee shares must be equal");
@@ -63,12 +63,12 @@ contract TestGFormulae is Env
 
 	function test05() public
 	{
-		uint256 _cost1 = 101e18;
+		uint256 _cost1 = 1000e18;
 		uint256 _totalReserve = 2000e18;
 		uint256 _totalSupply = 1000e18;
 		uint256 _depositFee = 1e16;
 		(uint256 _netShares, uint256 _feeShares1) = GFormulae._calcDepositSharesFromCost(_cost1, _totalReserve, _totalSupply, _depositFee);
-		Assert.equal(_netShares, 50e18, "net shares must be 50e18");
+		Assert.equal(_netShares, 495e18, "net shares must be 495e18");
 		(uint256 _cost2, uint256 _feeShares2) = GFormulae._calcDepositCostFromShares(_netShares, _totalReserve, _totalSupply, _depositFee);
 		Assert.equal(_cost1, _cost2, "costs must be equal");
 		Assert.equal(_feeShares1, _feeShares2, "fee shares must be equal");
