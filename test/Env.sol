@@ -17,8 +17,12 @@ contract Env
 	address public COMP = $.COMP;
 	address public DAI = $.DAI;
 	address public USDC = $.USDC;
+	address public WBTC = $.WBTC;
+	address public WETH = $.WETH;
 	address public cDAI = $.cDAI;
 	address public cUSDC = $.cUSDC;
+	address public cWBTC = $.cWBTC;
+	address public cETH = $.cETH;
 
 	uint256 public initialBalance = 8 ether;
 
