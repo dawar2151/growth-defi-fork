@@ -218,11 +218,17 @@ async function newGToken(address) {
     },
     deposit: async (cost) => {
       const _cost = units(cost, self.reserveToken.decimals);
-      await contract.methods.deposit(_cost).send({ from: account });
+      const gasEstimate = await contract.methods.deposit(_cost).estimateGas({ from: account });
+      console.log('gas estimate', gasEstimate);
+      const { gasUsed } = await contract.methods.deposit(_cost).send({ from: account });
+      console.log('gas used', gasUsed);
     },
     withdraw: async (grossShares) => {
       const _grossShares = units(grossShares, self.decimals);
-      await contract.methods.withdraw(_grossShares).send({ from: account });
+      const gasEstimate = await contract.methods.withdraw(_grossShares).estimateGas({ from: account });
+      console.log('gas estimate', gasEstimate);
+      const { gasUsed } = await contract.methods.withdraw(_grossShares).send({ from: account });
+      console.log('gas used', gasUsed);
     },
     allocateLiquidityPool: async (stakesAmount, sharesAmount) => {
       const _stakesAmount = units(stakesAmount, stakesToken.decimals);
@@ -250,11 +256,17 @@ async function newGCToken(address) {
     },
     depositUnderlying: async (cost) => {
       const _cost = units(cost, self.underlyingToken.decimals);
-      await contract.methods.depositUnderlying(_cost).send({ from: account });
+      const gasEstimate = await contract.methods.depositUnderlying(_cost).estimateGas({ from: account });
+      console.log('gas estimate', gasEstimate);
+      const { gasUsed } = await contract.methods.depositUnderlying(_cost).send({ from: account });
+      console.log('gas used', gasUsed);
     },
     withdrawUnderlying: async (grossShares) => {
       const _grossShares = units(grossShares, self.decimals);
-      await contract.methods.withdrawUnderlying(_grossShares).send({ from: account });
+      const gasEstimate = await contract.methods.withdrawUnderlying(_grossShares).estimateGas({ from: account });
+      console.log('gas estimate', gasEstimate);
+      const { gasUsed } = await contract.methods.withdrawUnderlying(_grossShares).send({ from: account });
+      console.log('gas used', gasUsed);
     },
     setCollateralizationRatio: async (collateralizationRatio, collateralizationMargin) => {
       const _collateralizationRatio = units(collateralizationRatio, 18);
@@ -343,6 +355,10 @@ async function main(args) {
     'depositAll',
     'withdraw',
     'withdrawAll',
+    'depositUnderlying',
+    'depositUnderlyingAll',
+    'withdrawUnderlying',
+    'withdrawUnderlyingAll',
   ];
 
   const MAX_EXECUTED_ACTIONS = 1000;
@@ -410,6 +426,54 @@ async function main(args) {
       console.log('WITHDRAW ALL', amount);
       try {
         if (Number(amount) > 0) await gtoken.withdraw(amount);
+      } catch (e) {
+        console.log('!!', e.message);
+      }
+      continue;
+    }
+
+    if (action == 'depositUnderlying') {
+      const balance = await utoken.balanceOf(account);
+      const amount = randomAmount(utoken, balance);
+      console.log('DEPOSIT UNDERLYING', amount);
+      try {
+        if (Number(amount) > 0) await gtoken.depositUnderlying(amount);
+      } catch (e) {
+        console.log('!!', e.message);
+      }
+      continue;
+    }
+
+    if (action == 'depositUnderlyingAll') {
+      const balance = await utoken.balanceOf(account);
+      const amount = balance;
+      console.log('DEPOSIT UNDERLYING ALL', amount);
+      try {
+        if (Number(amount) > 0) await gtoken.depositUnderlying(amount);
+      } catch (e) {
+        console.log('!!', e.message);
+      }
+      continue;
+    }
+
+    if (action == 'withdrawUnderlying') {
+      const balance = await gtoken.balanceOf(account);
+      const amount = randomAmount(gtoken, balance);
+      console.log('WITHDRAW UNDERLYING', amount);
+      try {
+        if (Number(amount) > 0) await gtoken.withdrawUnderlying(amount);
+      } catch (e) {
+        console.log('!!', e.message);
+      }
+      continue;
+    }
+
+    if (action == 'withdrawUnderlyingAll') {
+      const balance = await gtoken.balanceOf(account);
+      const amount = balance;
+      console.log('WITHDRAW UNDERLYING ALL', amount);
+      try {
+        if (Number(amount) > 0) await gtoken.withdrawUnderlying(amount);
       } catch (e) {
         console.log('!!', e.message);
       }
