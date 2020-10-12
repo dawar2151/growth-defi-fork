@@ -11,7 +11,7 @@ module.exports = async (deployer, network) => {
   deployer.link(GCLeveragedReserveManager, gcDAI);
   await deployer.deploy(gcDAI);
   let exchange
-  if (['mainnet', 'development'].includes(network)) {
+  if (['mainnet', 'development', 'testing'].includes(network)) {
     exchange = await GSushiswapExchange.deployed();
   } else {
     exchange = await GUniswapV2Exchange.deployed();

@@ -13,7 +13,7 @@ module.exports = async (deployer, network) => {
   const gctoken = await gcDAI.deployed();
   await deployer.deploy(gcUNI, gctoken.address);
   let exchange
-  if (['mainnet', 'development'].includes(network)) {
+  if (['mainnet', 'development', 'testing'].includes(network)) {
     exchange = await GSushiswapExchange.deployed();
   } else {
     exchange = await GUniswapV2Exchange.deployed();
