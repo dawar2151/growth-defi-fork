@@ -19,18 +19,20 @@ module.exports = async (deployer, network) => {
   }
   const token = await gcUSDT.deployed();
   await token.setExchange(exchange.address);
-  await token.setMiningGulpRange('20000000000000000000', '500000000000000000000');
-  /*
+  await token.setMiningGulpRange(`${20e18}`, `${500e18}`);
   if (['development', 'testing'].includes(network)) {
-    const GRO = await token.stakesToken();
-    const cUSDT = await token.reserveToken();
+    const value = `${1e18}`;
     const exchange = await GUniswapV2Exchange.deployed();
-    await exchange.faucet(GRO, '1000000', { value: '1000000000000000000' });
-    await exchange.faucet(cUSDT, '1000000', { value: '1000000000000000000' });
-    await (await IERC20.at(GRO)).approve(token.address, '1000000');
-    await (await IERC20.at(cUSDT)).approve(token.address, '1000000');
-    await token.deposit('1000000');
-    await token.allocateLiquidityPool('1000000', '1000000');
+    const stoken = await IERC20.at(await token.stakesToken());
+    const utoken = await IERC20.at(await token.underlyingToken());
+    const samount = `${1e6}`;
+    const gamount = `${1e6}`;
+    const { '0': uamount } = await token.calcDepositUnderlyingCostFromShares(`${1e7}`, '0', '0', '0', await token.exchangeRate());
+    await exchange.faucet(stoken.address, samount, { value });
+    await exchange.faucet(utoken.address, uamount, { value });
+    await stoken.approve(token.address, samount);
+    await utoken.approve(token.address, uamount);
+    await token.depositUnderlying(uamount);
+    await token.allocateLiquidityPool(samount, gamount);
   }
-  */
 };
