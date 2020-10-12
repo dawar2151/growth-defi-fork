@@ -4,6 +4,7 @@ pragma solidity ^0.6.0;
 import { GExchange } from "./GExchange.sol";
 
 import { Router02 } from "./interop/UniswapV2.sol";
+import { WETH } from "./interop/WrappedEther.sol";
 
 import { UniswapV2ExchangeAbstraction } from "./modules/UniswapV2ExchangeAbstraction.sol";
 
@@ -62,10 +63,17 @@ contract GUniswapV2Exchange is GExchange
 		address payable _from = msg.sender;
 		uint256 _value = msg.value;
 		address _router = $.UniswapV2_ROUTER02;
-		address[] memory _path = new address[](2);
-		_path[0] = Router02(_router).WETH();
-		_path[1] = _token;
-		uint256 _spent = Router02(_router).swapETHForExactTokens{value: _value}(_amount, _path, _from, block.timestamp)[0];
+		address _WETH = Router02(_router).WETH();
+		uint256 _spent;
+		if (_token == _WETH) {
+			WETH(_token).deposit{value: _amount}();
+			_spent = _amount;
+		} else {
+			address[] memory _path = new address[](2);
+			_path[0] = _WETH;
+			_path[1] = _token;
+			_spent = Router02(_router).swapETHForExactTokens{value: _value}(_amount, _path, _from, block.timestamp)[0];
+		}
 		_from.transfer(_value - _spent);
 	}
 	receive() external payable {}
