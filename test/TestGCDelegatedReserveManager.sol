@@ -13,15 +13,18 @@ contract TestGCDelegatedReserveManager is Env
 {
 	using GCDelegatedReserveManager for GCDelegatedReserveManager.Self;
 
-	GCDelegatedReserveManager.Self drm;
+	GCDelegatedReserveManager.Self drm1;
+	GCDelegatedReserveManager.Self drm2;
 
 	constructor () public
 	{
 		address gcDAI = DeployedAddresses.gcDAI();
-		drm.init(cWBTC, WBTC, COMP, gcDAI);
+		drm1.init(cWBTC, WBTC, COMP, gcDAI);
+		drm2.init(cETH, WETH, COMP, gcDAI);
 
 		address exchange = DeployedAddresses.GSushiswapExchange();
-		drm.setExchange(exchange);
+		drm1.setExchange(exchange);
+		drm2.setExchange(exchange);
 	}
 
 	function test01() public
@@ -33,7 +36,7 @@ contract TestGCDelegatedReserveManager is Env
 		Assert.equal(_getBalance(COMP), 3e18, "COMP balance must be 3e18");
 		Assert.equal(_getBalance(WBTC), 0e8, "WBTC balance must be 0e8");
 
-		drm._convertMiningToUnderlying(2e18);
+		drm1._convertMiningToUnderlying(2e18);
 
 		Assert.equal(_getBalance(COMP), 1e18, "COMP balance must be 1e18");
 		Assert.isAbove(_getBalance(WBTC), 0e8, "WBTC balance must be above 0e8");
@@ -49,7 +52,7 @@ contract TestGCDelegatedReserveManager is Env
 		Assert.equal(_getBalance(WBTC), 0e8, "WBTC balance must be 0e8");
 		Assert.equal(_getBalance(cWBTC), 0e8, "cWBTC balance must be 0e8");
 
-		drm._gulpMiningAssets();
+		drm1._gulpMiningAssets();
 
 		Assert.equal(_getBalance(COMP), 0e18, "COMP balance must be 0e18");
 		Assert.equal(_getBalance(WBTC), 0e8, "WBTC balance must be 0e8");
@@ -67,8 +70,8 @@ contract TestGCDelegatedReserveManager is Env
 		Assert.equal(_getBalance(WBTC), 0e8, "WBTC balance must be 0e8");
 		Assert.equal(_getBalance(cWBTC), 0e8, "cWBTC balance must be 0e8");
 
-		drm.setMiningGulpRange(0e18, 100e18);
-		drm._gulpMiningAssets();
+		drm1.setMiningGulpRange(0e18, 100e18);
+		drm1._gulpMiningAssets();
 
 		Assert.equal(_getBalance(COMP), 0e18, "COMP balance must be 0e18");
 		Assert.equal(_getBalance(WBTC), 0e8, "WBTC balance must be 0e8");
@@ -86,17 +89,93 @@ contract TestGCDelegatedReserveManager is Env
 		Assert.equal(_getBalance(WBTC), 0e8, "WBTC balance must be 0e8");
 		Assert.equal(_getBalance(cWBTC), 0e8, "cWBTC balance must be 0e8");
 
-		drm.setMiningGulpRange(0e18, 1e18);
+		drm1.setMiningGulpRange(0e18, 1e18);
 
 		uint256 _rounds = 0;
 		while (_getBalance(COMP) > 0) {
-			drm._gulpMiningAssets();
+			drm1._gulpMiningAssets();
 			_rounds++;
 		}
 
 		Assert.equal(_getBalance(COMP), 0e18, "COMP balance must be 0e18");
 		Assert.equal(_getBalance(WBTC), 0e8, "WBTC balance must be 0e8");
 		Assert.isAbove(_getBalance(cWBTC), 0e8, "cWBTC balance must be above 0e8");
+		Assert.equal(_rounds, 5, "rounds be 5");
+	}
+
+	function test05() public
+	{
+		_burnAll(COMP);
+		_burnAll(WETH);
+		_mint(COMP, 3e18);
+
+		Assert.equal(_getBalance(COMP), 3e18, "COMP balance must be 3e18");
+		Assert.equal(_getBalance(WETH), 0e18, "WETH balance must be 0e18");
+
+		drm2._convertMiningToUnderlying(2e18);
+
+		Assert.equal(_getBalance(COMP), 1e18, "COMP balance must be 1e18");
+		Assert.isAbove(_getBalance(WETH), 0e18, "WETH balance must be above 0e18");
+	}
+
+	function test06() public
+	{
+		_burnAll(COMP);
+		_burnAll(WETH);
+		_burnAll(cETH);
+
+		Assert.equal(_getBalance(COMP), 0e18, "COMP balance must be 0e18");
+		Assert.equal(_getBalance(WETH), 0e18, "WETH balance must be 0e18");
+		Assert.equal(_getBalance(cETH), 0e8, "cETH balance must be 0e8");
+
+		drm2._gulpMiningAssets();
+
+		Assert.equal(_getBalance(COMP), 0e18, "COMP balance must be 0e18");
+		Assert.equal(_getBalance(WETH), 0e18, "WETH balance must be 0e18");
+		Assert.equal(_getBalance(cETH), 0e8, "cETH balance must be 0e8");
+	}
+
+	function test07() public
+	{
+		_burnAll(COMP);
+		_burnAll(WETH);
+		_burnAll(cETH);
+		_mint(COMP, 5e18);
+
+		Assert.equal(_getBalance(COMP), 5e18, "COMP balance must be 5e18");
+		Assert.equal(_getBalance(WETH), 0e18, "WETH balance must be 0e18");
+		Assert.equal(_getBalance(cETH), 0e8, "cETH balance must be 0e8");
+
+		drm2.setMiningGulpRange(0e18, 100e18);
+		drm2._gulpMiningAssets();
+
+		Assert.equal(_getBalance(COMP), 0e18, "COMP balance must be 0e18");
+		Assert.equal(_getBalance(WETH), 0e8, "WETH balance must be 0e18");
+		Assert.isAbove(_getBalance(cETH), 0e8, "cETH balance must be above 0e8");
+	}
+
+	function test08() public
+	{
+		_burnAll(COMP);
+		_burnAll(WETH);
+		_burnAll(cETH);
+		_mint(COMP, 5e18);
+
+		Assert.equal(_getBalance(COMP), 5e18, "COMP balance must be 5e18");
+		Assert.equal(_getBalance(WETH), 0e18, "WETH balance must be 0e18");
+		Assert.equal(_getBalance(cETH), 0e8, "cETH balance must be 0e8");
+
+		drm2.setMiningGulpRange(0e18, 1e18);
+
+		uint256 _rounds = 0;
+		while (_getBalance(COMP) > 0) {
+			drm2._gulpMiningAssets();
+			_rounds++;
+		}
+
+		Assert.equal(_getBalance(COMP), 0e18, "COMP balance must be 0e18");
+		Assert.equal(_getBalance(WETH), 0e18, "WETH balance must be 0e18");
+		Assert.isAbove(_getBalance(cETH), 0e8, "cETH balance must be above 0e8");
 		Assert.equal(_rounds, 5, "rounds be 5");
 	}
 }
