@@ -172,4 +172,75 @@ contract TestCompoundLendingMarketAbstraction is Env
 
 		Assert.equal(_getBalance(DAI), _lendAmount, "DAI balance must match lend amount");
 	}
+/*
+	function test10() public
+	{
+		_burnAll(WETH);
+		_burnAll(cETH);
+		_mint(WETH, 1e18);
+		Assert.equal(_getBalance(WETH), 1e18, "WETH balance must be 1e18");
+		Assert.equal(_getBalance(cETH), 0e8, "cETH balance must be 0e8");
+
+		uint256 _exchangeRate = CompoundLendingMarketAbstraction._fetchExchangeRate(cETH);
+		uint256 _amountcETH = GCFormulae._calcCostFromUnderlyingCost(1e18, _exchangeRate);
+
+		CompoundLendingMarketAbstraction._safeLend(cETH, 1e18);
+
+		Assert.equal(_getBalance(WETH), 0e18, "WETH balance must be 0e18");
+		Assert.equal(_getBalance(cETH), _amountcETH, "cETH balance must match");
+		Assert.isAbove(CompoundLendingMarketAbstraction._fetchLendAmount(cETH), 999e15, "WETH lend balance must be above 999e15");
+	}
+
+	function test11() public
+	{
+		_burnAll(WETH);
+		_burnAll(cETH);
+		_mint(cETH, 25e8);
+		Assert.equal(_getBalance(WETH), 0e18, "WETH balance must be 0e18");
+		Assert.equal(_getBalance(cETH), 25e8, "cETH balance must be 25e8");
+
+		uint256 _exchangeRate = CompoundLendingMarketAbstraction._fetchExchangeRate(cETH);
+		uint256 _amountETH = GCFormulae._calcUnderlyingCostFromCost(25e8, _exchangeRate);
+		uint256 _amountcETH = GCFormulae._calcCostFromUnderlyingCost(_amountETH, _exchangeRate);
+
+		CompoundLendingMarketAbstraction._safeRedeem(cETH, _amountETH);
+
+		Assert.equal(_getBalance(cETH), uint256(25e8).sub(_amountcETH), "cETH balance must be consistent");
+		Assert.equal(_getBalance(WETH), _amountETH, "WETH balance must match");
+	}
+
+	function test12() public
+	{
+		_burnAll(WETH);
+		_burnAll(cETH);
+		_mint(WETH, 1e18);
+		Assert.equal(_getBalance(WETH), 1e18, "WETH balance must be 1e18");
+		Assert.equal(_getBalance(cETH), 0e8, "cETH balance must be 0e8");
+
+		uint256 _exchangeRate = CompoundLendingMarketAbstraction._fetchExchangeRate(cETH);
+		uint256 _amountcETH = GCFormulae._calcCostFromUnderlyingCost(1e18, _exchangeRate);
+
+		CompoundLendingMarketAbstraction._safeLend(cETH, 1e18);
+
+		Assert.equal(_getBalance(WETH), 0e18, "WETH balance must be 0e18");
+		Assert.equal(_getBalance(cETH), _amountcETH, "cETH balance must match");
+		Assert.isAbove(CompoundLendingMarketAbstraction._fetchLendAmount(cETH), 999e15, "WETH lend balance must be above 999e15");
+
+		CompoundLendingMarketAbstraction._safeBorrow(cETH, 1e17);
+
+		Assert.equal(_getBalance(WETH), 1e17, "WETH balance must be 1e17");
+		Assert.equal(CompoundLendingMarketAbstraction._fetchBorrowAmount(cETH), 1e17, "WETH borrow balance must be 1e17");
+
+		CompoundLendingMarketAbstraction._safeRepay(cETH, 1e17);
+
+		Assert.equal(_getBalance(WETH), 0e6, "WETH balance must be 0e18");
+		Assert.equal(CompoundLendingMarketAbstraction._fetchBorrowAmount(cETH), 0e18, "WETH borrow balance must be 0e18");
+
+		CompoundLendingMarketAbstraction._safeRedeem(cETH, 1e18);
+
+		Assert.equal(_getBalance(WETH), 1e18, "WETH balance must be 1e18");
+		Assert.equal(_getBalance(cETH), 0e8, "cETH balance must be 0e8");
+		Assert.equal(CompoundLendingMarketAbstraction._fetchLendAmount(cETH), 0e18, "WETH lend balance must be 0e18");
+	}
+*/
 }

@@ -6,6 +6,7 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Transfers } from "../contracts/modules/Transfers.sol";
 
 import { Router02 } from "../contracts/interop/UniswapV2.sol";
+import { WETH as __WETH } from "../contracts/interop/WrappedEther.sol";
 
 import { $ } from "../contracts/network/$.sol";
 
@@ -36,10 +37,15 @@ contract Env
 	function _mint(address _token, uint256 _amount) internal
 	{
 		address _router = $.UniswapV2_ROUTER02;
-		address[] memory _path = new address[](2);
-		_path[0] = Router02(_router).WETH();
-		_path[1] = _token;
-		Router02(_router).swapETHForExactTokens{value: address(this).balance}(_amount, _path, address(this), block.timestamp);
+		address _WETH = Router02(_router).WETH();
+		if (_token == _WETH) {
+			__WETH(_token).deposit{value: _amount}();
+		} else {
+			address[] memory _path = new address[](2);
+			_path[0] = _WETH;
+			_path[1] = _token;
+			Router02(_router).swapETHForExactTokens{value: address(this).balance}(_amount, _path, address(this), block.timestamp);
+		}
 	}
 
 	function _burn(address _token, uint256 _amount) internal
