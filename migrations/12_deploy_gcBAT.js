@@ -35,8 +35,7 @@ module.exports = async (deployer, network) => {
     await exchange.faucet(utoken.address, uamount, { value });
     await stoken.approve(token.address, samount);
     await utoken.approve(token.address, uamount);
-    // TODO fix
-    // await token.depositUnderlying(uamount);
-    // await token.allocateLiquidityPool(samount, gamount);
+    await token.depositUnderlying(uamount);
+    await token.allocateLiquidityPool(samount, gamount);
   }
 };

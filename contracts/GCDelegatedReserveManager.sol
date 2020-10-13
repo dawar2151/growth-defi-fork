@@ -134,7 +134,7 @@ library GCDelegatedReserveManager
 			uint256 _collateralRatio = _self._calcCollateralizationRatio();
 			uint256 _availableAmount = _reserveAmount.mul(_collateralRatio).div(1e18);
 			uint256 _newAvailableAmount = _newReserveAmount.mul(_collateralRatio).div(1e18);
-			_scallingRatio = _newAvailableAmount.mul(1e18).div(_availableAmount);
+			_scallingRatio = _availableAmount > 0 ? uint256(1e18).mul(_newAvailableAmount).div(_availableAmount) : 1e18;
 		}
 		uint256 _borrowAmount = G.fetchBorrowAmount(_self.growthReserveToken);
 		uint256 _newBorrowAmount;
@@ -155,6 +155,7 @@ library GCDelegatedReserveManager
 			uint256 _amount = _newBorrowAmount.sub(_borrowAmount);
 			_success = G.borrow(_self.growthReserveToken, _amount);
 			if (!_success) return false;
+			G.approveFunds(_self.growthUnderlyingToken, _self.growthToken, _amount);
 			try GCToken(_self.growthToken).depositUnderlying(_amount) {
 				return true;
 			} catch (bytes memory /* _data */) {

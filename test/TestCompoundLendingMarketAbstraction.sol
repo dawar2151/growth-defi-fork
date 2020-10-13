@@ -20,6 +20,8 @@ contract TestCompoundLendingMarketAbstraction is Env
 	{
 		AssertAddress.equal(CompoundLendingMarketAbstraction._getUnderlyingToken(cDAI), DAI, "DAI must be the underlying of cDAI");
 		AssertAddress.equal(CompoundLendingMarketAbstraction._getUnderlyingToken(cUSDC), USDC, "USDC must be the underlying of cUSDC");
+		AssertAddress.equal(CompoundLendingMarketAbstraction._getUnderlyingToken(cETH), WETH, "WETH must be the underlying of cETH");
+		AssertAddress.equal(CompoundLendingMarketAbstraction._getUnderlyingToken(cWBTC), WBTC, "WBTC must be the underlying of cWBTC");
 	}
 
 	function test02() public
@@ -101,21 +103,33 @@ contract TestCompoundLendingMarketAbstraction is Env
 	function test05() public
 	{
 		CompoundLendingMarketAbstraction._safeLend(cDAI, 0e18);
+		CompoundLendingMarketAbstraction._safeLend(cUSDC, 0e18);
+		CompoundLendingMarketAbstraction._safeLend(cETH, 0e18);
+		CompoundLendingMarketAbstraction._safeLend(cWBTC, 0e18);
 	}
 
 	function test06() public
 	{
 		CompoundLendingMarketAbstraction._safeRedeem(cDAI, 0e18);
+		CompoundLendingMarketAbstraction._safeRedeem(cUSDC, 0e18);
+		CompoundLendingMarketAbstraction._safeRedeem(cETH, 0e18);
+		CompoundLendingMarketAbstraction._safeRedeem(cWBTC, 0e18);
 	}
 
 	function test07() public
 	{
+		CompoundLendingMarketAbstraction._safeBorrow(cDAI, 0e8);
 		CompoundLendingMarketAbstraction._safeBorrow(cUSDC, 0e8);
+		CompoundLendingMarketAbstraction._safeBorrow(cETH, 0e8);
+		CompoundLendingMarketAbstraction._safeBorrow(cWBTC, 0e8);
 	}
 
 	function test08() public
 	{
+		CompoundLendingMarketAbstraction._safeRepay(cDAI, 0e8);
 		CompoundLendingMarketAbstraction._safeRepay(cUSDC, 0e8);
+		CompoundLendingMarketAbstraction._safeRepay(cETH, 0e8);
+		CompoundLendingMarketAbstraction._safeRepay(cWBTC, 0e8);
 	}
 
 	function test09() public
