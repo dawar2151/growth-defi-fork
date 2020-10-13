@@ -67,6 +67,7 @@ contract GUniswapV2Exchange is GExchange
 		uint256 _spent;
 		if (_token == _WETH) {
 			WETH(_token).deposit{value: _amount}();
+			WETH(_token).transfer(_from, _amount);
 			_spent = _amount;
 		} else {
 			address[] memory _path = new address[](2);
