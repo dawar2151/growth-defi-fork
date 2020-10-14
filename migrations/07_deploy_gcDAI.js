@@ -20,7 +20,10 @@ module.exports = async (deployer, network) => {
   const token = await gcDAI.deployed();
   await token.setExchange(exchange.address);
   await token.setMiningGulpRange(`${20e18}`, `${500e18}`);
-  if (['development', 'testing'].includes(network)) {
+  if (!['mainnet', 'development', 'testing'].includes(network)) {
+	await token.setCollateralizationRatio('0', '0');
+  }
+  if (!['mainnet'].includes(network)) {
     const value = `${1e18}`;
     const exchange = await GUniswapV2Exchange.deployed();
     const stoken = await IERC20.at(await token.stakesToken());

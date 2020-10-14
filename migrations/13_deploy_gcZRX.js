@@ -23,7 +23,7 @@ module.exports = async (deployer, network) => {
   await token.setExchange(exchange.address);
   await token.setMiningGulpRange(`${20e18}`, `${500e18}`);
   await token.setGrowthGulpRange('10000000000000000000000', '20000000000000000000000');
-  if (['development', 'testing'].includes(network)) {
+  if (!['mainnet'].includes(network)) {
     const value = `${1e18}`;
     const exchange = await GUniswapV2Exchange.deployed();
     const stoken = await IERC20.at(await token.stakesToken());
