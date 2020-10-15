@@ -18,7 +18,7 @@ library GFormulae
 	/* deposit(cost):
 	 *   price = reserve / supply
 	 *   gross = cost / price
-	 *   net = gross * 0.99
+	 *   net = gross * 0.99	# fee is assumed to be 1% for simplicity
 	 *   fee = gross - net
 	 *   return net, fee
 	 */
@@ -32,7 +32,7 @@ library GFormulae
 
 	/* deposit_reverse(net):
 	 *   price = reserve / supply
-	 *   gross = net / 0.99
+	 *   gross = net / 0.99	# fee is assumed to be 1% for simplicity
 	 *   cost = gross * price
 	 *   fee = gross - net
 	 *   return cost, fee
@@ -48,7 +48,7 @@ library GFormulae
 	/* withdrawal_reverse(cost):
 	 *   price = reserve / supply
 	 *   net = cost / price
-	 *   gross = net / 0.99
+	 *   gross = net / 0.99	# fee is assumed to be 1% for simplicity
 	 *   fee = gross - net
 	 *   return gross, fee
 	 */
@@ -62,7 +62,7 @@ library GFormulae
 
 	/* withdrawal(gross):
 	 *   price = reserve / supply
-	 *   net = gross * 0.99
+	 *   net = gross * 0.99	# fee is assumed to be 1% for simplicity
 	 *   cost = net * price
 	 *   fee = gross - net
 	 *   return cost, fee
