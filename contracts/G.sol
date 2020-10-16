@@ -24,8 +24,8 @@ library G
 	function min(uint256 _amount1, uint256 _amount2) public pure returns (uint256 _minAmount) { return Math._min(_amount1, _amount2); }
 //	function max(uint256 _amount1, uint256 _amount2) public pure returns (uint256 _maxAmount) { return Math._max(_amount1, _amount2); }
 
-	function wrap(uint256 _amount) public returns (bool _success) { return Wrapping._wrap(_amount); }
-	function unwrap(uint256 _amount) public returns (bool _success) { return Wrapping._unwrap(_amount); }
+//	function wrap(uint256 _amount) public returns (bool _success) { return Wrapping._wrap(_amount); }
+//	function unwrap(uint256 _amount) public returns (bool _success) { return Wrapping._unwrap(_amount); }
 	function safeWrap(uint256 _amount) public { Wrapping._safeWrap(_amount); }
 	function safeUnwrap(uint256 _amount) public { Wrapping._safeUnwrap(_amount); }
 

@@ -100,7 +100,7 @@ library CompoundLendingMarketAbstraction
 			try CToken(_ctoken).mint{value: _amount}() {
 				return true;
 			} catch (bytes memory /* _data */) {
-				Wrapping._wrap(_amount);
+				assert(Wrapping._wrap(_amount));
 				return false;
 			}
 		} else {
@@ -119,7 +119,7 @@ library CompoundLendingMarketAbstraction
 		if (_ctoken == $.cETH) {
 			try CToken(_ctoken).redeemUnderlying(_amount) returns (uint256 _errorCode) {
 				if (_errorCode == 0) {
-					Wrapping._wrap(_amount);
+					assert(Wrapping._wrap(_amount));
 					return true;
 				} else {
 					return false;
@@ -141,7 +141,7 @@ library CompoundLendingMarketAbstraction
 		if (_ctoken == $.cETH) {
 			try CToken(_ctoken).borrow(_amount) returns (uint256 _errorCode) {
 				if (_errorCode == 0) {
-					Wrapping._wrap(_amount);
+					assert(Wrapping._wrap(_amount));
 					return true;
 				} else {
 					return false;
@@ -165,7 +165,7 @@ library CompoundLendingMarketAbstraction
 			try CToken(_ctoken).repayBorrow{value: _amount}() {
 				return true;
 			} catch (bytes memory /* _data */) {
-				Wrapping._wrap(_amount);
+				assert(Wrapping._wrap(_amount));
 				return false;
 			}
 		} else {
