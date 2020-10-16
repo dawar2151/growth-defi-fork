@@ -3,6 +3,7 @@ pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import { Math } from "./modules/Math.sol";
+import { Wrapping } from "./modules/Wrapping.sol";
 import { Transfers } from "./modules/Transfers.sol";
 import { Conversions } from "./modules/Conversions.sol";
 import { FlashLoans } from "./modules/FlashLoans.sol";
@@ -22,6 +23,11 @@ library G
 {
 	function min(uint256 _amount1, uint256 _amount2) public pure returns (uint256 _minAmount) { return Math._min(_amount1, _amount2); }
 //	function max(uint256 _amount1, uint256 _amount2) public pure returns (uint256 _maxAmount) { return Math._max(_amount1, _amount2); }
+
+	function wrap(uint256 _amount) public returns (bool _success) { return Wrapping._wrap(_amount); }
+	function unwrap(uint256 _amount) public returns (bool _success) { return Wrapping._unwrap(_amount); }
+	function safeWrap(uint256 _amount) public { Wrapping._safeWrap(_amount); }
+	function safeUnwrap(uint256 _amount) public { Wrapping._safeUnwrap(_amount); }
 
 	function getBalance(address _token) public view returns (uint256 _balance) { return Transfers._getBalance(_token); }
 	function pullFunds(address _token, address _from, uint256 _amount) public { Transfers._pullFunds(_token, _from, _amount); }
