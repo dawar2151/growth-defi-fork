@@ -5,7 +5,7 @@ import { GToken } from "./GToken.sol";
 import { GCToken } from "./GCToken.sol";
 import { G } from "./G.sol";
 
-contract GCEtherBridge
+contract GEtherBridge
 {
 	function deposit(address _growthToken) public payable
 	{
@@ -52,4 +52,6 @@ contract GCEtherBridge
 		G.safeUnwrap(_underlyingCost);
 		_from.transfer(_underlyingCost);
 	}
+
+	receive() external payable {} // not to be used directly
 }

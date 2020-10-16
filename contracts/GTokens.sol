@@ -54,7 +54,7 @@ contract gcETH is GCTokenType2
 	{
 	}
 
-	receive() external payable {}
+	receive() external payable {} // not to be used directly
 }
 
 /**
