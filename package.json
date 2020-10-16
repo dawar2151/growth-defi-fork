@@ -9,11 +9,11 @@
   "dependencies": {},
   "devDependencies": {
     "@openzeppelin/contracts": "3.1.0",
-    "@truffle/hdwallet-provider": "^1.1.0",
+    "@truffle/hdwallet-provider": "^1.1.1",
     "axios": "^0.20.0",
     "dotenv": "^8.2.0",
-    "ganache-cli": "^6.11.0",
-    "truffle": "^5.1.46",
+    "ganache-cli": "^6.12.0",
+    "truffle": "^5.1.49",
     "truffle-flattener": "^1.5.0",
     "web3": "^1.3.0"
   },
@@ -26,7 +26,7 @@
     "deploy:rinkeby": "truffle migrate --network rinkeby",
     "deploy:kovan": "truffle migrate --network kovan",
     "deploy:goerli": "truffle migrate --network goerli",
-    "source": "truffle-flattener contracts/*.sol > growthdefi.sol",
+    "source": "truffle-flattener contracts/*.sol |  sed '/^.*SPDX-License-Identifier:.*$/d' | sed '1s/^/\\/\\/ SPDX-License-Identifier: GPL-3.0-only AND MIT\\n\\n/' > GrowthDeFi.sol",
     "test": "truffle test",
     "stress-test": "npm run deploy && node stress-test/index.js"
   },
