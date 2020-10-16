@@ -2,11 +2,8 @@
 pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
-import { GFormulae } from "./GFormulae.sol";
-import { GCFormulae } from "./GCFormulae.sol";
 import { GCTokenType1 } from "./GCTokenType1.sol";
 import { GCTokenType2 } from "./GCTokenType2.sol";
-import { G } from "./G.sol";
 
 import { $ } from "./network/$.sol";
 
