@@ -2,7 +2,7 @@ const http = require('http');
 const child_process = require('child_process');
 
 const port = 8546;
-const timeout = 10 * 60 * 1000;
+const timeout = 1 * 60 * 60 * 1000;
 
 let busy = false;
 
