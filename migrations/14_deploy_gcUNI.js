@@ -30,7 +30,7 @@ module.exports = async (deployer, network) => {
     const utoken = await IERC20.at(await token.underlyingToken());
     const samount = `${1e6}`;
     const gamount = `${1e6}`;
-    const { '0': uamount } = await token.calcDepositUnderlyingCostFromShares(`${1e7}`, '0', '0', '0', await token.exchangeRate());
+    const { '0': uamount } = await token.calcDepositUnderlyingCostFromShares(`${11e5}`, '0', '0', '0', await token.exchangeRate());
     await exchange.faucet(stoken.address, samount, { value });
     await exchange.faucet(utoken.address, uamount, { value });
     await stoken.approve(token.address, samount);
