@@ -8,6 +8,7 @@ const GUniswapV2Exchange = artifacts.require('GUniswapV2Exchange');
 const IERC20 = artifacts.require('IERC20');
 
 module.exports = async (deployer, network) => {
+  if (['ropsten', 'rinkeby', 'goerli'].includes(network)) return;
   deployer.link(G, gcETH);
   deployer.link(GLiquidityPoolManager, gcETH);
   deployer.link(GCDelegatedReserveManager, gcETH);
@@ -30,7 +31,7 @@ module.exports = async (deployer, network) => {
     const utoken = await IERC20.at(await token.underlyingToken());
     const samount = `${1e6}`;
     const gamount = `${1e6}`;
-    const { '0': uamount } = await token.calcDepositUnderlyingCostFromShares(`${11e5}`, '0', '0', '0', await token.exchangeRate());
+    const { '0': uamount } = await token.calcDepositUnderlyingCostFromShares(`${101e4}`, '0', '0', '0', await token.exchangeRate());
     await exchange.faucet(stoken.address, samount, { value });
     await exchange.faucet(utoken.address, uamount, { value });
     await stoken.approve(token.address, samount);
