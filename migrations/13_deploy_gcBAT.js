@@ -1,29 +1,30 @@
 const G = artifacts.require('G');
 const GLiquidityPoolManager = artifacts.require('GLiquidityPoolManager');
-const GCLeveragedReserveManager = artifacts.require('GCLeveragedReserveManager');
+const GCDelegatedReserveManager = artifacts.require('GCDelegatedReserveManager');
 const gcDAI = artifacts.require('gcDAI');
+const gcBAT = artifacts.require('gcBAT');
 const GSushiswapExchange = artifacts.require('GSushiswapExchange');
 const GUniswapV2Exchange = artifacts.require('GUniswapV2Exchange');
+const GTokenRegistry = artifacts.require('GTokenRegistry');
 const IERC20 = artifacts.require('IERC20');
 
 module.exports = async (deployer, network) => {
-  if (['ropsten', 'rinkeby', 'goerli'].includes(network)) return;
-  deployer.link(G, gcDAI);
-  deployer.link(GLiquidityPoolManager, gcDAI);
-  deployer.link(GCLeveragedReserveManager, gcDAI);
-  await deployer.deploy(gcDAI);
+  if (['rospten', 'rinkeby', 'goerli'].includes(network)) return;
+  deployer.link(G, gcBAT);
+  deployer.link(GLiquidityPoolManager, gcBAT);
+  deployer.link(GCDelegatedReserveManager, gcBAT);
+  const gctoken = await gcDAI.deployed();
+  await deployer.deploy(gcBAT, gctoken.address);
   let exchange
   if (['mainnet', 'development', 'testing'].includes(network)) {
     exchange = await GSushiswapExchange.deployed();
   } else {
     exchange = await GUniswapV2Exchange.deployed();
   }
-  const token = await gcDAI.deployed();
+  const token = await gcBAT.deployed();
   await token.setExchange(exchange.address);
   await token.setMiningGulpRange(`${20e18}`, `${500e18}`);
-  if (!['mainnet', 'development', 'testing'].includes(network)) {
-	await token.setCollateralizationRatio('0', '0');
-  }
+  await token.setGrowthGulpRange('10000000000000000000000', '20000000000000000000000');
   if (!['mainnet'].includes(network)) {
     const value = `${1e18}`;
     const exchange = await GUniswapV2Exchange.deployed();
@@ -39,4 +40,6 @@ module.exports = async (deployer, network) => {
     await token.depositUnderlying(uamount);
     await token.allocateLiquidityPool(samount, gamount);
   }
+  const registry = await GTokenRegistry.deployed();
+  await registry.registerNewToken(token.address);
 };

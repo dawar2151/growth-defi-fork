@@ -5,6 +5,7 @@ const gcDAI = artifacts.require('gcDAI');
 const gcWBTC = artifacts.require('gcWBTC');
 const GSushiswapExchange = artifacts.require('GSushiswapExchange');
 const GUniswapV2Exchange = artifacts.require('GUniswapV2Exchange');
+const GTokenRegistry = artifacts.require('GTokenRegistry');
 const IERC20 = artifacts.require('IERC20');
 
 module.exports = async (deployer, network) => {
@@ -39,4 +40,6 @@ module.exports = async (deployer, network) => {
     await token.depositUnderlying(uamount);
     await token.allocateLiquidityPool(samount, gamount);
   }
+  const registry = await GTokenRegistry.deployed();
+  await registry.registerNewToken(token.address);
 };

@@ -2,25 +2,26 @@ const G = artifacts.require('G');
 const GLiquidityPoolManager = artifacts.require('GLiquidityPoolManager');
 const GCDelegatedReserveManager = artifacts.require('GCDelegatedReserveManager');
 const gcDAI = artifacts.require('gcDAI');
-const gcETH = artifacts.require('gcETH');
+const gcZRX = artifacts.require('gcZRX');
 const GSushiswapExchange = artifacts.require('GSushiswapExchange');
 const GUniswapV2Exchange = artifacts.require('GUniswapV2Exchange');
+const GTokenRegistry = artifacts.require('GTokenRegistry');
 const IERC20 = artifacts.require('IERC20');
 
 module.exports = async (deployer, network) => {
   if (['ropsten', 'rinkeby', 'goerli'].includes(network)) return;
-  deployer.link(G, gcETH);
-  deployer.link(GLiquidityPoolManager, gcETH);
-  deployer.link(GCDelegatedReserveManager, gcETH);
+  deployer.link(G, gcZRX);
+  deployer.link(GLiquidityPoolManager, gcZRX);
+  deployer.link(GCDelegatedReserveManager, gcZRX);
   const gctoken = await gcDAI.deployed();
-  await deployer.deploy(gcETH, gctoken.address);
+  await deployer.deploy(gcZRX, gctoken.address);
   let exchange
   if (['mainnet', 'development', 'testing'].includes(network)) {
     exchange = await GSushiswapExchange.deployed();
   } else {
     exchange = await GUniswapV2Exchange.deployed();
   }
-  const token = await gcETH.deployed();
+  const token = await gcZRX.deployed();
   await token.setExchange(exchange.address);
   await token.setMiningGulpRange(`${20e18}`, `${500e18}`);
   await token.setGrowthGulpRange('10000000000000000000000', '20000000000000000000000');
@@ -39,4 +40,6 @@ module.exports = async (deployer, network) => {
     await token.depositUnderlying(uamount);
     await token.allocateLiquidityPool(samount, gamount);
   }
+  const registry = await GTokenRegistry.deployed();
+  await registry.registerNewToken(token.address);
 };
