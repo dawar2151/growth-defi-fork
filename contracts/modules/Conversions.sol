@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.0;
 
+import { Transfers } from "./Transfers.sol";
 import { CurveExchangeAbstraction } from "./CurveExchangeAbstraction.sol";
 import { UniswapV2ExchangeAbstraction } from "./UniswapV2ExchangeAbstraction.sol";
+
+import { GExchange } from "../GExchange.sol";
 
 import { $ } from "../network/$.sol";
 
@@ -43,10 +46,7 @@ library Conversions
 
 	function _dynamicConvertFunds(address _exchange, address _from, address _to, uint256 _inputAmount, uint256 _minOutputAmount) internal returns (uint256 _outputAmount)
 	{
-		string memory _signature = "convertFunds(address,address,uint256,uint256)";
-		bytes memory _params = abi.encodeWithSignature(_signature, _from, _to, _inputAmount, _minOutputAmount);
-		(bool _success, bytes memory _result) = _exchange.delegatecall(_params);
-		require(_success, "failure in dynamic conversion");
-		return abi.decode(_result, (uint256));
+		Transfers._approveFunds(_from, _exchange, _inputAmount);
+		return GExchange(_exchange).convertFunds(_from, _to, _inputAmount, _minOutputAmount);
 	}
 }
