@@ -5,6 +5,8 @@ import { GToken } from "./GToken.sol";
 import { GCToken } from "./GCToken.sol";
 import { G } from "./G.sol";
 
+import { $ } from "./network/$.sol";
+
 contract GEtherBridge
 {
 	function deposit(address _growthToken) public payable
@@ -12,6 +14,7 @@ contract GEtherBridge
 		address _from = msg.sender;
 		uint256 _cost = msg.value;
 		address _reserveToken = GToken(_growthToken).reserveToken();
+		require(_reserveToken == $.WETH, "ETH operation not supported by token");
 		G.safeWrap(_cost);
 		G.approveFunds(_reserveToken, _growthToken, _cost);
 		GToken(_growthToken).deposit(_cost);
@@ -23,6 +26,7 @@ contract GEtherBridge
 	{
 		address payable _from = msg.sender;
 		address _reserveToken = GToken(_growthToken).reserveToken();
+		require(_reserveToken == $.WETH, "ETH operation not supported by token");
 		G.pullFunds(_reserveToken, _from, _grossShares);
 		GToken(_growthToken).withdraw(_grossShares);
 		uint256 _cost = G.getBalance(_reserveToken);
@@ -35,6 +39,7 @@ contract GEtherBridge
 		address _from = msg.sender;
 		uint256 _underlyingCost = msg.value;
 		address _underlyingToken = GCToken(_growthToken).underlyingToken();
+		require(_underlyingToken == $.WETH, "ETH operation not supported by token");
 		G.safeWrap(_underlyingCost);
 		G.approveFunds(_underlyingToken, _growthToken, _underlyingCost);
 		GCToken(_growthToken).depositUnderlying(_underlyingCost);
@@ -46,6 +51,7 @@ contract GEtherBridge
 	{
 		address payable _from = msg.sender;
 		address _underlyingToken = GCToken(_growthToken).underlyingToken();
+		require(_underlyingToken == $.WETH, "ETH operation not supported by token");
 		G.pullFunds(_growthToken, _from, _grossShares);
 		GCToken(_growthToken).withdrawUnderlying(_grossShares);
 		uint256 _underlyingCost = G.getBalance(_underlyingToken);
