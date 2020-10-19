@@ -59,6 +59,8 @@ library GLiquidityPoolManager
 	/**
 	 * @dev Verifies whether or not a liquidity pool has been allocated and
 	 *      not yet migrated. This method is exposed publicly.
+	 * @return _poolAvailable A boolean indicating whether or not the pool
+	 *                        is available.
 	 */
 	function hasPool(Self storage _self) public view returns (bool _poolAvailable)
 	{
@@ -94,6 +96,8 @@ library GLiquidityPoolManager
 	 *      method does not actually burn the funds, but it will redeem
 	 *      the amounts from the pool to the caller contract, which is then
 	 *      assumed to perform the burn. This method is exposed publicly.
+	 * @return _stakesAmount The amount of stakes (GRO) redeemed from the pool.
+	 * @return _sharesAmount The amount of shares (gToken) redeemed from the pool.
 	 */
 	function burnPoolPortion(Self storage _self) public returns (uint256 _stakesAmount, uint256 _sharesAmount)
 	{
@@ -138,6 +142,7 @@ library GLiquidityPoolManager
 	/**
 	 * @dev Cancels the liquidity pool migration by reseting the procedure
 	 *      to its original state. This method is exposed publicly.
+	 * @return _migrationRecipient The address of the former recipient.
 	 */
 	function cancelPoolMigration(Self storage _self) public returns (address _migrationRecipient)
 	{
@@ -154,6 +159,9 @@ library GLiquidityPoolManager
 	 *      from the pool. This method does not actually transfer the
 	 *      redemeed funds to the recipient, it assumes the caller contract
 	 *      will perform that. This method is exposed publicly.
+	 * @return _migrationRecipient The address of the recipient.
+	 * @return _stakesAmount The amount of stakes (GRO) redeemed from the pool.
+	 * @return _sharesAmount The amount of shares (gToken) redeemed from the pool.
 	 */
 	function completePoolMigration(Self storage _self) public returns (address _migrationRecipient, uint256 _stakesAmount, uint256 _sharesAmount)
 	{
@@ -167,7 +175,9 @@ library GLiquidityPoolManager
 
 	/**
 	 * @dev Verifies whether or not a liquidity pool has been allocated and
-	 *      not yet migrated. This method is exposed publicly.
+	 *      not yet migrated.
+	 * @return _poolAvailable A boolean indicating whether or not the pool
+	 *                        is available.
 	 */
 	function _hasPool(Self storage _self) internal view returns (bool _poolAvailable)
 	{

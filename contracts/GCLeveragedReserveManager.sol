@@ -5,6 +5,13 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
 import { G } from "./G.sol";
 
+/**
+ * @dev This library implements data structure abstraction for the leveraged
+ *      reserve management code in order to circuvent the EVM contract size limit.
+ *      It is therefore a public library shared by all gToken Type 1 contracts and
+ *      needs to be published alongside them. See GTokenType1.sol for further
+ *      documentation.
+ */
 library GCLeveragedReserveManager
 {
 	using SafeMath for uint256;
@@ -27,6 +34,14 @@ library GCLeveragedReserveManager
 		uint256 collateralizationMargin;
 	}
 
+	/**
+	 * @dev Initializes the data structure. This method is exposed publicly.
+	 * @param _reserveToken The ERC-20 token address of the reserve token (cToken).
+	 * @param _underlyingToken The ERC-20 token address of the underlying
+	 *                         token that backs up the reserve token.
+	 * @param _miningToken The ERC-20 token address to be collected from
+	 *                     liquidity mining (COMP).
+	 */
 	function init(Self storage _self, address _reserveToken, address _underlyingToken, address _miningToken) public
 	{
 		_self.reserveToken = _reserveToken;
@@ -44,11 +59,28 @@ library GCLeveragedReserveManager
 		G.safeEnter(_reserveToken);
 	}
 
+	/**
+	 * @dev Sets the contract address for asset conversion delegation.
+	 *      This library converts the miningToken into the underlyingToken
+	 *      and use the assets to back the reserveToken. See GExchange.sol
+	 *      for further documentation. This method is exposed publicly.
+	 * @param _exchange The address of the contract that implements the
+	 *                  GExchange interface.
+	 */
 	function setExchange(Self storage _self, address _exchange) public
 	{
 		_self.exchange = _exchange;
 	}
 
+	/**
+	 * @dev Sets the range for converting liquidity mining assets. This
+	 *      method is exposed publicly.
+	 * @param _miningMinGulpAmount The minimum amount, funds will only be
+	 *                             converted once the minimum is accumulated.
+	 * @param _miningMaxGulpAmount The maximum amount, funds beyond this
+	 *                             limit will not be converted and are left
+	 *                             for future rounds of conversion.
+	 */
 	function setMiningGulpRange(Self storage _self, uint256 _miningMinGulpAmount, uint256 _miningMaxGulpAmount) public
 	{
 		require(_miningMinGulpAmount <= _miningMaxGulpAmount, "invalid range");
@@ -56,6 +88,18 @@ library GCLeveragedReserveManager
 		_self.miningMaxGulpAmount = _miningMaxGulpAmount;
 	}
 
+	/**
+	 * @dev Sets the collateralization ratio and margin. These values are
+	 *      percentual and relative to the maximum collateralization ratio
+	 *      provided by the underlying asset. This method is exposed publicly.
+	 * @param _collateralizationRatio The target collateralization ratio,
+	 *                                between lend and borrow, that the
+	 *                                reserve will try to maintain.
+	 * @param _collateralizationMargin The deviation from the target ratio
+	 *                                 that should be accepted. (Currently
+	 *                                 unused as all operations adjust the
+	 *                                 reserve towards the target.)
+	 */
 	function setCollateralizationRatio(Self storage _self, uint256 _collateralizationRatio, uint256 _collateralizationMargin) public
 	{
 		require(_collateralizationMargin <= _collateralizationRatio && _collateralizationRatio.add(_collateralizationMargin) <= 1e18, "invalid ratio");
@@ -63,6 +107,17 @@ library GCLeveragedReserveManager
 		_self.collateralizationMargin = _collateralizationMargin;
 	}
 
+	/**
+	 * @dev Performs the reserve adjustment actions leaving a liquidity room,
+	 *      if necessary. It will attempt to incorporate the liquidity mining
+	 *      assets into the reserve and adjust the collateralization
+	 *      targeting the configured ratio. This method is exposed publicly.
+	 * @param _roomAmount The underlying token amount to be available after the
+	 *                    operation. This is revelant for withdrawals, once the
+	 *                    room amount is withdrawn the reserve should reflect
+	 *                    the configured collateralization ratio.
+	 * @return _success A boolean indicating whether or not both actions suceeded.
+	 */
 	function adjustReserve(Self storage _self, uint256 _roomAmount) public returns (bool _success)
 	{
 		bool success1 = _self._gulpMiningAssets();
@@ -70,11 +125,26 @@ library GCLeveragedReserveManager
 		return success1 && success2;
 	}
 
+	/**
+	 * @dev Calculates the collateralization ratio relative to the maximum
+	 *      collateralization ratio provided by the underlying asset.
+	 * @return _collateralizationRatio The absolute collateralization ratio.
+	 */
 	function _calcCollateralizationRatio(Self storage _self) internal view returns (uint256 _collateralizationRatio)
 	{
 		return G.getCollateralRatio(_self.reserveToken).mul(_self.collateralizationRatio).div(1e18);
 	}
 
+	/**
+	 * @dev Incorporates the liquidity mining assets into the reserve. Assets
+	 *      are converted to the underlying asset and then added to the reserve.
+	 *      If the amount available is below the minimum, or if the exchange
+	 *      contract is not set, nothing is done. Otherwise the operation is
+	 *      performed, limited to the maximum amount. Note that this operation
+	 *      will incorporate to the reserve all the underlying token balance
+	 *      including funds sent to it or left over somehow.
+	 * @return _success A boolean indicating whether or not the action succeeded.
+	 */
 	function _gulpMiningAssets(Self storage _self) internal returns (bool _success)
 	{
 		uint256 _miningAmount = G.getBalance(_self.miningToken);
@@ -85,23 +155,54 @@ library GCLeveragedReserveManager
 		return G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
 	}
 
+	/**
+	 * @dev Adjusts the reserve to match the configured collateralization
+	 *      ratio. It calculates how much the collateralization must be
+	 *      increased or decreased and either: 1) lend/borrow, or
+	 *      2) repay/redeem, respectivelly. The funds required to perform
+	 *      the operation are obtained via FlashLoan to avoid having to
+	 *      maneuver around margin when moving in/out of leverage.
+	 * @param _roomAmount The amount of underlying token to be liquid after
+	 *                    the operation.
+	 * @return _success A boolean indicating whether or not the action succeeded.
+	 */
 	function _adjustLeverage(Self storage _self, uint256 _roomAmount) internal returns (bool _success)
 	{
+		// the reserve is the diference between lend and borrow
 		uint256 _lendAmount = G.fetchLendAmount(_self.reserveToken);
 		uint256 _borrowAmount = G.fetchBorrowAmount(_self.reserveToken);
 		uint256 _reserveAmount = _lendAmount.sub(_borrowAmount);
+		// caps the room in case it is larger than the reserve
 		_roomAmount = G.min(_roomAmount, _reserveAmount);
+		// The new reserve must deduct the room requested
 		uint256 _newReserveAmount = _reserveAmount.sub(_roomAmount);
+		// caculates the assumed lend amount deducting the requested room
 		uint256 _oldLendAmount = _lendAmount.sub(_roomAmount);
+		// the new lend amount, ignoring leverage, is simply the new reserve
 		uint256 _newLendAmount = _newReserveAmount;
+		// applies the leverage (changes nothing if ratio is 0%)
 		_newLendAmount = _newLendAmount.mul(1e18).div(uint256(1e18).sub(_self._calcCollateralizationRatio()));
+		// adjust the reserve by:
+		// 1- increasing collateralization by the difference
+		// 2- decreasing collateralization by the difference
 		if (_newLendAmount > _oldLendAmount) return _self._dispatchFlashLoan(_newLendAmount.sub(_oldLendAmount), 1);
 		if (_newLendAmount < _oldLendAmount) return _self._dispatchFlashLoan(_oldLendAmount.sub(_newLendAmount), 2);
 		return true;
 	}
 
+	/**
+	 * @dev This is the continuation of _adjustLeverage once funds are
+	 *      borrowed via the FlashLoan callback.
+	 * @param _amount The borrowed amount as requested.
+	 * @param _fee The additional fee that needs to be paid for the FlashLoan.
+	 * @param _which A flag indicating whether the funds were borrowed to
+	 *               1) increase or 2) decrease the collateralization ratio.
+	 * @return _success A boolean indicating whether or not the action succeeded.
+	 */
 	function _continueAdjustLeverage(Self storage _self, uint256 _amount, uint256 _fee, uint256 _which) internal returns (bool _success)
 	{
+		// note that the reserve adjustment is not 100% accurate as we
+		// did not account for FlashLoan fees in the initial calculation
 		if (_which == 1) {
 			bool _success1 = G.lend(_self.reserveToken, _amount.sub(_fee));
 			bool _success2 = G.borrow(_self.reserveToken, _amount);
@@ -115,11 +216,28 @@ library GCLeveragedReserveManager
 		assert(false);
 	}
 
+	/**
+	 * @dev Abstracts the details of dispatching the FlashLoan by encoding
+	 *      the extra parameters.
+	 * @param _amount The amount to be borrowed.
+	 * @param _which A flag indicating whether the funds are borrowed to
+	 *               1) increase or 2) decrease the collateralization ratio.
+	 * @return _success A boolean indicating whether or not the action succeeded.
+	 */
 	function _dispatchFlashLoan(Self storage _self, uint256 _amount, uint256 _which) internal returns (bool _success)
 	{
 		return G.requestFlashLoan(_self.underlyingToken, _amount, abi.encode(_which));
 	}
 
+	/**
+	 * @dev Abstracts the details of receiving a FlashLoan by decoding
+	 *      the extra parameters.
+	 * @param _token The asset being borrowed.
+	 * @param _amount The borrowed amount.
+	 * @param _fee The fees to be paid along with the borrowed amount.
+	 * @param _params Additional encoded parameters to be decoded.
+	 * @return _success A boolean indicating whether or not the action succeeded.
+	 */
 	function _receiveFlashLoan(Self storage _self, address _token, uint256 _amount, uint256 _fee, bytes memory _params) external returns (bool _success)
 	{
 		assert(_token == _self.underlyingToken);
@@ -127,6 +245,12 @@ library GCLeveragedReserveManager
 		return _self._continueAdjustLeverage(_amount, _fee, _which);
 	}
 
+	/**
+	 * @dev Converts a given amount of the mining token to the underlying
+	 *      token using the external exchange contract. Both amounts are
+	 *      deducted and credited, respectively, from the current contract.
+	 * @param _inputAmount The amount to be converted.
+	 */
 	function _convertMiningToUnderlying(Self storage _self, uint256 _inputAmount) internal
 	{
 		G.dynamicConvertFunds(_self.exchange, _self.miningToken, _self.underlyingToken, _inputAmount, 0);
