@@ -47,6 +47,11 @@ library Conversions
 	function _dynamicConvertFunds(address _exchange, address _from, address _to, uint256 _inputAmount, uint256 _minOutputAmount) internal returns (uint256 _outputAmount)
 	{
 		Transfers._approveFunds(_from, _exchange, _inputAmount);
-		return GExchange(_exchange).convertFunds(_from, _to, _inputAmount, _minOutputAmount);
+		try GExchange(_exchange).convertFunds(_from, _to, _inputAmount, _minOutputAmount) returns (uint256 _outAmount) {
+			return _outAmount;
+		} catch (bytes memory /* _data */) {
+			Transfers._approveFunds(_from, _exchange, 0);
+			return 0;
+		}
 	}
 }
