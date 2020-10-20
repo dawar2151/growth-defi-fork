@@ -57,14 +57,14 @@ library GLiquidityPoolManager
 	}
 
 	/**
-	 * @dev Verifies whether or not a liquidity pool has been allocated and
-	 *      not yet migrated. This method is exposed publicly.
-	 * @return _poolAvailable A boolean indicating whether or not the pool
-	 *                        is available.
+	 * @dev Verifies whether or not a liquidity pool is migrating or
+	 *      has migrated. This method is exposed publicly.
+	 * @return _hasMigrated A boolean indicating whether or not the pool
+	 *                      migration has started.
 	 */
-	function hasPool(Self storage _self) public view returns (bool _poolAvailable)
+	function hasMigrated(Self storage _self) public view returns (bool _hasMigrated)
 	{
-		return _self._hasPool();
+		return _self.state == State.Migrating || _self.state == State.Migrated;
 	}
 
 	/**
@@ -133,7 +133,7 @@ library GLiquidityPoolManager
 	 */
 	function initiatePoolMigration(Self storage _self, address _migrationRecipient) public
 	{
-		require(_self.state == State.Allocated, "pool not allocated");
+		require(_self.state == State.Allocated || _self.state == State.Migrated, "migration unavailable");
 		_self.state = State.Migrating;
 		_self.migrationRecipient = _migrationRecipient;
 		_self.migrationUnlockTime = now + MIGRATION_INTERVAL;
@@ -167,20 +167,21 @@ library GLiquidityPoolManager
 	{
 		require(_self.state == State.Migrating, "migration not initiated");
 		require(now >= _self.migrationUnlockTime, "must wait lock interval");
-		_self.state = State.Migrated;
 		_migrationRecipient = _self.migrationRecipient;
+		_self.state = State.Migrated;
+		_self.migrationRecipient = address(0);
+		_self.migrationUnlockTime = uint256(-1);
 		(_stakesAmount, _sharesAmount) = G.exitPool(_self.liquidityPool, 1e18);
 		return (_migrationRecipient, _stakesAmount, _sharesAmount);
 	}
 
 	/**
-	 * @dev Verifies whether or not a liquidity pool has been allocated and
-	 *      not yet migrated.
+	 * @dev Verifies whether or not a liquidity pool has been allocated.
 	 * @return _poolAvailable A boolean indicating whether or not the pool
 	 *                        is available.
 	 */
 	function _hasPool(Self storage _self) internal view returns (bool _poolAvailable)
 	{
-		return _self.state == State.Allocated || _self.state == State.Migrating;
+		return _self.state == State.Allocated;
 	}
 }
