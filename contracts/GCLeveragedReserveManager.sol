@@ -17,8 +17,9 @@ library GCLeveragedReserveManager
 	using SafeMath for uint256;
 	using GCLeveragedReserveManager for GCLeveragedReserveManager.Self;
 
-	uint256 constant DEFAULT_COLLATERALIZATION_RATIO = 96e16; // 96% of 75% = 72%
-	uint256 constant DEFAULT_COLLATERALIZATION_MARGIN = 0e16; // 0% of 75% = 0%
+	uint256 constant MAXIMUM_COLLATERALIZATION_RATIO = 98e16; // 98% of 75% = 73.5%
+	uint256 constant DEFAULT_COLLATERALIZATION_RATIO = 94e16; // 94% of 75% = 70.5%
+	uint256 constant DEFAULT_COLLATERALIZATION_MARGIN = 2e16; // 2% of 75% = 1.5%
 
 	struct Self {
 		address reserveToken;
@@ -96,13 +97,11 @@ library GCLeveragedReserveManager
 	 *                                between lend and borrow, that the
 	 *                                reserve will try to maintain.
 	 * @param _collateralizationMargin The deviation from the target ratio
-	 *                                 that should be accepted. (Currently
-	 *                                 unused as all operations adjust the
-	 *                                 reserve towards the target.)
+	 *                                 that should be accepted.
 	 */
 	function setCollateralizationRatio(Self storage _self, uint256 _collateralizationRatio, uint256 _collateralizationMargin) public
 	{
-		require(_collateralizationMargin <= _collateralizationRatio && _collateralizationRatio.add(_collateralizationMargin) <= 1e18, "invalid ratio");
+		require(_collateralizationMargin <= _collateralizationRatio && _collateralizationRatio.add(_collateralizationMargin) <= MAXIMUM_COLLATERALIZATION_RATIO, "invalid ratio");
 		_self.collateralizationRatio = _collateralizationRatio;
 		_self.collateralizationMargin = _collateralizationMargin;
 	}
@@ -126,13 +125,19 @@ library GCLeveragedReserveManager
 	}
 
 	/**
-	 * @dev Calculates the collateralization ratio relative to the maximum
-	 *      collateralization ratio provided by the underlying asset.
-	 * @return _collateralizationRatio The absolute collateralization ratio.
+	 * @dev Calculates the collateralization ratio and range relative to the
+	 *      maximum collateralization ratio provided by the underlying asset.
+	 * @return _collateralizationRatio The target absolute collateralization ratio.
+	 * @return _minCollateralizationRatio The minimum absolute collateralization ratio.
+	 * @return _maxCollateralizationRatio The maximum absolute collateralization ratio.
 	 */
-	function _calcCollateralizationRatio(Self storage _self) internal view returns (uint256 _collateralizationRatio)
+	function _calcCollateralizationRatio(Self storage _self) internal view returns (uint256 _collateralizationRatio, uint256 _minCollateralizationRatio, uint256 _maxCollateralizationRatio)
 	{
-		return G.getCollateralRatio(_self.reserveToken).mul(_self.collateralizationRatio).div(1e18);
+		uint256 _collateralRatio = G.getCollateralRatio(_self.reserveToken);
+		_collateralizationRatio = _collateralRatio.mul(_self.collateralizationRatio).div(1e18);
+		_minCollateralizationRatio = _collateralRatio.mul(_self.collateralizationRatio.sub(_self.collateralizationMargin)).div(1e18);
+		_maxCollateralizationRatio = _collateralRatio.mul(_self.collateralizationRatio.add(_self.collateralizationMargin)).div(1e18);
+		return (_collateralizationRatio, _minCollateralizationRatio, _maxCollateralizationRatio);
 	}
 
 	/**
@@ -178,15 +183,21 @@ library GCLeveragedReserveManager
 		uint256 _newReserveAmount = _reserveAmount.sub(_roomAmount);
 		// caculates the assumed lend amount deducting the requested room
 		uint256 _oldLendAmount = _lendAmount.sub(_roomAmount);
-		// the new lend amount, ignoring leverage, is simply the new reserve
-		uint256 _newLendAmount = _newReserveAmount;
-		// applies the leverage (changes nothing if ratio is 0%)
-		_newLendAmount = _newLendAmount.mul(1e18).div(uint256(1e18).sub(_self._calcCollateralizationRatio()));
+		// the new lend amount is the new reserve with leverage applied
+		uint256 _newLendAmount;
+		uint256 _minNewLendAmount;
+		uint256 _maxNewLendAmount;
+		{
+			(uint256 _collateralizationRatio, uint256 _minCollateralizationRatio, uint256 _maxCollateralizationRatio) = _self._calcCollateralizationRatio();
+			_newLendAmount = _newReserveAmount.mul(1e18).div(uint256(1e18).sub(_collateralizationRatio));
+			_minNewLendAmount = _newReserveAmount.mul(1e18).div(uint256(1e18).sub(_minCollateralizationRatio));
+			_maxNewLendAmount = _newReserveAmount.mul(1e18).div(uint256(1e18).sub(_maxCollateralizationRatio));
+		}
 		// adjust the reserve by:
 		// 1- increasing collateralization by the difference
 		// 2- decreasing collateralization by the difference
-		if (_newLendAmount > _oldLendAmount) return _self._dispatchFlashLoan(_newLendAmount.sub(_oldLendAmount), 1);
-		if (_newLendAmount < _oldLendAmount) return _self._dispatchFlashLoan(_oldLendAmount.sub(_newLendAmount), 2);
+		if (_minNewLendAmount > _oldLendAmount) return _self._dispatchFlashLoan(_newLendAmount.sub(_oldLendAmount), 1);
+		if (_maxNewLendAmount < _oldLendAmount) return _self._dispatchFlashLoan(_oldLendAmount.sub(_newLendAmount), 2);
 		return true;
 	}
 
