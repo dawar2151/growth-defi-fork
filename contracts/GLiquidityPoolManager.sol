@@ -182,6 +182,6 @@ library GLiquidityPoolManager
 	 */
 	function _hasPool(Self storage _self) internal view returns (bool _poolAvailable)
 	{
-		return _self.state == State.Allocated;
+		return _self.state != State.Created;
 	}
 }
