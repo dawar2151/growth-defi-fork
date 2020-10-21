@@ -7,8 +7,21 @@ import { G } from "./G.sol";
 
 import { $ } from "./network/$.sol";
 
+/**
+ * @dev This contract serves as a useful bridge between ETH and the WETH
+ *      ERC-20 based gTokens. It accepts deposits/withdrawals in ETH performing
+ *      the wrapping/unwrapping behind the scenes.
+ */
 contract GEtherBridge
 {
+	/**
+	 * @notice Accepts a deposit to the gToken using ETH. The gToken must
+	 *         have WETH as its reserveToken. This is a payable method and
+	 *         expects ETH to be sent; which in turn will be converted into
+	 *         shares. See GToken.sol and GTokenBase.sol for further
+	 *         documentation.
+	 * @param _growthToken The WETH based gToken.
+	 */
 	function deposit(address _growthToken) public payable
 	{
 		address _from = msg.sender;
@@ -22,6 +35,14 @@ contract GEtherBridge
 		G.pushFunds(_growthToken, _from, _netShares);
 	}
 
+	/**
+	 * @notice Accepts a withdrawal to the gToken using ETH. The gToken must
+	 *         have WETH as its reserveToken. This method will redeem the
+	 *         sender's required balance in shares; which in turn will receive
+	 *         ETH. See GToken.sol and GTokenBase.sol for further documentation.
+	 * @param _growthToken The WETH based gToken.
+	 * @param _grossShares The number of shares to be redeemed.
+	 */
 	function withdraw(address _growthToken, uint256 _grossShares) public
 	{
 		address payable _from = msg.sender;
@@ -34,6 +55,14 @@ contract GEtherBridge
 		_from.transfer(_cost);
 	}
 
+	/**
+	 * @notice Accepts a deposit to the gcToken using ETH. The gcToken must
+	 *         have WETH as its underlyingToken. This is a payable method and
+	 *         expects ETH to be sent; which in turn will be converted into
+	 *         shares. See GCToken.sol and GCTokenBase.sol for further
+	 *         documentation.
+	 * @param _growthToken The WETH based gcToken (e.g. gcETH).
+	 */
 	function depositUnderlying(address _growthToken) public payable
 	{
 		address _from = msg.sender;
@@ -47,6 +76,14 @@ contract GEtherBridge
 		G.pushFunds(_growthToken, _from, _netShares);
 	}
 
+	/**
+	 * @notice Accepts a withdrawal to the gcToken using ETH. The gcToken must
+	 *         have WETH as its underlyingToken. This method will redeem the
+	 *         sender's required balance in shares; which in turn will receive
+	 *         ETH. See GCToken.sol and GCTokenBase.sol for further documentation.
+	 * @param _growthToken The WETH based gcToken (e.g. gcETH).
+	 * @param _grossShares The number of shares to be redeemed.
+	 */
 	function withdrawUnderlying(address _growthToken, uint256 _grossShares) public
 	{
 		address payable _from = msg.sender;
