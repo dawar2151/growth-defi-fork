@@ -2,6 +2,7 @@
 pragma solidity ^0.6.0;
 
 import { GExchange } from "./GExchange.sol";
+import { G } from "./G.sol";
 
 import { Router02 } from "./interop/UniswapV2.sol";
 import { WETH } from "./interop/WrappedEther.sol";
@@ -43,7 +44,7 @@ contract GUniswapV2Exchange is GExchange
 	/**
 	 * @notice Converts a given token amount to another token, as long as it
 	 *         meets the minimum taken amount. Amounts are debited from and
-	 *         and credited to the callet contract. It may fail if the
+	 *         and credited to the caller contract. It may fail if the
 	 *         minimum output amount cannot be met.
 	 * @param _from The contract address of the ERC-20 token to convert from.
 	 * @param _to The contract address of the ERC-20 token to convert to.
@@ -53,7 +54,11 @@ contract GUniswapV2Exchange is GExchange
 	 */
 	function convertFunds(address _from, address _to, uint256 _inputAmount, uint256 _minOutputAmount) public override returns (uint256 _outputAmount)
 	{
-		return UniswapV2ExchangeAbstraction._convertFunds(_from, _to, _inputAmount, _minOutputAmount);
+		address _sender = msg.sender;
+		G.pullFunds(_from, _sender, _inputAmount);
+		_outputAmount = UniswapV2ExchangeAbstraction._convertFunds(_from, _to, _inputAmount, _minOutputAmount);
+		G.pushFunds(_to, _sender, _outputAmount);
+		return _outputAmount;
 	}
 
 	/* This method is only used by stress-test to easily mint any ERC-20
