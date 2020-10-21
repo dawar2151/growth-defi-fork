@@ -14,6 +14,7 @@ library GLiquidityPoolManager
 {
 	using GLiquidityPoolManager for GLiquidityPoolManager.Self;
 
+	uint256 constant MAXIMUM_BURNING_RATE = 2e16; // 2%
 	uint256 constant DEFAULT_BURNING_RATE = 5e15; // 0.5%
 	uint256 constant BURNING_INTERVAL = 7 days;
 	uint256 constant MIGRATION_INTERVAL = 7 days;
@@ -86,7 +87,7 @@ library GLiquidityPoolManager
 	 */
 	function setBurningRate(Self storage _self, uint256 _burningRate) public
 	{
-		require(_burningRate <= 1e18, "invalid rate");
+		require(_burningRate <= MAXIMUM_BURNING_RATE, "invalid rate");
 		_self.burningRate = _burningRate;
 	}
 
