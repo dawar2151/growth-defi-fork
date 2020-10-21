@@ -4,10 +4,10 @@ pragma solidity ^0.6.0;
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
 import { Math } from "./Math.sol";
+import { Wrapping } from "./Wrapping.sol";
 import { Transfers } from "./Transfers.sol";
 
 import { Comptroller, PriceOracle, CToken } from "../interop/Compound.sol";
-import { WETH } from "../interop/WrappedEther.sol";
 
 import { $ } from "../network/$.sol";
 
@@ -95,19 +95,16 @@ library CompoundLendingMarketAbstraction
 
 	function _lend(address _ctoken, uint256 _amount) internal returns (bool _success)
 	{
-		address _token = _getUnderlyingToken(_ctoken);
-		if (_token == $.WETH) {
-			try WETH(_token).withdraw(_amount) {
-				try CToken(_ctoken).mint{value: _amount}() {
-					return true;
-				} catch (bytes memory /* _data */) {
-					WETH(_token).deposit{value: _amount}();
-					return false;
-				}
+		if (_ctoken == $.cETH) {
+			if (!Wrapping._unwrap(_amount)) return false;
+			try CToken(_ctoken).mint{value: _amount}() {
+				return true;
 			} catch (bytes memory /* _data */) {
+				assert(Wrapping._wrap(_amount));
 				return false;
 			}
 		} else {
+			address _token = _getUnderlyingToken(_ctoken);
 			Transfers._approveFunds(_token, _ctoken, _amount);
 			try CToken(_ctoken).mint(_amount) returns (uint256 _errorCode) {
 				return _errorCode == 0;
@@ -122,8 +119,7 @@ library CompoundLendingMarketAbstraction
 		if (_ctoken == $.cETH) {
 			try CToken(_ctoken).redeemUnderlying(_amount) returns (uint256 _errorCode) {
 				if (_errorCode == 0) {
-					address _token = _getUnderlyingToken(_ctoken);
-					WETH(_token).deposit{value: _amount}();
+					assert(Wrapping._wrap(_amount));
 					return true;
 				} else {
 					return false;
@@ -145,8 +141,7 @@ library CompoundLendingMarketAbstraction
 		if (_ctoken == $.cETH) {
 			try CToken(_ctoken).borrow(_amount) returns (uint256 _errorCode) {
 				if (_errorCode == 0) {
-					address _token = _getUnderlyingToken(_ctoken);
-					WETH(_token).deposit{value: _amount}();
+					assert(Wrapping._wrap(_amount));
 					return true;
 				} else {
 					return false;
@@ -165,19 +160,16 @@ library CompoundLendingMarketAbstraction
 
 	function _repay(address _ctoken, uint256 _amount) internal returns (bool _success)
 	{
-		address _token = _getUnderlyingToken(_ctoken);
-		if (_token == $.WETH) {
-			try WETH(_token).withdraw(_amount) {
-				try CToken(_ctoken).repayBorrow{value: _amount}() {
-					return true;
-				} catch (bytes memory /* _data */) {
-					WETH(_token).deposit{value: _amount}();
-					return false;
-				}
+		if (_ctoken == $.cETH) {
+			if (!Wrapping._unwrap(_amount)) return false;
+			try CToken(_ctoken).repayBorrow{value: _amount}() {
+				return true;
 			} catch (bytes memory /* _data */) {
+				assert(Wrapping._wrap(_amount));
 				return false;
 			}
 		} else {
+			address _token = _getUnderlyingToken(_ctoken);
 			Transfers._approveFunds(_token, _ctoken, _amount);
 			try CToken(_ctoken).repayBorrow(_amount) returns (uint256 _errorCode) {
 				return _errorCode == 0;

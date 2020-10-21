@@ -54,27 +54,7 @@ contract gcETH is GCTokenType2
 	{
 	}
 
-/*
-	function depositNative() public payable {
-		uint256 _underlyingCost = msg.value;
-		address _token = underlyingToken();
-		WETH(_token).deposit{value: _underlyingCost}();
-		depositUnderlying(_underlyingCost); // will fail must be different sender
-		// transfer shares to _from
-	}
-
-	function withdrawNative(uint256 _grossShares) public {
-		address _from = msg.sender;
-		uint256 _balance1 = G.getBalance(underlyingToken);
-		withdrawUnderlying(_grossShares); // will fail must be different sender
-		uint256 _balance2 = G.getBalance(underlyingToken);
-		uint256 _underlyingCost = _balance2.sub(_balance1);
-		WETH(underlyingToken).withdraw(_underlyingCost);
-		// transfer ETH to _from
-	}
-*/
-
-	receive() external payable {}
+	receive() external payable {} // not to be used directly
 }
 
 /**
