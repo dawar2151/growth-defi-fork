@@ -30,7 +30,9 @@ import { G } from "./G.sol";
  *         Finally, the gToken contract provides functionality to migrate the
  *         total amount of funds locked in the liquidity pool to an external
  *         address, this mechanism is provided to facilitate the upgrade of
- *         this gToken contract by future implementations.
+ *         this gToken contract by future implementations. After migration has
+ *         started the fee for deposits becomes 2% and the fee for withdrawals
+ *         becomes 0%, in order to incentivise others to follow the migration.
  */
 abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 {
@@ -38,6 +40,8 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 
 	uint256 constant DEPOSIT_FEE = 1e16; // 1%
 	uint256 constant WITHDRAWAL_FEE = 1e16; // 1%
+	uint256 constant DEPOSIT_FEE_AFTER_MIGRATION = 2e16; // 2%
+	uint256 constant WITHDRAWAL_FEE_AFTER_MIGRATION = 0e16; // 0%
 
 	address public immutable override stakesToken;
 	address public immutable override reserveToken;
@@ -100,7 +104,7 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	 * @param _cost The amount of reserve token being withdrawn.
 	 * @param _totalReserve The reserve balance as obtained by totalReserve()
 	 * @param _totalSupply The shares supply as obtained by totalSupply()
-	 * @param _withdrawalFee The current withdrawl fee as obtained by withdrawalFee()
+	 * @param _withdrawalFee The current withdrawal fee as obtained by withdrawalFee()
 	 * @return _grossShares The total amount of shares being deducted,
 	 *                      including fees.
 	 * @return _feeShares The fee amount of shares being deducted.
@@ -140,29 +144,27 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	/**
 	 * @notice Provides the current minting/deposit fee. This fee is
 	 *         applied to the amount of this gToken shares being created
-	 *         upon deposit. The fee defaults to 1% and is temporarily 0%
-	 *         before the liquidity pool is allocated or after it has been
-	 *         migrated.
+	 *         upon deposit. The fee defaults to 1% and is set to 2%
+	 *         after the liquidity pool has been migrated.
 	 * @return _depositFee A percent value that accounts for the percentage
 	 *                     of shares being minted at each deposit that be
 	 *                     collected as fee.
 	 */
 	function depositFee() public view override returns (uint256 _depositFee) {
-		return lpm.hasPool() ? DEPOSIT_FEE : 0;
+		return lpm.hasMigrated() ? DEPOSIT_FEE_AFTER_MIGRATION : DEPOSIT_FEE;
 	}
 
 	/**
 	 * @notice Provides the current burning/withdrawal fee. This fee is
 	 *         applied to the amount of this gToken shares being redeemed
-	 *         upon withdrawal. The fee defaults to 1% and is temporarily 0%
-	 *         before the liquidity pool is allocated or after it has been
-	 *         migrated.
+	 *         upon withdrawal. The fee defaults to 1% and is set to 0%
+	 *         after the liquidity pool is migrated.
 	 * @return _withdrawalFee A percent value that accounts for the
 	 *                        percentage of shares being burned at each
 	 *                        withdrawal that be collected as fee.
 	 */
 	function withdrawalFee() public view override returns (uint256 _withdrawalFee) {
-		return lpm.hasPool() ? WITHDRAWAL_FEE : 0;
+		return lpm.hasMigrated() ? WITHDRAWAL_FEE_AFTER_MIGRATION : WITHDRAWAL_FEE;
 	}
 
 	/**
