@@ -152,10 +152,10 @@ library GCLeveragedReserveManager
 	 */
 	function _gulpMiningAssets(Self storage _self) internal returns (bool _success)
 	{
+		if (_self.exchange == address(0)) return true;
 		uint256 _miningAmount = G.getBalance(_self.miningToken);
 		if (_miningAmount == 0) return true;
 		if (_miningAmount < _self.miningMinGulpAmount) return true;
-		if (_self.exchange == address(0)) return true;
 		_self._convertMiningToUnderlying(G.min(_miningAmount, _self.miningMaxGulpAmount));
 		return G.lend(_self.reserveToken, G.getBalance(_self.underlyingToken));
 	}
