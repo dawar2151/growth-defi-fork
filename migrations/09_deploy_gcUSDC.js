@@ -8,7 +8,6 @@ const GTokenRegistry = artifacts.require('GTokenRegistry');
 const IERC20 = artifacts.require('IERC20');
 
 module.exports = async (deployer, network) => {
-  if (['ropsten', 'rinkeby', 'goerli'].includes(network)) return;
   deployer.link(G, gcUSDC);
   deployer.link(GLiquidityPoolManager, gcUSDC);
   deployer.link(GCLeveragedReserveManager, gcUSDC);
@@ -20,12 +19,14 @@ module.exports = async (deployer, network) => {
     exchange = await GUniswapV2Exchange.deployed();
   }
   const token = await gcUSDC.deployed();
-  await token.setExchange(exchange.address);
-  await token.setMiningGulpRange(`${20e18}`, `${500e18}`);
-  if (!['mainnet', 'development', 'testing'].includes(network)) {
-	await token.setCollateralizationRatio('0', '0');
+  if (!['rinkeby'].includes(network)) {
+    await token.setExchange(exchange.address);
+    await token.setMiningGulpRange(`${20e18}`, `${500e18}`);
   }
-  if (!['mainnet'].includes(network)) {
+  if (!['mainnet', 'development', 'testing'].includes(network)) {
+    await token.setCollateralizationRatio('0', '0');
+  }
+  if (!['ropsten', 'goerli'].includes(network)) {
     const value = `${1e18}`;
     const exchange = await GUniswapV2Exchange.deployed();
     const stoken = await IERC20.at(await token.stakesToken());
