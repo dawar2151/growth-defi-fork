@@ -199,19 +199,19 @@ library GCLeveragedReserveManager
 		// the adjustment is capped by the liquidity available on the market
 		uint256 _liquidityAmount = G.getFlashLoanLiquidity(_self.underlyingToken);
 		if (_minNewLendAmount > _oldLendAmount) {
-			uint256 _amount = _newLendAmount.sub(_oldLendAmount);
 			{
 				uint256 _minAmount = _minNewLendAmount.sub(_oldLendAmount);
 				require(_liquidityAmount >= _minAmount, "cannot maintain collateralization ratio");
 			}
+			uint256 _amount = _newLendAmount.sub(_oldLendAmount);
 			return _self._dispatchFlashLoan(G.min(_amount, _liquidityAmount), 1);
 		}
 		if (_maxNewLendAmount < _oldLendAmount) {
-			uint256 _amount = _oldLendAmount.sub(_newLendAmount);
 			{
 				uint256 _minAmount = _oldLendAmount.sub(_maxNewLendAmount);
 				require(_liquidityAmount >= _minAmount, "cannot maintain collateralization ratio");
 			}
+			uint256 _amount = _oldLendAmount.sub(_newLendAmount);
 			return _self._dispatchFlashLoan(G.min(_amount, _liquidityAmount), 2);
 		}
 		return true;
