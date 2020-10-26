@@ -19,15 +19,15 @@ library FlashLoans
 
 	function _getFlashLoanLiquidity(address _token) internal view returns (uint256 _liquidityAmount)
 	{
+		// uint256 _liquidityAmountDydx = 0;
+		// if ($.NETWORK == $.Network.Mainnet || $.NETWORK == $.Network.Kovan) {
+		//	_liquidityAmountDydx = DydxFlashLoanAbstraction._getFlashLoanLiquidity(_token);
+		// }
 		uint256 _liquidityAmountAave = 0;
-		if ($.NETWORK == $.Network.Mainnet || $.NETWORK == $.Network.Kovan) {
+		if ($.NETWORK == $.Network.Mainnet || $.NETWORK == $.Network.Ropsten || $.NETWORK == $.Network.Kovan) {
 			_liquidityAmountAave = AaveFlashLoanAbstraction._getFlashLoanLiquidity(_token);
 		}
-		uint256 _liquidityAmountDydx = 0;
-		if ($.NETWORK == $.Network.Mainnet || $.NETWORK == $.Network.Ropsten || $.NETWORK == $.Network.Kovan) {
-			_liquidityAmountDydx = DydxFlashLoanAbstraction._getFlashLoanLiquidity(_token);
-		}
-		return Math._max(_liquidityAmountAave, _liquidityAmountDydx);
+		return _liquidityAmountAave; // Math._max(_liquidityAmountDydx, _liquidityAmountAave);
 	}
 
 	function _requestFlashLoan(address _token, uint256 _netAmount, bytes memory _context) internal returns (bool _success)

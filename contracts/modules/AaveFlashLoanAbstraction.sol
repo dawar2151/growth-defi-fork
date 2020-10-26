@@ -23,13 +23,13 @@ library AaveFlashLoanAbstraction
 	function _getFlashLoanLiquidity(address _token) internal view returns (uint256 _liquidityAmount)
 	{
 		address _pool = $.Aave_AAVE_LENDING_POOL;
-		// this is ideal code, but cannot be implemented in solidity
+		// this is the code in solidity, but does not compile
 		//	try LendingPool(_pool).getReserveData(_token) returns (uint256 _totalLiquidity, uint256 _availableLiquidity, uint256 _totalBorrowsStable, uint256 _totalBorrowsVariable, uint256 _liquidityRate, uint256 _variableBorrowRate, uint256 _stableBorrowRate, uint256 _averageStableBorrowRate, uint256 _utilizationRate, uint256 _liquidityIndex, uint256 _variableBorrowIndex, address _aTokenAddress, uint40 _lastUpdateTimestamp) {
-		//		return _availableLiquidity;			
+		//		return _availableLiquidity;
 		//	} catch (bytes memory /* _data */) {
 		//		return 0;
 		//	}
-		// then we use assembly instead
+		// we use EVM assembly instead
 		bytes memory _data = abi.encodeWithSignature("getReserveData(address)", _token);
 		uint256[2] memory _result;
 		assembly {
