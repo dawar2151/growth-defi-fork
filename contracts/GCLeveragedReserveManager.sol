@@ -197,14 +197,14 @@ library GCLeveragedReserveManager
 		// 1- increasing collateralization by the difference
 		// 2- decreasing collateralization by the difference
 		// the adjustment is capped by the liquidity available on the market
-		uint256 _liquidityAmount = G.getMarketAmount(_self.reserveToken); // TODO this should be on AAVE
+		uint256 _liquidityAmount = G.getFlashLoanLiquidity(_self.underlyingToken);
 		if (_minNewLendAmount > _oldLendAmount) {
 			uint256 _amount = _newLendAmount.sub(_oldLendAmount);
-			return _self._dispatchFlashLoan(_min(_amount, _liquidityAmount), 1);
+			return _self._dispatchFlashLoan(G.min(_amount, _liquidityAmount), 1);
 		}
 		if (_maxNewLendAmount < _oldLendAmount) {
 			uint256 _amount = _oldLendAmount.sub(_newLendAmount);
-			return _self._dispatchFlashLoan(_min(_amount, _liquidityAmount), 2);
+			return _self._dispatchFlashLoan(G.min(_amount, _liquidityAmount), 2);
 		}
 		return true;
 	}
