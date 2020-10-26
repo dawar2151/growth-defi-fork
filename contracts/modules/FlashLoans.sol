@@ -21,7 +21,7 @@ library FlashLoans
 	{
 		uint256 _liquidityAmountDydx = 0;
 		if ($.NETWORK == $.Network.Mainnet || $.NETWORK == $.Network.Kovan) {
-			// _liquidityAmountDydx = DydxFlashLoanAbstraction._getFlashLoanLiquidity(_token);
+			_liquidityAmountDydx = DydxFlashLoanAbstraction._getFlashLoanLiquidity(_token);
 		}
 		uint256 _liquidityAmountAave = 0;
 		if ($.NETWORK == $.Network.Mainnet || $.NETWORK == $.Network.Ropsten || $.NETWORK == $.Network.Kovan) {
