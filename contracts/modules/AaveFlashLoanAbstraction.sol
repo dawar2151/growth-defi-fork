@@ -23,16 +23,20 @@ library AaveFlashLoanAbstraction
 	function _getFlashLoanLiquidity(address _token) internal view returns (uint256 _liquidityAmount)
 	{
 		address _pool = $.Aave_AAVE_LENDING_POOL;
-//		try LendingPool(_pool).getReserveData(_token) returns (uint256 _totalLiquidity, uint256 _availableLiquidity, uint256 _totalBorrowsStable, uint256 _totalBorrowsVariable, uint256 _liquidityRate, uint256 _variableBorrowRate, uint256 _stableBorrowRate, uint256 _averageStableBorrowRate, uint256 _utilizationRate, uint256 _liquidityIndex, uint256 _variableBorrowIndex, address _aTokenAddress, uint40 _lastUpdateTimestamp) {
-//			return _availableLiquidity;			
-//		} catch (bytes memory /* _data */) {
-//			return 0;
-//		}
+		// this is ideal code, but cannot be implemented in solidity
+		//	try LendingPool(_pool).getReserveData(_token) returns (uint256 _totalLiquidity, uint256 _availableLiquidity, uint256 _totalBorrowsStable, uint256 _totalBorrowsVariable, uint256 _liquidityRate, uint256 _variableBorrowRate, uint256 _stableBorrowRate, uint256 _averageStableBorrowRate, uint256 _utilizationRate, uint256 _liquidityIndex, uint256 _variableBorrowIndex, address _aTokenAddress, uint40 _lastUpdateTimestamp) {
+		//		return _availableLiquidity;			
+		//	} catch (bytes memory /* _data */) {
+		//		return 0;
+		//	}
+		// then we use assembly instead
 		bytes memory _data = abi.encodeWithSignature("getReserveData(address)", _token);
 		uint256[2] memory _result;
-		_result[1] = 0;
 		assembly {
 			let _success := staticcall(gas(), _pool, add(_data, 32), mload(_data), _result, 64)
+			if iszero(_success) {
+				mstore(add(_result, 32), 0)
+			}
 		}
 		return _result[1];
 	}
