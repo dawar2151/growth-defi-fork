@@ -3,7 +3,6 @@ pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
 import { GCTokenType1 } from "./GCTokenType1.sol";
-import { GCTokenType2 } from "./GCTokenType2.sol";
 
 import { $ } from "./network/$.sol";
 
