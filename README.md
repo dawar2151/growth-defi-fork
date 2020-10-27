@@ -7,9 +7,10 @@ This repository contains the source code for the GrowthDeFi smart contracts
 
 ## Deployed Contracts
 
-| Token | Mainnet Address                                                                                                       |
-| ----- | --------------------------------------------------------------------------------------------------------------------- |
-| gcDAI | [0x67C713424295F81548C93bBD280474218C1b5a8B](https://etherscan.io/address/0x67C713424295F81548C93bBD280474218C1b5a8B) |
+| Token  | Mainnet Address                                                                                                       |
+| ------ | --------------------------------------------------------------------------------------------------------------------- |
+| gcDAI  | [0x8c659d745eB24DF270A952F68F4B1d6817c3795C](https://etherscan.io/address/0x8c659d745eB24DF270A952F68F4B1d6817c3795C) |
+| gcUSDC | [0x3C918ab39C4680d3eBb3EAFcA91C3494F372a20D](https://etherscan.io/address/0x3C918ab39C4680d3eBb3EAFcA91C3494F372a20D) |
 
 ## Repository Organization
 
