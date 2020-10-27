@@ -2,7 +2,6 @@
 pragma solidity ^0.6.0;
 
 import { Transfers } from "./Transfers.sol";
-import { CurveExchangeAbstraction } from "./CurveExchangeAbstraction.sol";
 import { UniswapV2ExchangeAbstraction } from "./UniswapV2ExchangeAbstraction.sol";
 
 import { GExchange } from "../GExchange.sol";
