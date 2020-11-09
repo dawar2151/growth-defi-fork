@@ -239,10 +239,18 @@ async function checkVitals(gctoken) {
 
 async function main(args) {
   const names = ['gcDAI', 'gcUSDC'];
+  const addresses = {
+    'gcDAI': {
+      'mainnet': '0x8c659d745eB24DF270A952F68F4B1d6817c3795C',
+    },
+    'gcUSDC': {
+      'mainnet': '0x3C918ab39C4680d3eBb3EAFcA91C3494F372a20D',
+    },
+  };
 
   const gctokens = [];
   for (const name of names) {
-    const address = require('../build/contracts/' + name + '.json').networks[networkId].address;
+    const address = addresses[name][networkId] || require('../build/contracts/' + name + '.json').networks[networkId].address;
     gctokens.push(await newGCToken(address));
   }
 
