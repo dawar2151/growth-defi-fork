@@ -23,7 +23,7 @@ function exit() {
   process.exit(0);
 }
 
-function interrupt(f: () => void): void {
+function interrupt(f) {
   process.on('SIGINT', f);
   process.on('SIGTERM', f);
   process.on('SIGUSR1', f);
