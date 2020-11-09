@@ -251,9 +251,8 @@ async function main(args) {
   interrupt(() => {
     if (!interrupted) {
       interrupted = true;
-      await sendMessage('<i>Monitoring interrupted</i>');
+      sendMessage('<i>Monitoring interrupted</i>'); // no await
     }
-    exit();
   });
 
   const names = ['gcDAI', 'gcUSDC'];
