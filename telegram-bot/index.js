@@ -23,6 +23,13 @@ function exit() {
   process.exit(0);
 }
 
+function interrupt(f: () => void): void {
+  process.on('SIGINT', f);
+  process.on('SIGTERM', f);
+  process.on('SIGUSR1', f);
+  process.on('SIGUSR2', f);
+}
+
 function entrypoint(main) {
   const args = process.argv;
   (async () => { try { await main(args); } catch (e) { abort(e); } exit(); })();
@@ -238,6 +245,17 @@ async function checkVitals(gctoken) {
 }
 
 async function main(args) {
+  await sendMessage('<i>Monitoring initiated</i>');
+
+  let interrupted = false;
+  interrupt(() => {
+    if (!interrupted) {
+      interrupted = true;
+      await sendMessage('<i>Monitoring interrupted</i>');
+    }
+    exit();
+  });
+
   const names = ['gcDAI', 'gcUSDC'];
   const addresses = {
     'gcDAI': {
