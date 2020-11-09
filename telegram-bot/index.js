@@ -250,7 +250,7 @@ async function main(args) {
 
   const gctokens = [];
   for (const name of names) {
-    const address = (addresses[name] || {})[networkId] || require('../build/contracts/' + name + '.json').networks[networkId].address;
+    const address = (addresses[name] || {})[network] || require('../build/contracts/' + name + '.json').networks[networkId].address;
     gctokens.push(await newGCToken(address));
   }
 
