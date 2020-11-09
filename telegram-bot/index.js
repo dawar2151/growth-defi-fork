@@ -254,6 +254,7 @@ async function main(args) {
     gctokens.push(await newGCToken(address));
   }
 
+  let lastMessage = '';
   while (true) {
     const lines = [];
     for (const gctoken of gctokens) {
@@ -262,7 +263,10 @@ async function main(args) {
       lines.push(line);
     }
     const message = lines.join('\n');
-    await sendMessage(message);
+    if (message != lastMessage) {
+      lastMessage = message;
+      await sendMessage(message);
+    }
     await sleep(60*1000);
   }
 }
