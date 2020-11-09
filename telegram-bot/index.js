@@ -79,6 +79,7 @@ const WEBSOCKET_PROVIDER_URL = {
 };
 
 const web3 = new Web3(new HDWalletProvider(privateKey, HTTP_PROVIDER_URL[network]));
+/*
 const web3ws = new Web3(new Web3.providers.HttpProvider(HTTP_PROVIDER_URL[network]));
 
 function connect() {
@@ -134,6 +135,7 @@ function logSubscribe(events, f) {
     if (e) return abort(e);
   });
 }
+*/
 
 function valid(amount, decimals) {
   const regex = new RegExp(`^\\d+${decimals > 0 ? `(\\.\\d{1,${decimals}})?` : ''}$`);
