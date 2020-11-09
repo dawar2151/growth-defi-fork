@@ -265,6 +265,7 @@ async function main(args) {
     const message = lines.join('\n');
     if (message != lastMessage) {
       lastMessage = message;
+      console.log(new Date().toISOString(), message);
       await sendMessage(message);
     }
     await sleep(60*1000);
