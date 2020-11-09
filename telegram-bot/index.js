@@ -274,17 +274,22 @@ async function main(args) {
   let lastMessage = '';
   while (true) {
     console.log(new Date().toISOString());
-    const lines = [];
-    for (const gctoken of gctokens) {
-      const vitals = await checkVitals(gctoken);
-      const line = '<b>' + gctoken.symbol + '</b> <i>' + vitals.collateralizationRatio + '</i>';
-      lines.push(line);
-    }
-    const message = lines.join('\n');
-    if (message != lastMessage) {
-      console.log(message);
-      await sendMessage(message);
-      lastMessage = message;
+    try {
+      const lines = [];
+      for (const gctoken of gctokens) {
+        const vitals = await checkVitals(gctoken);
+        const line = '<b>' + gctoken.symbol + '</b> <i>' + vitals.collateralizationRatio + '</i>';
+        lines.push(line);
+      }
+      const message = lines.join('\n');
+      if (message != lastMessage) {
+        console.log(message);
+        await sendMessage(message);
+        lastMessage = message;
+      }
+    } catch (e) {
+      console.log('FAILURE ' + e.message);
+      sendMessage('<i>Monitoring failure (' + e.message + ')</i>'); // no await
     }
     await sleep(60*1000);
   }
