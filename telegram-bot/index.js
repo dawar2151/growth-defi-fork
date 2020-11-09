@@ -256,6 +256,7 @@ async function main(args) {
 
   let lastMessage = '';
   while (true) {
+    console.log(new Date().toISOString());
     const lines = [];
     for (const gctoken of gctokens) {
       const vitals = await checkVitals(gctoken);
@@ -264,9 +265,9 @@ async function main(args) {
     }
     const message = lines.join('\n');
     if (message != lastMessage) {
-      lastMessage = message;
-      console.log(new Date().toISOString(), message);
+      console.log(message);
       await sendMessage(message);
+      lastMessage = message;
     }
     await sleep(60*1000);
   }
