@@ -295,6 +295,8 @@ async function main(args) {
     }
   });
 
+  await sleep(5 * 60 * 1000);
+
   const names = ['gcDAI', 'gcUSDC'];
 
   let gctokens = null;
