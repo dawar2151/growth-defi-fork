@@ -3,6 +3,9 @@ pragma solidity ^0.6.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+/**
+ * @dev Minimal set of declarations for Compound interoperability.
+ */
 interface Comptroller
 {
 	function oracle() external view returns (address _oracle);
@@ -11,7 +14,7 @@ interface Comptroller
 	function getAccountLiquidity(address _account) external view returns (uint256 _error, uint256 _liquidity, uint256 _shortfall);
 }
 
-interface PriceOracle
+interface CPriceOracle
 {
 	function getUnderlyingPrice(address _ctoken) external view returns (uint256 _price);
 }

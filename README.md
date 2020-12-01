@@ -7,10 +7,29 @@ This repository contains the source code for the GrowthDeFi smart contracts
 
 ## Deployed Contracts
 
-| Token  | Mainnet Address                                                                                                       |
-| ------ | --------------------------------------------------------------------------------------------------------------------- |
-| gcDAI  | [0x8c659d745eB24DF270A952F68F4B1d6817c3795C](https://etherscan.io/address/0x8c659d745eB24DF270A952F68F4B1d6817c3795C) |
-| gcUSDC | [0x3C918ab39C4680d3eBb3EAFcA91C3494F372a20D](https://etherscan.io/address/0x3C918ab39C4680d3eBb3EAFcA91C3494F372a20D) |
+| Token  | Mainnet Address                                                                                                             |
+| ------ | --------------------------------------------------------------------------------------------------------------------------- |
+| gDAI   | [0x5301988A8EB906a65b57e9BAF4750A3C74e3E635](https://etherscan.io/address/0x5301988A8EB906a65b57e9BAF4750A3C74e3E635)       |
+| gUSDC  | [0x6dfaabaf237174Fb5E2c12e2130613d64E1a4bbe](https://etherscan.io/address/0x6dfaabaf237174Fb5E2c12e2130613d64E1a4bbe)       |
+| gETH   | [0x3eEE7Fe99640c47ABF43Cd2C2B6A80EB785e38cf](https://etherscan.io/address/0x3eEE7Fe99640c47ABF43Cd2C2B6A80EB785e38cf)       |
+| gWBTC  | [0xe567B3174af8eA368ed536998a597147Ec29De8f](https://etherscan.io/address/0xe567B3174af8eA368ed536998a597147Ec29De8f)       |
+| gcDAI  | [0x4085669d375D7EBb225C05F6128e60C19079ee1c](https://etherscan.io/address/0x4085669d375D7EBb225C05F6128e60C19079ee1c)       |
+| gcUSDC | [0x0e93b2D3969A0a6b71CE21Aa5be417cd4cAC38D0](https://etherscan.io/address/0x0e93b2D3969A0a6b71CE21Aa5be417cd4cAC38D0)       |
+| gcETH  | [0xF510949599b90f78A0B40aae82539D09b9bE9e28](https://etherscan.io/address/0xF510949599b90f78A0B40aae82539D09b9bE9e28)       |
+| gcWBTC | [0x1085045eF3f1564e4dA4C7315C0B7448d82d5D32](https://etherscan.io/address/0x1085045eF3f1564e4dA4C7315C0B7448d82d5D32)       |
+| stkGRO | [0xD93f98b483CC2F9EFE512696DF8F5deCB73F9497](https://etherscan.io/address/0xD93f98b483CC2F9EFE512696DF8F5deCB73F9497)       |
+
+| Token  | Kovan Address                                                                                                               |
+| ------ | --------------------------------------------------------------------------------------------------------------------------- |
+| gDAI   | [0x8e7D3c9D614a49d54FA1176B8CE7fcdDcE571a6E](https://kovan.etherscan.io/address/0x8e7D3c9D614a49d54FA1176B8CE7fcdDcE571a6E) |
+| gUSDC  | [0x7AE53D7076c5Df0762A7e85fa24c01408A63c1e8](https://kovan.etherscan.io/address/0x7AE53D7076c5Df0762A7e85fa24c01408A63c1e8) |
+| gETH   | [0x4104F56839F8FD1FD67297713213DE447C33556E](https://kovan.etherscan.io/address/0x4104F56839F8FD1FD67297713213DE447C33556E) |
+| gWBTC  | [0xE45d930b67269CeBf207aAB4dCc200463f439634](https://kovan.etherscan.io/address/0xE45d930b67269CeBf207aAB4dCc200463f439634) |
+| gcDAI  | [0x8Cde5552602DB7563f424d105217e098d96fce36](https://kovan.etherscan.io/address/0x8Cde5552602DB7563f424d105217e098d96fce36) |
+| gcUSDC | [0x151ac053B6EEEB604c957f2E1F69F797834DB39b](https://kovan.etherscan.io/address/0x151ac053B6EEEB604c957f2E1F69F797834DB39b) |
+| gcETH  | [0x9Ca66B0165fF06066cd4f39731bBD2797E4E0691](https://kovan.etherscan.io/address/0x9Ca66B0165fF06066cd4f39731bBD2797E4E0691) |
+| gcWBTC | [0xb389dc7A147065c0F0572b8c3340F6F01D427751](https://kovan.etherscan.io/address/0xb389dc7A147065c0F0572b8c3340F6F01D427751) |
+| stkGRO | [0x760FbB334dbbc15B9774e3d9fA0def86C0A6e7Af](https://kovan.etherscan.io/address/0x760FbB334dbbc15B9774e3d9fA0def86C0A6e7Af) |
 
 ## Repository Organization
 
@@ -45,17 +64,15 @@ the following folder structure:
   libraries organized as modules each abstracting a specific functionality.
   These are compile-time libraries with internal functions, they do not serve
   the purpose of organizing the code into runtime (public) libraries. As
-  Solidity libraries usually work, the code is assumed to execute via delegate
-  calls in the context of the caller contract. _Some of the provided functionaly
-  may not be currently used but is kept as part of the code base as it was
-  useful in the past and may be useful in the future._
+  Solidity libraries usually work, the code is assumed to execute in the
+  context of the caller contract.
 * [/contracts/network/](contracts/network). In this folder we have a simple
   and helpful library to declare static properties such as the current network
   (mainnet, ropsten, etc), well-known useful contract addresses for each
   supported network, as well as some global definitions that are handy for
   debugging during development.
 
-The [/contracts/](contracts) folder contains basically 10 groups of files as
+The [/contracts/](contracts) folder contains basically 12 groups of files as
 presented below. Their actual functionality is described in the next section.
 
 * **Interface files**, such as [GToken.sol](contracts/GToken.sol),
@@ -70,38 +87,55 @@ presented below. Their actual functionality is described in the next section.
   contract specialized in token conversion; which allows for the replacement
   and customization of the conversion service provider used by gTokens at any
   given point in time.
+  Other interface files present in the project are [GPooler.sol](contracts/GPooler.sol),
+  [GMining.sol](contracts/GMining.sol), and [GVoting.sol](contracts/GVoting.sol),
+  which serve to support modular and public extensions of gTokens for managing a
+  liquidity pool, performing liquidity and profit mining, and implement a vote
+  mechanism for governance, respectivelly.
 * **Abstract contract files** that provide the basis implementation of shared
   functionality for their respective interface. These are basically
-  [GTokenBase.sol](contracts/GTokenBase.sol) for gTokens and
+  [GTokenBase.sol](contracts/GTokenBase.sol) for gTokens, and
   [GCTokenBase.sol](contracts/GCTokenBase.sol) for gcTokens.
   Note that gTokens extend the ERC-20 specification and we use the
-  [OpenZeppelin](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/v3.1.0)
+  [OpenZeppelin](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/v3.2.0)
   library as basis for their implementation. Besides the ERC-20 related
   functionality we also make use of OpenZeppelin's Ownable to guard admin-only
   public functions and ReentrancyGuard to conservatively guard all publicly
   exposed functions against reentrancy.
 * **Concrete contract files** that derive from the abstract contract files by
   filling in the specific details purposedly left open. These provide the
-  final/leaf contracts in the gTokens hierarchy. At the moment these comprise
-  the gcTokens implemented in two flavors: Type 1 gcTokens
-  [GCTokenType1.sol](contracts/GCTokenType1.sol); and Type 2 gcTokens.
-  _Note that the Type 2 is currently under development and should not yet be
-  regarded as final._
+  final/leaf contracts in the gTokens hierarchy. The list comprises
+  gTokens Type 0 (a.k.a. PMTs) [GTokenType0.sol](contracts/GTokenType0.sol);
+  gcTokens implemented in two flavors: Type 1 gcTokens
+  [GCTokenType1.sol](contracts/GCTokenType1.sol), and Type 2 gcTokens
+  [GCTokenType2.sol](contracts/GCTokenType2.sol). A special gToken Type 3
+  [GTokenType3.sol](contracts/GTokenType3.sol) provides the foundation for
+  governance by implementing a 1-level delegation voting token.
 * **Component contracts as (public) libraries** that provide core functionality
   implementation. Besides properly encapsulating the functionality they also
   allow working around the contract size limitations of the EVM.
   These are [GLiquidityPoolManager.sol](contracts/GLiquidityPoolManager.sol)
   for liquidity pool management/handling;
+  [GPortfolioReserveManager.sol](contracts/GPortfolioReserveManager.sol) for
+  multi token exposure allowing a distribution of the reserve to a list
+  of gTokens in a amind-defined percentual allocation (used by Type 0 gTokens);
   [GCLeveragedReserveManager.sol](contracts/GCLeveragedReserveManager.sol) for
   leveraged reserve management/handling where flash loans are used to maintain
   the desired leverage level over lending/borrowing of the reserve of cTokens
   (used by Type 1 gcTokens);
-* **A single entrypoint file** [GTokens.sol](contracts/GTokens.sol) that succinctly declares
-  all the available gTokens: gcDAI, gcUSDC (of Type 1).
-* **A public library** [G.sol](contracts/G.sol) that compiles and serves as
-  entrypoint to all the relevant functions available under the
-  [/modules/](contracts/modules) folder. This library exists mostly to work
-  around the EVM limitation of contract sizes, but it also provide a concise
+  [GCDelegatedReserveManager.sol](contracts/GCDelegatedReserveManager.sol) for
+  delegated reserve management/handling where borrowing is employed to mint
+  other gTokens that are used to maintain and grow the cToken reserve
+  (used by Type 2 gcTokens);
+* **A single entrypoint file** [GTokens.sol](contracts/GTokens.sol) that
+  succinctly declares all the available gTokens.
+* **A set of public libraries** to abstract the available modules.
+  The [G.sol](contracts/G.sol) library that compiles and serves as
+  entrypoint to most the relevant functions available under the
+  [/modules/](contracts/modules) folder. The [GC.sol](contracts/GC.sol),
+  similarly, do the same for the Compound lending market abstractions,
+  respectively. These libraries exists mostly to
+  work around the EVM limitation of contract sizes, but it also provide a concise
   standardized and neat reference to library code.
 * **Two handy pure calculation libraries** that hoist gToken and gcToken
   minting/burning formulas, [GFormulae](contracts/GFormulae.sol) and
@@ -116,6 +150,12 @@ presented below. Their actual functionality is described in the next section.
   such as [GUniswapV2Exchange.sol](contracts/GUniswapV2Exchange.sol),
   [GSushiswapExchange.sol](contracts/GSushiswapExchange.sol). _Possibly more
   providers or more sophisticated routing maybe be added on the future._
+* **A ETH bridge contract** [GEtherBridge.sol](contracts/GEtherBridge.sol)
+  to facilitate the integration with the Ethereum native asset. This is handy
+  as gTokens are designed to work with ERC-20 tokens and uses WETH.
+* **A token registry contract** [GTokenRegistry.sol](contracts/GTokenRegistry.sol)
+  to facilitate the registration and automatic integration of new gTokens
+  via [thegraph.com](https://thegraph.com/).
 * **The reference implementation of the GRO token** is available on
   [GrowthToken.sol](contracts/GrowthToken.sol).
 
@@ -126,14 +166,24 @@ platform. These tokens, so called gTokens, are organized in the following
 hierarchy:
 
 * gToken
+  * gToken (Type 0)
+    * gDAI
+    * gUSDC
+    * gETH
+    * gWBTC
   * gcToken
     * gcToken (Type 1)
       * gcDAI
       * gcUSDC
+    * gcToken (Type 2)
+      * gcETH
+      * gcWBTC
+  * gToken (Type 3)
+    * stkGRO
 
-Currently all gTokens are also gcTokens, because they are based on their
-Compound cToken counterpart. Other gTokens based on other platforms
-(such as Aave, Curve, etc) will be added to the hierarchy in the future.
+As one may deduct, gTokens are typically named after their reserve token.
+
+_gTokens based on other platforms will be added to the hierarchy in the future._
 
 ### Basic gToken functionality
 
@@ -167,7 +217,7 @@ functionality to:
    with a 7 day grace period
 
 Note that after the liquidity pool is migrated for the first time, the gToken
-contract collects a 2% fee for deposits and does not collect the 1% fee for
+contract collects a 2% fee on deposits and does not collect any fee for
 withdrawals.
 
 Relevant implementation files:
@@ -176,6 +226,40 @@ Relevant implementation files:
 * [GFormulae.sol](contracts/GFormulae.sol)
 * [GTokenBase.sol](contracts/GTokenBase.sol)
 * [GLiquidityPoolManager.sol](contracts/GLiquidityPoolManager.sol)
+
+### Basic gToken Type 0 functionality
+
+The gToken Type 0 family implements Portfolio Management Tokens (PMTs). These
+are tokens for which deposits and withdrawals of the reserve token is invested
+in a basket of related gTokens up to 5 different ones. The distribution is
+percentual and part of it can be maintained in the reserve token itself to
+accomodate liquidity and save on gas for small and frequent operations. For
+every asset supported by the GrowthDeFi platform there is a gToken Type 0
+correspondent. The PMTs are the entry points to the platform.
+
+The default configuration for a gToken Type 0, as of this writting, is to
+allocate 90% of the reserve assets to its correspondent gcToken
+and leave 10% of the reserve liquid (for instance, the gDAI PMT is composed of
+10% liquid DAI and 90% gcDAI).
+
+In order to save on gas, a PMT operation will at most trigger one operation of
+any of the underlying gTokens. Therefore the move into the target distribution
+of assets according to the portfolio settings is incremental, as operations
+happen. The target percentual configuration can be changed anytime by the
+contract onwer, but it may take half a dozen large operations to get the reserve
+into the desired distribution.
+
+The strategy for choosing which gToken is chosen to perform the underlying
+operation is basically its percentual deviation from the configured target.
+Furthermore we provide margin parameters to avoid having to rebalance the
+portfolio at every given operation.
+
+Relevant implementation files:
+
+* [GToken.sol](contracts/GToken.sol)
+* [GFormulae.sol](contracts/GFormulae.sol)
+* [GTokenBase.sol](contracts/GTokenBase.sol)
+* [GPortfolioReserveManager.sol](contracts/GPortfolioReserveManager.sol)
 
 ### Basic gcToken Type 1 functionality
 
@@ -233,7 +317,62 @@ Relevant implementation files:
 
 ### Basic gcToken Type 2 functionality
 
-_Under construction_
+The gToken Type 2 family is tailored to non-stable coins. Funds deposited into
+a gcToken Type 2 contract are used to mint the associated Compound cToken and
+used as collateral to borrow DAI, which in turn is used to mint gDAI.
+
+As with gcTokens Type 1, we collect COMP from liquidity mining, convert it, and
+use it to mint more of the underlying cToken. Similarly, we monitor the profit
+on the gDAI minted and, when it reaches a minimum level, we redeem the profit
+from gDAI, convert it, and use it to mint more of the underlying cToken.
+
+As with gcToken Type 1, the actual reserve collateralization ratio used by the
+gcToken Type 2 contract can be provided by the contract owner and is relative
+to the maximal collateralization ratio allowed by Compound. In order to switch
+off leveraging one must set this collateralization ratio to 0%.
+
+Relevant implementation files:
+
+* [GCToken.sol](contracts/GCToken.sol)
+* [GCFormulae.sol](contracts/GCFormulae.sol)
+* [GCTokenBase.sol](contracts/GCTokenBase.sol)
+* [GCTokenType2.sol](contracts/GCTokenType2.sol)
+* [GCDelegatedReserveManager.sol](contracts/GCDelegatedReserveManager.sol)
+
+### Basic gToken Type 3 functionality
+
+The gTokens Type 3 implement the basic gToken interface for deposits/withdrawals
+and provides a balance/vote delegation mechanism that will serve as basis for
+the system governance.
+
+Differently from the other gTokens, gTokens Type 3 do not have a locked liquidity
+pool to collect fees. Instead the fees collected are immediately burned. The fee
+gets burned not only in shares, but also in terms of the underlying reserve asset.
+And the fees for gTokens Type 3 are set at the much higher rate of 10%. The final
+characteristic that differentiates them from other gTokens is that ERC-20
+transfers are prohibted. These tokens can be minted and burned, but not moved around.
+
+As governace tokens, gTokens Type 3 provide a voting delegation mechanism. Each
+holder can appoint a candidate for vote delegation. Each candidate collects the
+reserve balance of those who appointed him in votes. So the contract offers two
+additional functions: 1) a function for setting your candidate and therefore
+delegating your balance in votes; 2) a function for reading the number of votes
+of a given candidate. Voting is organized in intervals of 24 hours, therefore
+candidate and vote changes in the current interval are only reflected on the
+next interval. With this additional functionality we can build a list of most
+voted candidates just by requiring that users suggest themselves to be part of
+the list and, if they indeed have the votes for that, they will be included on
+the list.
+
+The single token contract that belongs to the gTokens Type 3 class is stkGRO,
+which is a version of the GRO token tailored for governance.
+
+Relevant implementation files:
+
+* [GToken.sol](contracts/GToken.sol)
+* [GFormulae.sol](contracts/GFormulae.sol)
+* [GTokenType3.sol](contracts/GTokenType3.sol)
+* [GVoting.sol](contracts/GVoting.sol)
 
 ## Building, Deploying and Testing
 
@@ -247,20 +386,13 @@ Compiling the smart contracts:
 
 Deploying the smart contracts (locally):
 
-    $ ./start-mainnet-fork.sh
-    $ npm run deploy
-
-Deploying the smart contracts to mainnet:
-
-    $ npm run deploy:mainnet
+    $ ./start-mainnet-fork.sh & npm run deploy
 
 Running the unit tests:
 
-    $ ./start-mainnet-fork.sh
-    $ npm run test
+    $ ./start-mainnet-fork.sh & npm run test
 
 Running the stress test:
 
-    $ ./start-mainnet-fork.sh
-    $ npm run stress-test
+    $ ./start-mainnet-fork.sh & npm run stress-test
 

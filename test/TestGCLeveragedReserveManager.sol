@@ -7,7 +7,6 @@ import { DeployedAddresses } from "truffle/DeployedAddresses.sol";
 import { Env } from "./Env.sol";
 
 import { GCLeveragedReserveManager } from "../contracts/GCLeveragedReserveManager.sol";
-import { G } from "../contracts/G.sol";
 
 contract TestGCLeveragedReserveManager is Env
 {
@@ -17,7 +16,7 @@ contract TestGCLeveragedReserveManager is Env
 
 	constructor () public
 	{
-		lrm.init(cDAI, DAI, COMP);
+		lrm.init(cDAI, COMP);
 
 		address exchange = DeployedAddresses.GSushiswapExchange();
 		lrm.setExchange(exchange);

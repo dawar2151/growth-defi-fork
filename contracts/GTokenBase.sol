@@ -6,6 +6,7 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import { GToken } from "./GToken.sol";
+import { GPooler } from "./GPooler.sol";
 import { GFormulae } from "./GFormulae.sol";
 import { GLiquidityPoolManager } from "./GLiquidityPoolManager.sol";
 import { G } from "./G.sol";
@@ -34,7 +35,7 @@ import { G } from "./G.sol";
  *         started the fee for deposits becomes 2% and the fee for withdrawals
  *         becomes 0%, in order to incentivise others to follow the migration.
  */
-abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
+abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GPooler
 {
 	using GLiquidityPoolManager for GLiquidityPoolManager.Self;
 
@@ -245,7 +246,6 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 		require(_prepareDeposit(_cost), "not available at the moment");
 		_mint(_from, _netShares);
 		_mint(address(this), _feeShares.div(2));
-		lpm.gulpPoolAssets();
 	}
 
 	/**
@@ -270,7 +270,6 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 		G.pushFunds(reserveToken, _from, _cost);
 		_burn(_from, _grossShares);
 		_mint(address(this), _feeShares.div(2));
-		lpm.gulpPoolAssets();
 	}
 
 	/**
@@ -324,6 +323,7 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	 */
 	function burnLiquidityPoolPortion() public override onlyOwner nonReentrant
 	{
+		lpm.gulpPoolAssets();
 		(uint256 _stakesAmount, uint256 _sharesAmount) = lpm.burnPoolPortion();
 		_burnStakes(_stakesAmount);
 		_burn(address(this), _sharesAmount);
@@ -372,6 +372,7 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken
 	 */
 	function completeLiquidityPoolMigration() public override onlyOwner nonReentrant
 	{
+		lpm.gulpPoolAssets();
 		(address _migrationRecipient, uint256 _stakesAmount, uint256 _sharesAmount) = lpm.completePoolMigration();
 		G.pushFunds(stakesToken, _migrationRecipient, _stakesAmount);
 		_transfer(address(this), _migrationRecipient, _sharesAmount);

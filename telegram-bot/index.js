@@ -175,7 +175,7 @@ async function sendMessage(message) {
     console.log(message);
     try {
       const url = 'https://api.telegram.org/bot'+ telegramBotApiKey +'/sendMessage';
-      await axios.post(url, { chat_id: telegramBotChatId, text: message, parse_mode: 'HTML' });
+      await axios.post(url, { chat_id: telegramBotChatId, text: message, parse_mode: 'HTML', disable_web_page_preview: true });
       lastMessage = message;
     } catch (e) {
       console.log('FAILURE', e.message);
@@ -261,10 +261,16 @@ async function checkVitals(gctoken) {
 
 const DEFAULT_ADDRESS = {
   'gcDAI': {
-    'mainnet': '0x8c659d745eB24DF270A952F68F4B1d6817c3795C',
+    'mainnet': '0x4085669d375D7EBb225C05F6128e60C19079ee1c',
   },
   'gcUSDC': {
-    'mainnet': '0x3C918ab39C4680d3eBb3EAFcA91C3494F372a20D',
+    'mainnet': '0x0e93b2D3969A0a6b71CE21Aa5be417cd4cAC38D0',
+  },
+  'gcETH': {
+    'mainnet': '0xF510949599b90f78A0B40aae82539D09b9bE9e28',
+  },
+  'gcWBTC': {
+    'mainnet': '0x1085045eF3f1564e4dA4C7315C0B7448d82d5D32',
   },
 };
 
@@ -297,7 +303,9 @@ async function main(args) {
 
   await sleep(60 * 1000);
 
-  const names = ['gcDAI', 'gcUSDC'];
+  const names = [
+    'gcDAI', 'gcUSDC', 'gcETH', 'gcWBTC',
+  ];
 
   let gctokens = null;
 
@@ -313,7 +321,7 @@ async function main(args) {
       const lines = [];
       for (const gctoken of gctokens) {
         const vitals = await checkVitals(gctoken);
-        const line = '<b>' + gctoken.symbol + '</b> <i>' + vitals.collateralizationRatio + '</i>';
+        const line = '<a href="https://etherscan.io/address/' + gctoken.address + '"><b>' + gctoken.symbol + '</b></a> <i>' + vitals.collateralizationRatio + '</i>';
         lines.push(line);
       }
       message = lines.join('\n');

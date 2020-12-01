@@ -7,6 +7,7 @@ import { GCTokenBase } from "./GCTokenBase.sol";
 import { GCLeveragedReserveManager } from "./GCLeveragedReserveManager.sol";
 import { GFlashBorrower } from "./GFlashBorrower.sol";
 import { G } from "./G.sol";
+import { GC } from "./GC.sol";
 
 /**
  * @notice This contract implements the functionality for the gcToken Type 1.
@@ -48,8 +49,7 @@ contract GCTokenType1 is GCTokenBase, GFlashBorrower
 	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _stakesToken, address _reserveToken, address _miningToken)
 		GCTokenBase(_name, _symbol, _decimals, _stakesToken, _reserveToken, _miningToken, address(0)) public
 	{
-		address _underlyingToken = G.getUnderlyingToken(_reserveToken);
-		lrm.init(_reserveToken, _underlyingToken, _miningToken);
+		lrm.init(_reserveToken, _miningToken);
 	}
 
 	/**
@@ -93,7 +93,7 @@ contract GCTokenType1 is GCTokenBase, GFlashBorrower
 	 *         be processed on every operation. If the contract balance
 	 *         is below the minimum it waits until more accumulates.
 	 *         If the total amount is beyond the maximum it processes the
-	 *         maximum and leaf the rest for future operations. The mining
+	 *         maximum and leaves the rest for future operations. The mining
 	 *         token accumulated via liquidity mining is converted to the
 	 *         underlying asset and used to mint the associated cToken.
 	 *         This range is used to avoid wasting gas converting small
@@ -128,9 +128,7 @@ contract GCTokenType1 is GCTokenBase, GFlashBorrower
 	 * @notice Provides the target collateralization ratio and margin to be
 	 *         maintained by this contract. The amount is relative to the
 	 *         maximum collateralization available for the associated cToken
-	 *         on Compound. The amount is relative to the maximum
-	 *         collateralization available for the associated cToken
-	 *         on Compound. gcToken Type 1 use leveraged collateralization
+	 *         on Compound. gcToken Type 1 uses leveraged collateralization
 	 *         where the cToken is used to borrow its underlying token which
 	 *         in turn is used to mint new cToken and repeat. This is
 	 *         performed to the maximal level where the actual reserve
@@ -139,11 +137,11 @@ contract GCTokenType1 is GCTokenBase, GFlashBorrower
 	 * @param _collateralizationRatio The percent value relative to the
 	 *                                maximum allowed that this contract
 	 *                                will target for collateralization
-	 *                                (defaults to 96%)
+	 *                                (defaults to 94%)
 	 * @param _collateralizationRatio The percent value relative to the
 	 *                                maximum allowed that this contract
 	 *                                will target for collateralization
-	 *                                margin (defaults to 0%)
+	 *                                margin (defaults to 2%)
 	 */
 	function collateralizationRatio() public view override returns (uint256 _collateralizationRatio, uint256 _collateralizationMargin)
 	{
@@ -202,11 +200,11 @@ contract GCTokenType1 is GCTokenBase, GFlashBorrower
 	 * @param _collateralizationRatio The percent value relative to the
 	 *                                maximum allowed that this contract
 	 *                                will target for collateralization
-	 *                                (defaults to 96%)
+	 *                                (defaults to 94%)
 	 * @param _collateralizationRatio The percent value relative to the
 	 *                                maximum allowed that this contract
 	 *                                will target for collateralization
-	 *                                margin (defaults to 0%)
+	 *                                margin (defaults to 2%)
 	 */
 	function setCollateralizationRatio(uint256 _collateralizationRatio, uint256 _collateralizationMargin) public override onlyOwner nonReentrant
 	{
@@ -219,7 +217,7 @@ contract GCTokenType1 is GCTokenBase, GFlashBorrower
 	 *      collateralization/leverage to reflect the new increased reserve
 	 *      balance. This method uses the GCLeveragedReserveManager to
 	 *      adjust the reserve and this is done via flash loans.
-	 *      See GCLeveragedReserveManager().
+	 *      See GCLeveragedReserveManager.sol.
 	 * @param _cost The amount of reserve being deposited (ignored).
 	 * @return _success A boolean indicating whether or not the operation
 	 *                  succeeded. This operation should not fail unless
@@ -235,10 +233,10 @@ contract GCTokenType1 is GCTokenBase, GFlashBorrower
 	/**
 	 * @dev This method is overriden from GTokenBase and sets up the reserve
 	 *      before a withdrawal comes along. It basically calculates the
-	 *      the amount will be left in the reserve, in terms of cToken cost,
-	 *      and adjusts the collateralization/leverage accordingly. This
+	 *      the amount that will be left in the reserve, in terms of cToken
+	 *      cost, and adjusts the collateralization/leverage accordingly. This
 	 *      method uses the GCLeveragedReserveManager to adjust the reserve
-	 *      and this is done via flash loans. See GCLeveragedReserveManager().
+	 *      and this is done via flash loans. See GCLeveragedReserveManager.sol.
 	 * @param _cost The amount of reserve being withdrawn and that needs to
 	 *              be immediately liquid.
 	 * @return _success A boolean indicating whether or not the operation succeeded.
@@ -247,7 +245,7 @@ contract GCTokenType1 is GCTokenBase, GFlashBorrower
 	 */
 	function _prepareWithdrawal(uint256 _cost) internal override mayFlashBorrow returns (bool _success)
 	{
-		return lrm.adjustReserve(GCFormulae._calcUnderlyingCostFromCost(_cost, G.fetchExchangeRate(reserveToken)));
+		return lrm.adjustReserve(GCFormulae._calcUnderlyingCostFromCost(_cost, GC.fetchExchangeRate(reserveToken)));
 	}
 
 	/**
