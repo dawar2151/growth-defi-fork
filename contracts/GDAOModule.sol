@@ -10,7 +10,7 @@ import { G } from "./G.sol";
 
 import { Enum, Safe } from "./interop/Gnosis.sol";
 
-contract DAOSafeModule is ReentrancyGuard
+contract GDAOModule is ReentrancyGuard
 {
 	using SafeMath for uint256;
 	using EnumerableSet for EnumerableSet.AddressSet;
