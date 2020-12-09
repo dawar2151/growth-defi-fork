@@ -20,8 +20,8 @@ contract GDAOModule is ReentrancyGuard
 
 	uint256 constant VOTING_ROUND_INTERVAL = 1 days;
 
-	uint256 public constant SIGNING_OWNERS = 7;
-	uint256 public constant SIGNING_THRESHOLD = 4;
+	uint256 constant SIGNING_OWNERS = 7;
+	uint256 constant SIGNING_THRESHOLD = 4;
 
 	address public immutable safe;
 	address public immutable votingToken;
@@ -34,6 +34,14 @@ contract GDAOModule is ReentrancyGuard
 	{
 		safe = _safe;
 		votingToken = _votingToken;
+
+		address[] memory _owners = Safe(_safe).getOwners();
+		uint256 _ownersCount = _owners.length;
+		for (uint256 _index = 0; _index < _ownersCount; _index++) {
+			address _owner = _owners[_index];
+			bool _success = candidates.add(_owner);
+			assert(_success);
+		}
 	}
 
 	function candidateCount() public view returns (uint256 _count)
