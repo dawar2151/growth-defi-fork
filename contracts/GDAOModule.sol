@@ -44,6 +44,22 @@ contract GDAOModule is ReentrancyGuard
 		}
 	}
 
+	function currentVotingRound() public view returns (uint256 _votingRound)
+	{
+		return block.timestamp.div(VOTING_ROUND_INTERVAL);
+	}
+
+	function timeToNextVotingRound() public view returns (uint256 _timeToNextVotingRound)
+	{
+		return block.timestamp.div(VOTING_ROUND_INTERVAL).add(1).mul(VOTING_ROUND_INTERVAL);
+	}
+
+	function hasPendingTurnOver() internal view returns (bool _hasPendingTurnOver)
+	{
+		uint256 _votingRound = block.timestamp.div(VOTING_ROUND_INTERVAL);
+		return _votingRound > votingRound && !synced;
+	}
+
 	function candidateCount() public view returns (uint256 _count)
 	{
 		return candidates.length();
@@ -67,18 +83,7 @@ contract GDAOModule is ReentrancyGuard
 		require(_closeRound(), "must wait next interval");
 	}
 
-	function _closeRound() internal returns (bool _success)
-	{
-		uint256 _votingRound = block.timestamp.div(VOTING_ROUND_INTERVAL);
-		if (_votingRound > votingRound) {
-			votingRound = _votingRound;
-			_turnOver();
-			return true;
-		}
-		return false;
-	}
-
-	function _findLeastVoted() view internal returns (address _leastVoted, uint256 _leastVotes)
+	function _findLeastVoted() internal view returns (address _leastVoted, uint256 _leastVotes)
 	{
 		_leastVoted = address(0);
 		_leastVotes = uint256(-1);
@@ -92,6 +97,17 @@ contract GDAOModule is ReentrancyGuard
 			}
 		}
 		return (_leastVoted, _leastVotes);
+	}
+
+	function _closeRound() internal returns (bool _success)
+	{
+		uint256 _votingRound = block.timestamp.div(VOTING_ROUND_INTERVAL);
+		if (_votingRound > votingRound) {
+			votingRound = _votingRound;
+			_turnOver();
+			return true;
+		}
+		return false;
 	}
 
 	function _appointCandidate(address _candidate) internal returns(bool _success)
