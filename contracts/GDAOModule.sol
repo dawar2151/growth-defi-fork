@@ -8,8 +8,6 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.s
 import { GVoting } from "./GVoting.sol";
 import { G } from "./G.sol";
 
-import { Enum, Safe } from "./interop/Gnosis.sol";
-
 /**
  * @notice This contract implements a Gnosis Safe extension module to allow
  *         replacing the multisig signers using the 1-level delegation voting
@@ -59,7 +57,7 @@ contract GDAOModule is ReentrancyGuard
 		safe = _safe;
 		votingToken = _votingToken;
 
-		address[] memory _owners = Safe(_safe).getOwners();
+		address[] memory _owners = G.getOwners(_safe);
 		uint256 _ownersCount = _owners.length;
 		for (uint256 _index = 0; _index < _ownersCount; _index++) {
 			address _owner = _owners[_index];
@@ -233,64 +231,22 @@ contract GDAOModule is ReentrancyGuard
 		uint256 _candidateCount = candidates.length();
 		for (uint256 _index = 0; _index < _candidateCount; _index++) {
 			address _candidate = candidates.at(_index);
-			if (Safe(safe).isOwner(_candidate)) continue;
-			bool _success = _addOwnerWithThreshold(_candidate, 1);
+			if (G.isOwner(safe, _candidate)) continue;
+			bool _success = G.addOwnerWithThreshold(safe, _candidate, 1);
 			assert(_success);
 		}
-		address[] memory _owners = Safe(safe).getOwners();
+		address[] memory _owners = G.getOwners(safe);
 		uint256 _ownersCount = _owners.length;
 		for (uint256 _index = 0; _index < _ownersCount; _index++) {
 			address _owner = _owners[_index];
 			if (candidates.contains(_owner)) continue;
 			address _prevOwner = _index == 0 ? address(0x1) : _owners[_index - 1];
-			bool _success = _removeOwner(_prevOwner, _owner, 1);
+			bool _success = G.removeOwner(safe, _prevOwner, _owner, 1);
 			assert(_success);
 		}
 		uint256 _threshold = G.min(_candidateCount, SIGNING_THRESHOLD);
-		bool _success = _changeThreshold(_threshold);
+		bool _success = G.changeThreshold(safe, _threshold);
 		assert(_success);
 		synced = true;
-	}
-
-	/**
-	 * @dev Adds a signer to the multisig by calling the Gnosis Safe function
-	 *      addOwnerWithThreshold() via the execTransactionFromModule()
-	 *      primitive.
-	 * @param _owner The owner/signer to be added to the multisig.
-	 * @param _threshold The new threshold (minimum number of signers) to be set.
-	 * @return _success A boolean indicating if the operation succeded.
-	 */
-	function _addOwnerWithThreshold(address _owner, uint256 _threshold) internal returns (bool _success)
-	{
-		bytes memory _data = abi.encodeWithSignature("addOwnerWithThreshold(address,uint256)", _owner, _threshold);
-		return Safe(safe).execTransactionFromModule(safe, 0, _data, Enum.Operation.Call);
-	}
-
-	/**
-	 * @dev Removes a signer to the multisig by calling the Gnosis Safe function
-	 *      removeOwner() via the execTransactionFromModule()
-	 *      primitive.
-	 * @param _prevOwner The previous owner/signer in the multisig linked list.
-	 * @param _owner The owner/signer to be added to the multisig.
-	 * @param _threshold The new threshold (minimum number of signers) to be set.
-	 * @return _success A boolean indicating if the operation succeded.
-	 */
-	function _removeOwner(address _prevOwner, address _owner, uint256 _threshold) internal returns (bool _success)
-	{
-		bytes memory _data = abi.encodeWithSignature("removeOwner(address,address,uint256)", _prevOwner, _owner, _threshold);
-		return Safe(safe).execTransactionFromModule(safe, 0, _data, Enum.Operation.Call);
-	}
-
-	/**
-	 * @dev Changes minimum number of signers of the multisig by calling the
-	 *      Gnosis Safe function changeThreshold() via the
-	 *      execTransactionFromModule() primitive.
-	 * @param _threshold The new threshold (minimum number of signers) to be set.
-	 * @return _success A boolean indicating if the operation succeded.
-	 */
-	function _changeThreshold(uint256 _threshold) internal returns (bool _success)
-	{
-		bytes memory _data = abi.encodeWithSignature("changeThreshold(uint256)", _threshold);
-		return Safe(safe).execTransactionFromModule(safe, 0, _data, Enum.Operation.Call);
 	}
 }
