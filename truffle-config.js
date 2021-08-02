@@ -27,10 +27,8 @@ module.exports = {
       skipDryRun: true,
     },
     rinkeby: {
-      network_id: 4,
-      networkCheckTimeout: 10000, // fixes truffle/infura bug
-      provider: () => new HDWalletProvider(privateKey, 'wss://rinkeby.infura.io/ws/v3/' + infuraProjectId),
-      skipDryRun: true,
+      provider: () => new HDWalletProvider(privateKey, `https://rinkeby.infura.io/v3/29f0131a60c4424bb401b8834c78585f`),
+      network_id: 4
     },
     kovan: {
       network_id: 42,
