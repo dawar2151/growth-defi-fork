@@ -24,6 +24,7 @@ library GFormulae
 	 */
 	function _calcDepositSharesFromCost(uint256 _cost, uint256 _totalReserve, uint256 _totalSupply, uint256 _depositFee) internal pure returns (uint256 _netShares, uint256 _feeShares)
 	{
+		require(_totalReserve > 0,"totalReserve must be upper to 0");
 		uint256 _grossShares = _totalSupply == _totalReserve ? _cost : _cost.mul(_totalSupply).div(_totalReserve);
 		_netShares = _grossShares.mul(uint256(1e18).sub(_depositFee)).div(1e18);
 		_feeShares = _grossShares.sub(_netShares);
@@ -39,6 +40,7 @@ library GFormulae
 	 */
 	function _calcDepositCostFromShares(uint256 _netShares, uint256 _totalReserve, uint256 _totalSupply, uint256 _depositFee) internal pure returns (uint256 _cost, uint256 _feeShares)
 	{
+		require(_totalReserve > 0,"totalReserve must be upper to 0");
 		uint256 _grossShares = _netShares.mul(1e18).div(uint256(1e18).sub(_depositFee));
 		_cost = _totalReserve == _totalSupply ? _grossShares : _grossShares.mul(_totalReserve).div(_totalSupply);
 		_feeShares = _grossShares.sub(_netShares);
@@ -54,6 +56,7 @@ library GFormulae
 	 */
 	function _calcWithdrawalSharesFromCost(uint256 _cost, uint256 _totalReserve, uint256 _totalSupply, uint256 _withdrawalFee) internal pure returns (uint256 _grossShares, uint256 _feeShares)
 	{
+		require(_totalReserve > 0,"totalReserve must be upper to 0");
 		uint256 _netShares = _cost == _totalReserve ? _totalSupply : _cost.mul(_totalSupply).div(_totalReserve);
 		_grossShares = _netShares.mul(1e18).div(uint256(1e18).sub(_withdrawalFee));
 		_feeShares = _grossShares.sub(_netShares);
@@ -69,6 +72,7 @@ library GFormulae
 	 */
 	function _calcWithdrawalCostFromShares(uint256 _grossShares, uint256 _totalReserve, uint256 _totalSupply, uint256 _withdrawalFee) internal pure returns (uint256 _cost, uint256 _feeShares)
 	{
+		require(_totalReserve > 0,"totalReserve must be upper to 0");
 		uint256 _netShares = _grossShares.mul(uint256(1e18).sub(_withdrawalFee)).div(1e18);
 		_cost = _netShares == _totalSupply ? _totalReserve : _netShares.mul(_totalReserve).div(_totalSupply);
 		_feeShares = _grossShares.sub(_netShares);

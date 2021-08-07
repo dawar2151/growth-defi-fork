@@ -45,6 +45,7 @@ contract GTokenType3 is ERC20, ReentrancyGuard, GToken, GVoting
 		ERC20(_name, _symbol) public
 	{
 		_setupDecimals(_decimals);
+		_mint(address(this), 10);
 		reserveToken = _reserveToken;
 	}
 
