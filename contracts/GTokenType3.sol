@@ -21,8 +21,8 @@ contract GTokenType3 is ERC20, ReentrancyGuard, GToken, GVoting
 {
 	using SafeMath for uint256;
 
-	uint256 constant DEPOSIT_FEE = 3e16; // 3%
-	uint256 constant WITHDRAWAL_FEE = 3e16; // 3%
+	uint256 constant DEPOSIT_FEE = 6e16; // 6%
+	uint256 constant WITHDRAWAL_FEE = 6e16; // 6%
 
 	uint256 constant VOTING_ROUND_INTERVAL = 1 days;
 
