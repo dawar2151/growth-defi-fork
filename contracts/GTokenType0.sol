@@ -42,7 +42,7 @@ contract GTokenType0 is GTokenBase, GPortfolio
 	 * @param _symbol The ERC-20 token symbol.
 	 * @param _decimals The ERC-20 token decimals.
 	 * @param _stakesToken The ERC-20 token address to be used as stakes
-	 *                     token (GRO).
+	 *                     token (MTC).
 	 * @param _reserveToken The ERC-20 token address to be used as reserve
 	 *                      token (e.g. DAI for gDAI).
 	 */

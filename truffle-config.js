@@ -30,6 +30,10 @@ module.exports = {
       provider: () => new HDWalletProvider(privateKey, `https://rinkeby.infura.io/v3/29f0131a60c4424bb401b8834c78585f`),
       network_id: 4
     },
+    smarttestnet: {
+      provider: () => new HDWalletProvider(privateKey, `https://data-seed-prebsc-2-s1.binance.org:8545/`),
+      network_id: 97
+    },
     kovan: {
       network_id: 42,
       networkCheckTimeout: 10000, // fixes truffle/infura bug

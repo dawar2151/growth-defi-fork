@@ -17,7 +17,7 @@ contract TestAaveFlashLoanAbstraction is Env
 		uint256 _liquidityAmount2 = AaveFlashLoanAbstraction._getFlashLoanLiquidity(USDC);
 		Assert.isAbove(_liquidityAmount2, 0e6, "USDC liquidity must be above 0e6");
 
-		uint256 _liquidityAmount3 = AaveFlashLoanAbstraction._getFlashLoanLiquidity(GRO);
-		Assert.equal(_liquidityAmount3, 0e18, "GRO liquidity must be 0e18");
+		uint256 _liquidityAmount3 = AaveFlashLoanAbstraction._getFlashLoanLiquidity(MTC);
+		Assert.equal(_liquidityAmount3, 0e18, "MTC liquidity must be 0e18");
 	}
 }

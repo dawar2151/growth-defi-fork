@@ -25,7 +25,7 @@ import { G } from "./G.sol";
  *         withdrawal of funds a 1% fee is applied and collected from shares.
  *         Half of it is immediately burned, which is equivalent to
  *         redistributing it to all gToken holders, and the other half is
- *         provided to a liquidity pool configured as a 50% GRO/50% gToken with
+ *         provided to a liquidity pool configured as a 50% MTC/50% gToken with
  *         a 10% swap fee. Every week a percentage of the liquidity pool is
  *         burned to account for the accumulated swap fees for that period.
  *         Finally, the gToken contract provides functionality to migrate the
@@ -55,7 +55,7 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GPooler
 	 * @param _symbol The ERC-20 token symbol.
 	 * @param _decimals The ERC-20 token decimals.
 	 * @param _stakesToken The ERC-20 token address to be used as stakes
-	 *                     token (GRO).
+	 *                     token (MTC).
 	 * @param _reserveToken The ERC-20 token address to be used as reserve
 	 *                      token (e.g. cDAI for gcDAI).
 	 */
@@ -279,7 +279,7 @@ abstract contract GTokenBase is ERC20, Ownable, ReentrancyGuard, GToken, GPooler
 	 *         created liquidity pool to it, which will collect fees
 	 *         associated with the minting and burning of this gToken shares.
 	 *         The liquidity pool will consist of a 50%/50% balance of the
-	 *         stakes token (GRO) and this gToken shares with a swap fee of
+	 *         stakes token (MTC) and this gToken shares with a swap fee of
 	 *         10%. The rate between the amount of the two assets deposited
 	 *         via this function defines the initial price. The minimum
 	 *         amount to be provided for each is 1,000,000 wei. The funds

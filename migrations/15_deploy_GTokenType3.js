@@ -1,5 +1,5 @@
 const names = [
-  'stkGRO',
+  'stkMTC',
 ];
 
 const G = artifacts.require('G');

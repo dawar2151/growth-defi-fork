@@ -1,5 +1,5 @@
 const G = artifacts.require('G');
-const stkGRO = artifacts.require('stkGRO');
+const stkMTC = artifacts.require('stkMTC');
 const GDAOModule = artifacts.require('GDAOModule');
 
 module.exports = async (deployer, network) => {
@@ -12,7 +12,7 @@ module.exports = async (deployer, network) => {
     multisig = '0xF074450e1bCB367822f6b9deED2f4784a2a6A5cF';
   }
   else return;
-  const vtoken = await stkGRO.deployed();
+  const vtoken = await stkMTC.deployed();
   deployer.link(G, GDAOModule);
   await deployer.deploy(GDAOModule, multisig, vtoken.address);
 };

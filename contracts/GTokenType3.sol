@@ -15,7 +15,7 @@ import { G } from "./G.sol";
  *         It has a higher deposit/withdrawal fee when compared to other
  *         gTokens (10%). Half of the collected fee used to reward token
  *         holders while the other half is burned along with the same proportion
- *         of the reserve. It is used in the implementation of stkGRO.
+ *         of the reserve. It is used in the implementation of stkMTC.
  */
 contract GTokenType3 is ERC20, ReentrancyGuard, GToken, GVoting
 {
@@ -39,13 +39,13 @@ contract GTokenType3 is ERC20, ReentrancyGuard, GToken, GVoting
 	 * @param _symbol The ERC-20 token symbol.
 	 * @param _decimals The ERC-20 token decimals.
 	 * @param _reserveToken The ERC-20 token address to be used as reserve
-	 *                      token (e.g. GRO for sktGRO).
+	 *                      token (e.g. MTC for sktMTC).
 	 */
 	constructor (string memory _name, string memory _symbol, uint8 _decimals, address _reserveToken)
 		ERC20(_name, _symbol) public
 	{
 		_setupDecimals(_decimals);
-		_mint(address(this), 10);
+		_mint(address(this), 10*(10**18));
 		reserveToken = _reserveToken;
 	}
 

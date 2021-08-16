@@ -11,12 +11,12 @@ import { G } from "./G.sol";
 /**
  * @notice This contract implements a Gnosis Safe extension module to allow
  *         replacing the multisig signers using the 1-level delegation voting
- *         provided by stkGRO. Every 24 hours, around 0 UTC, a new voting round
+ *         provided by stkMTC. Every 24 hours, around 0 UTC, a new voting round
  *         starts and the candidates appointed in the previous round can become
  *         the signers of the multisig. This module allows up to 7 signers with
  *         a minimum of 4 signatures to take any action. There are 3 consecutive
  *         phases in the process, each occuring at a 24 hour voting round. In
- *         the first round, stkGRO holders can delegate their votes (stkGRO
+ *         the first round, stkMTC holders can delegate their votes (stkMTC
  *         balance) to candidates; vote balance is frozen by the end of that
  *         round. In the second round, most voted candidates can appoint
  *         themselves to become signers, replacing a previous candidate from the
@@ -60,7 +60,7 @@ contract GDAOModule is ReentrancyGuard
 	/**
 	 * @dev Constructor for the Gnosis Safe extension module.
 	 * @param _safe The Gnosis Safe multisig contract address.
-	 * @param _votingToken The ERC-20 token used for voting (stkGRO).
+	 * @param _votingToken The ERC-20 token used for voting (stkMTC).
 	 */
 	constructor (address _safe, address _votingToken) public
 	{
@@ -123,7 +123,7 @@ contract GDAOModule is ReentrancyGuard
 
 	/**
 	 * @notice Returns the i-th appointed candidates on the list.
-	 * @return _candidate The address of an stkGRO holder appointed to the
+	 * @return _candidate The address of an stkMTC holder appointed to the
 	 *                    candidate list.
 	 */
 	function candidateAt(uint256 _index) public view returns (address _candidate)

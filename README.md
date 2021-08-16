@@ -17,7 +17,7 @@ This repository contains the source code for the GrowthDeFi smart contracts
 | gcUSDC | [0x0e93b2D3969A0a6b71CE21Aa5be417cd4cAC38D0](https://etherscan.io/address/0x0e93b2D3969A0a6b71CE21Aa5be417cd4cAC38D0)       |
 | gcETH  | [0xF510949599b90f78A0B40aae82539D09b9bE9e28](https://etherscan.io/address/0xF510949599b90f78A0B40aae82539D09b9bE9e28)       |
 | gcWBTC | [0x1085045eF3f1564e4dA4C7315C0B7448d82d5D32](https://etherscan.io/address/0x1085045eF3f1564e4dA4C7315C0B7448d82d5D32)       |
-| stkGRO | [0xD93f98b483CC2F9EFE512696DF8F5deCB73F9497](https://etherscan.io/address/0xD93f98b483CC2F9EFE512696DF8F5deCB73F9497)       |
+| stkMTC | [0xD93f98b483CC2F9EFE512696DF8F5deCB73F9497](https://etherscan.io/address/0xD93f98b483CC2F9EFE512696DF8F5deCB73F9497)       |
 
 | Token  | Kovan Address                                                                                                               |
 | ------ | --------------------------------------------------------------------------------------------------------------------------- |
@@ -29,7 +29,7 @@ This repository contains the source code for the GrowthDeFi smart contracts
 | gcUSDC | [0x151ac053B6EEEB604c957f2E1F69F797834DB39b](https://kovan.etherscan.io/address/0x151ac053B6EEEB604c957f2E1F69F797834DB39b) |
 | gcETH  | [0x9Ca66B0165fF06066cd4f39731bBD2797E4E0691](https://kovan.etherscan.io/address/0x9Ca66B0165fF06066cd4f39731bBD2797E4E0691) |
 | gcWBTC | [0xb389dc7A147065c0F0572b8c3340F6F01D427751](https://kovan.etherscan.io/address/0xb389dc7A147065c0F0572b8c3340F6F01D427751) |
-| stkGRO | [0x760FbB334dbbc15B9774e3d9fA0def86C0A6e7Af](https://kovan.etherscan.io/address/0x760FbB334dbbc15B9774e3d9fA0def86C0A6e7Af) |
+| stkMTC | [0x760FbB334dbbc15B9774e3d9fA0def86C0A6e7Af](https://kovan.etherscan.io/address/0x760FbB334dbbc15B9774e3d9fA0def86C0A6e7Af) |
 
 ## Repository Organization
 
@@ -161,8 +161,8 @@ presented below. Their actual functionality is described in the next section.
   [Gnosis Safe](https://gnosis-safe.io/) multisig (which is expected to have
   privileged access to the gTokens admin functionality) allowing for the
   decentralized update of its signers according to the votes delegated by
-  stkGRO holders.
-* **The reference implementation of the GRO token** is available on
+  stkMTC holders.
+* **The reference implementation of the MTC token** is available on
   [GrowthToken.sol](contracts/GrowthToken.sol).
 
 ## High-Level Smart Contract Functionality
@@ -185,7 +185,7 @@ hierarchy:
       * gcETH
       * gcWBTC
   * gToken (Type 3)
-    * stkGRO
+    * stkMTC
 
 As one may deduct, gTokens are typically named after their reserve token.
 
@@ -210,7 +210,7 @@ equivalent to redistributing the underlying associated reserve among all gToken
 holds; 2) the other half is provided to a liquidity pool.
 
 Every gToken contract is associated to a Balancer liquidity pool comprised of
-50% of GRO and 50% of the given gToken. This liquidity pool is available
+50% of MTC and 50% of the given gToken. This liquidity pool is available
 publicly for external use and arbitrage and is set up with a trade fee of 10%.
 
 Associated with the liquidity pool there is also some priviledged (admin)
@@ -219,7 +219,7 @@ functionality to:
 1. Allocate the pool and associate with the gToken contract
 2. Burn 0.5% (or the actual burning rate) once per week
 3. Set the burning rate, which is initially 0.5%
-4. Migrate the pool funds (GRO and gToken balances) to an external address
+4. Migrate the pool funds (MTC and gToken balances) to an external address
    with a 7 day grace period
 
 Note that after the liquidity pool is migrated for the first time, the gToken
@@ -376,8 +376,8 @@ voted candidates just by requiring that users suggest themselves to be part of
 the list and, if they indeed have the votes for that, they will be included on
 the list.
 
-The single token contract that belongs to the gTokens Type 3 class is stkGRO,
-which is a version of the GRO token tailored for governance.
+The single token contract that belongs to the gTokens Type 3 class is stkMTC,
+which is a version of the MTC token tailored for governance.
 
 Relevant implementation files:
 

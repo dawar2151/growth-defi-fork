@@ -33,7 +33,7 @@ abstract contract GCTokenBase is GTokenBase, GCToken, GMining
 	 * @param _symbol The ERC-20 token symbol.
 	 * @param _decimals The ERC-20 token decimals.
 	 * @param _stakesToken The ERC-20 token address to be used as stakes
-	 *                     token (GRO).
+	 *                     token (MTC).
 	 * @param _reserveToken The ERC-20 token address to be used as reserve
 	 *                      token (e.g. cDAI for gcDAI).
 	 * @param _miningToken The ERC-20 token used for liquidity mining on
@@ -234,12 +234,12 @@ abstract contract GCTokenBase is GTokenBase, GCToken, GMining
 
 	/**
 	 * @dev The default behavior of this function is to send the funds to
-	 *      address(0), but we override it and send the funds to the stkGRO
+	 *      address(0), but we override it and send the funds to the stkMTC
 	 *      contract instead.
 	 * @param _stakesAmount The amount of the stakes token being burned.
 	 */
 	function _burnStakes(uint256 _stakesAmount) internal override
 	{
-		G.pushFunds(stakesToken, $.stkGRO, _stakesAmount);
+		G.pushFunds(stakesToken, $.stkMTC, _stakesAmount);
 	}
 }

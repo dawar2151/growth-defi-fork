@@ -14,7 +14,7 @@ contract Env
 {
 	using SafeMath for uint256;
 
-	address public GRO = $.GRO;
+	address public MTC = $.MTC;
 	address public COMP = $.COMP;
 	address public DAI = $.DAI;
 	address public USDC = $.USDC;

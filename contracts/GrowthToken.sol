@@ -3,7 +3,7 @@ pragma solidity ^0.6.0;
 
 /**
  * @dev The definitions of this file are provided for reference only.
- *      The GRO token has been published independently.
+ *      The MTC token has been published independently.
  */
 interface ERC20Interface
 {
@@ -58,7 +58,7 @@ contract GrowthToken is ERC20Interface, SafeMath_
 	constructor () public
 	{
 		name = "Growth";
-		symbol = "GRO";
+		symbol = "MTC";
 		decimals = 18;
 		_totalSupply = 1000000000000000000000000;
 		balances[msg.sender] = _totalSupply;
